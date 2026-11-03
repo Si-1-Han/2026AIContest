@@ -1,0 +1,17 @@
+# 로컬에서 Campus API 실행:  docker compose up --build   →  http://localhost:8000/docs
+services:
+  api:
+    build:
+      context: .
+      dockerfile: backend/Dockerfile
+    ports:
+      - "8000:8000"
+    environment:
+      CAMPUS_ADMIN_TOKEN: ${CAMPUS_ADMIN_TOKEN:-dev-token}
+      CAMPUS_CORS_ORIGINS: '["http://localhost:5173"]'
+    volumes:
+      - ./web/public/data:/app/data:ro # 파이프라인을 다시 돌리면 재시작만 하면 반영
+      - api-data:/app/var # SQLite (편집 내용·이벤트)
+
+volumes:
+  api-data:

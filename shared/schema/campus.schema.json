@@ -1,0 +1,728 @@
+{
+  "$defs": {
+    "Building": {
+      "additionalProperties": false,
+      "description": "캠퍼스 건물. 클릭·길찾기·AI 안내의 대상.",
+      "properties": {
+        "id": {
+          "description": "고유 ID (예: main)",
+          "type": "string"
+        },
+        "name": {
+          "description": "표시 이름 (예: 본관)",
+          "type": "string"
+        },
+        "aliases": {
+          "description": "AI·검색용 별칭",
+          "items": {
+            "type": "string"
+          },
+          "type": "array"
+        },
+        "osm_id": {
+          "anyOf": [
+            {
+              "type": "integer"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null
+        },
+        "levels": {
+          "description": "지상 층수",
+          "minimum": 1,
+          "type": "integer"
+        },
+        "levels_estimated": {
+          "default": false,
+          "description": "OSM에 층수가 없어 기본값을 썼으면 true",
+          "type": "boolean"
+        },
+        "basements": {
+          "default": 0,
+          "minimum": 0,
+          "type": "integer"
+        },
+        "floor_height": {
+          "description": "층고(m)",
+          "exclusiveMinimum": 0,
+          "type": "number"
+        },
+        "footprint": {
+          "description": "외곽선 (닫는 점 제외)",
+          "items": {
+            "maxItems": 2,
+            "minItems": 2,
+            "type": "array",
+            "items": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "number"
+              }
+            ],
+            "additionalItems": false
+          },
+          "type": "array"
+        },
+        "center": {
+          "maxItems": 2,
+          "minItems": 2,
+          "type": "array",
+          "items": [
+            {
+              "type": "number"
+            },
+            {
+              "type": "number"
+            }
+          ],
+          "additionalItems": false
+        },
+        "entrances": {
+          "description": "PathNode.id 목록",
+          "items": {
+            "type": "string"
+          },
+          "type": "array"
+        },
+        "description": {
+          "default": "",
+          "type": "string"
+        },
+        "facilities": {
+          "items": {
+            "type": "string"
+          },
+          "type": "array"
+        }
+      },
+      "required": [
+        "id",
+        "name",
+        "aliases",
+        "osm_id",
+        "levels",
+        "levels_estimated",
+        "basements",
+        "floor_height",
+        "footprint",
+        "center",
+        "entrances",
+        "description",
+        "facilities"
+      ],
+      "title": "Building",
+      "type": "object"
+    },
+    "BuildingIndex": {
+      "additionalProperties": false,
+      "properties": {
+        "buildings": {
+          "items": {
+            "$ref": "#/$defs/BuildingIndexEntry"
+          },
+          "type": "array"
+        }
+      },
+      "required": [
+        "buildings"
+      ],
+      "title": "BuildingIndex",
+      "type": "object"
+    },
+    "BuildingIndexEntry": {
+      "additionalProperties": false,
+      "properties": {
+        "id": {
+          "type": "string"
+        },
+        "name": {
+          "type": "string"
+        },
+        "aliases": {
+          "items": {
+            "type": "string"
+          },
+          "type": "array"
+        }
+      },
+      "required": [
+        "id",
+        "name",
+        "aliases"
+      ],
+      "title": "BuildingIndexEntry",
+      "type": "object"
+    },
+    "BuildingPatch": {
+      "additionalProperties": false,
+      "description": "편집 모드에서 수정 가능한 필드. 지오메트리는 파이프라인에서만 바뀐다.",
+      "properties": {
+        "name": {
+          "anyOf": [
+            {
+              "maxLength": 50,
+              "minLength": 1,
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null
+        },
+        "aliases": {
+          "anyOf": [
+            {
+              "items": {
+                "type": "string"
+              },
+              "type": "array"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null
+        },
+        "description": {
+          "anyOf": [
+            {
+              "maxLength": 2000,
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null
+        },
+        "facilities": {
+          "anyOf": [
+            {
+              "items": {
+                "type": "string"
+              },
+              "type": "array"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null
+        }
+      },
+      "title": "BuildingPatch",
+      "type": "object"
+    },
+    "CampusData": {
+      "additionalProperties": false,
+      "properties": {
+        "schema_version": {
+          "const": 1,
+          "default": 1,
+          "type": "integer"
+        },
+        "source_timestamp": {
+          "description": "원본 OSM 데이터 기준 시각",
+          "type": "string"
+        },
+        "origin": {
+          "description": "원점 (lon, lat)",
+          "maxItems": 2,
+          "minItems": 2,
+          "type": "array",
+          "items": [
+            {
+              "type": "number"
+            },
+            {
+              "type": "number"
+            }
+          ],
+          "additionalItems": false
+        },
+        "crs": {
+          "type": "string"
+        },
+        "attribution": {
+          "type": "string"
+        },
+        "boundary": {
+          "description": "캠퍼스 경계",
+          "items": {
+            "maxItems": 2,
+            "minItems": 2,
+            "type": "array",
+            "items": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "number"
+              }
+            ],
+            "additionalItems": false
+          },
+          "type": "array"
+        },
+        "buildings": {
+          "items": {
+            "$ref": "#/$defs/Building"
+          },
+          "type": "array"
+        },
+        "context": {
+          "items": {
+            "$ref": "#/$defs/ContextBuilding"
+          },
+          "type": "array"
+        }
+      },
+      "required": [
+        "schema_version",
+        "source_timestamp",
+        "origin",
+        "crs",
+        "attribution",
+        "boundary",
+        "buildings",
+        "context"
+      ],
+      "title": "CampusData",
+      "type": "object"
+    },
+    "ContextBuilding": {
+      "additionalProperties": false,
+      "description": "캠퍼스 밖 주변 건물. 배경으로만 렌더링한다.",
+      "properties": {
+        "footprint": {
+          "items": {
+            "maxItems": 2,
+            "minItems": 2,
+            "type": "array",
+            "items": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "number"
+              }
+            ],
+            "additionalItems": false
+          },
+          "type": "array"
+        },
+        "height": {
+          "type": "number"
+        }
+      },
+      "required": [
+        "footprint",
+        "height"
+      ],
+      "title": "ContextBuilding",
+      "type": "object"
+    },
+    "EventIn": {
+      "additionalProperties": false,
+      "properties": {
+        "type": {
+          "enum": [
+            "search",
+            "route",
+            "guide",
+            "building_view"
+          ],
+          "type": "string"
+        },
+        "target_id": {
+          "anyOf": [
+            {
+              "maxLength": 64,
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null
+        },
+        "query": {
+          "anyOf": [
+            {
+              "maxLength": 200,
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null
+        },
+        "success": {
+          "anyOf": [
+            {
+              "type": "boolean"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null
+        }
+      },
+      "required": [
+        "type"
+      ],
+      "title": "EventIn",
+      "type": "object"
+    },
+    "FocusBuildingAction": {
+      "additionalProperties": false,
+      "properties": {
+        "action": {
+          "const": "focus_building",
+          "type": "string"
+        },
+        "building_id": {
+          "type": "string"
+        },
+        "message": {
+          "type": "string"
+        }
+      },
+      "required": [
+        "action",
+        "building_id",
+        "message"
+      ],
+      "title": "FocusBuildingAction",
+      "type": "object"
+    },
+    "GuideRequest": {
+      "additionalProperties": false,
+      "properties": {
+        "query": {
+          "maxLength": 200,
+          "minLength": 1,
+          "type": "string"
+        }
+      },
+      "required": [
+        "query"
+      ],
+      "title": "GuideRequest",
+      "type": "object"
+    },
+    "GuideResponse": {
+      "additionalProperties": false,
+      "properties": {
+        "result": {
+          "discriminator": {
+            "mapping": {
+              "focus_building": "#/$defs/FocusBuildingAction",
+              "navigate": "#/$defs/NavigateAction",
+              "start_tour": "#/$defs/StartTourAction",
+              "unknown": "#/$defs/UnknownAction"
+            },
+            "propertyName": "action"
+          },
+          "oneOf": [
+            {
+              "$ref": "#/$defs/NavigateAction"
+            },
+            {
+              "$ref": "#/$defs/FocusBuildingAction"
+            },
+            {
+              "$ref": "#/$defs/StartTourAction"
+            },
+            {
+              "$ref": "#/$defs/UnknownAction"
+            }
+          ]
+        },
+        "source": {
+          "enum": [
+            "llm",
+            "fallback"
+          ],
+          "type": "string"
+        }
+      },
+      "required": [
+        "result",
+        "source"
+      ],
+      "title": "GuideResponse",
+      "type": "object"
+    },
+    "Health": {
+      "additionalProperties": false,
+      "properties": {
+        "status": {
+          "const": "ok",
+          "type": "string"
+        },
+        "buildings": {
+          "type": "integer"
+        },
+        "nodes": {
+          "type": "integer"
+        }
+      },
+      "required": [
+        "status",
+        "buildings",
+        "nodes"
+      ],
+      "title": "Health",
+      "type": "object"
+    },
+    "NavigateAction": {
+      "additionalProperties": false,
+      "properties": {
+        "action": {
+          "const": "navigate",
+          "type": "string"
+        },
+        "from_id": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "description": "없으면 정문 등 기본 출발지"
+        },
+        "to_id": {
+          "type": "string"
+        },
+        "message": {
+          "type": "string"
+        }
+      },
+      "required": [
+        "action",
+        "from_id",
+        "to_id",
+        "message"
+      ],
+      "title": "NavigateAction",
+      "type": "object"
+    },
+    "PathEdge": {
+      "additionalProperties": false,
+      "properties": {
+        "a": {
+          "type": "string"
+        },
+        "b": {
+          "type": "string"
+        },
+        "kind": {
+          "enum": [
+            "walk",
+            "stairs",
+            "road"
+          ],
+          "type": "string"
+        },
+        "length": {
+          "description": "미터",
+          "minimum": 0,
+          "type": "number"
+        }
+      },
+      "required": [
+        "a",
+        "b",
+        "kind",
+        "length"
+      ],
+      "title": "PathEdge",
+      "type": "object"
+    },
+    "PathGraph": {
+      "additionalProperties": false,
+      "properties": {
+        "schema_version": {
+          "const": 1,
+          "default": 1,
+          "type": "integer"
+        },
+        "nodes": {
+          "items": {
+            "$ref": "#/$defs/PathNode"
+          },
+          "type": "array"
+        },
+        "edges": {
+          "items": {
+            "$ref": "#/$defs/PathEdge"
+          },
+          "type": "array"
+        }
+      },
+      "required": [
+        "schema_version",
+        "nodes",
+        "edges"
+      ],
+      "title": "PathGraph",
+      "type": "object"
+    },
+    "PathNode": {
+      "additionalProperties": false,
+      "properties": {
+        "id": {
+          "type": "string"
+        },
+        "x": {
+          "type": "number"
+        },
+        "y": {
+          "default": 0.0,
+          "type": "number"
+        },
+        "z": {
+          "type": "number"
+        },
+        "type": {
+          "default": "junction",
+          "enum": [
+            "junction",
+            "entrance",
+            "gate",
+            "stairs"
+          ],
+          "type": "string"
+        },
+        "building_id": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "description": "입구 노드면 건물 ID"
+        }
+      },
+      "required": [
+        "id",
+        "x",
+        "y",
+        "z",
+        "type",
+        "building_id"
+      ],
+      "title": "PathNode",
+      "type": "object"
+    },
+    "StartTourAction": {
+      "additionalProperties": false,
+      "properties": {
+        "action": {
+          "const": "start_tour",
+          "type": "string"
+        },
+        "message": {
+          "type": "string"
+        }
+      },
+      "required": [
+        "action",
+        "message"
+      ],
+      "title": "StartTourAction",
+      "type": "object"
+    },
+    "StatsOut": {
+      "additionalProperties": false,
+      "properties": {
+        "total_events": {
+          "type": "integer"
+        },
+        "by_type": {
+          "additionalProperties": {
+            "type": "integer"
+          },
+          "type": "object"
+        },
+        "top_destinations": {
+          "items": {
+            "$ref": "#/$defs/TopDestination"
+          },
+          "type": "array"
+        },
+        "guide_success_rate": {
+          "anyOf": [
+            {
+              "type": "number"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        }
+      },
+      "required": [
+        "total_events",
+        "by_type",
+        "top_destinations",
+        "guide_success_rate"
+      ],
+      "title": "StatsOut",
+      "type": "object"
+    },
+    "TopDestination": {
+      "additionalProperties": false,
+      "properties": {
+        "building_id": {
+          "type": "string"
+        },
+        "count": {
+          "type": "integer"
+        }
+      },
+      "required": [
+        "building_id",
+        "count"
+      ],
+      "title": "TopDestination",
+      "type": "object"
+    },
+    "UnknownAction": {
+      "additionalProperties": false,
+      "properties": {
+        "action": {
+          "const": "unknown",
+          "type": "string"
+        },
+        "message": {
+          "type": "string"
+        }
+      },
+      "required": [
+        "action",
+        "message"
+      ],
+      "title": "UnknownAction",
+      "type": "object"
+    }
+  },
+  "title": "CampusContracts",
+  "description": "자동 생성 파일 — backend/campus/models.py를 수정하세요.",
+  "additionalProperties": false
+}

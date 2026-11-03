@@ -3,12 +3,22 @@ node_modules/
 
 # build
 dist/
+*.tsbuildinfo
 .vercel/
 
 # env
 .env
 .env.*
 !.env.example
+
+# python
+__pycache__/
+*.py[cod]
+.venv/
+.pytest_cache/
+.ruff_cache/
+*.sqlite3
+*.db
 
 # logs
 *.log

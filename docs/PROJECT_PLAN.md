@@ -1,7 +1,7 @@
 # 프로젝트 계획서 — 한세 3D 캠퍼스 (가칭)
 
 > 2026-2 한세대학교 AI Contest 출품작
-> 작성일: 2026-11-03 · 최종 수정: 2026-11-03 (Python 백엔드 추가) · 상태: 기획 확정 / 개발 착수 전
+> 작성일: 2026-11-03 · 최종 수정: 2026-11-03 (기본 구조 완료) · 상태: M1 진행 중
 
 ---
 
@@ -206,6 +206,7 @@ class PathEdge(BaseModel):
 │   │   ├── store/                # zustand
 │   │   ├── data/                 # dataSource (API ↔ 정적 JSON 폴백)
 │   │   └── types/generated/      # Pydantic → TS 자동 생성 타입 (직접 수정 금지)
+│   ├── scripts/gen-types.mjs     # JSON Schema → TS 타입
 │   └── package.json
 ├── backend/                      # ── Python ──
 │   ├── pyproject.toml            # uv
@@ -220,8 +221,8 @@ class PathEdge(BaseModel):
 │   ├── data/raw/                 # 원본 데이터 (HMH, OSM)
 │   ├── tests/
 │   └── Dockerfile
-├── scripts/
-│   └── gen-types.mjs             # JSON Schema → TS 타입
+├── shared/schema/                # Pydantic → JSON Schema (두 언어의 접점)
+├── .github/workflows/ci.yml      # backend·web 검사, 산출물·타입 최신 여부 확인
 ├── docker-compose.yml
 └── docs/
     ├── PROJECT_PLAN.md
@@ -295,8 +296,10 @@ class PathEdge(BaseModel):
 - [ ] 공모 요강의 **평가 기준·제출물·마감일** 확인 후 이 문서 갱신
 - [ ] HMH 원작자에게 데이터·코드 사용 허락 요청
 - [ ] 팀 회의: 역할 확정, 프로젝트 이름 확정
-- [ ] `web/` 초기 세팅: Vite + React + TS + R3F
-- [ ] `backend/` 초기 세팅: uv + Pydantic 모델 + 파이프라인 골격
-- [ ] 타입 자동 생성(`scripts/gen-types.mjs`) 연결
+- [x] `web/` 초기 세팅: Vite + React + TS + R3F (건물 렌더·클릭·A* 경로 연출·폴백 길안내까지 동작)
+- [x] `backend/` 초기 세팅: uv + Pydantic 모델 + 파이프라인(OSM) + FastAPI + 테스트
+- [x] 타입 자동 생성(`web/scripts/gen-types.mjs`) 연결, CI 구성
+- [ ] 이름 없는 건물 3개(`osm_834838408`, `osm_834838429`, `osm_834838432`)와 층수 추정 건물 확인 → `backend/data/building_meta.json` 보강
+- [ ] 기본 출발지(정문) 노드 지정 (`web/src/config.ts`의 `DEFAULT_FROM_ID`)
 - [ ] Vercel(`web/`)·Render(`backend/`) 프로젝트 연결
 - [ ] `docs/ai-log/` 기록 시작
