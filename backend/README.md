@@ -35,6 +35,7 @@ uv run uvicorn campus.api.main:app --reload    # http://localhost:8000/docs
 | GET | `/api/v1/graph` | 보행로 그래프 |
 | GET | `/api/v1/buildings/{id}` | 건물 하나 |
 | GET | `/api/v1/buildings/{id}/interior` | 층·강의실 |
+| POST | `/api/v1/route` | 경로·단계별 안내 (아래 참고) |
 | PUT | `/api/v1/buildings/{id}` | 건물 정보 수정 (`X-Admin-Token` 필요) |
 | POST | `/api/v1/events` | 검색·길찾기·AI 안내 이벤트 기록 |
 | GET | `/api/v1/stats` | 이용 통계 |
@@ -47,6 +48,23 @@ uv run uvicorn campus.api.main:app --reload    # http://localhost:8000/docs
 | `CAMPUS_DATABASE_URL` | `sqlite:///backend/data/app.db` | 편집·이벤트 저장소 |
 | `CAMPUS_ADMIN_TOKEN` | (비어 있음) | 비어 있으면 편집 API 비활성화 |
 | `CAMPUS_CORS_ORIGINS` | `["http://localhost:5173"]` | 허용할 프론트 주소 (JSON 배열) |
+
+## 경로 엔진 (`campus/routing/`)
+
+```http
+POST /api/v1/route
+{ "origin": {"building_id": "music"},
+  "destination": {"building_id": "science", "room_id": "science:2:4"},
+  "profile": "recommended" }   // recommended | accessible | walkway
+```
+
+- **출입구 자동 선택:** 보행로 그래프에 가상 출발점 S와 도착점 T를 붙입니다. S와 T는 각 건물의 모든 출입구에 연결되고, 그 간선 비용은 "강의실 ↔ 출입구" 실내 이동 시간(층 이동 포함)입니다. S→T 최단 경로를 찾으면 출입구 조합까지 함께 최적화됩니다. 예를 들어 본관 2층 대강당으로 갈 때는 경사지 쪽 2층 출입구로 들어갑니다.
+- **모드:**
+  - `accessible`: 계단 간선을 빼고, 층 이동은 엘리베이터로 합니다. 엘리베이터 정보가 없으면 경고합니다.
+  - `walkway`: 차도 구간을 1.6배 멀게 봅니다.
+- **대안 경로:** Yen 알고리즘(`nx.shortest_simple_paths`)으로 찾습니다. 비용이 최단의 1.5배 이내이고 겹침이 60% 미만인 경로를 최대 2개까지 줍니다.
+- **안내 문장:** 8m 앞뒤 방향으로 꺾임을 판정하고, 18m 안의 건물을 랜드마크로 씁니다. 방위, 차도 주의, 실내 층 이동 안내도 넣습니다(`directions.py`).
+- 속도·층 이동 시간 상수는 `engine.py` 위쪽에 있습니다. 현재 값은 보행 1.25m/s, 계단 16초/층, 엘리베이터 대기 40초 + 3초/층입니다.
 
 ## 테스트 · 린트
 

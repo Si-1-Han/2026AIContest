@@ -791,6 +791,18 @@
           ],
           "default": null,
           "description": "입구 노드면 건물 ID"
+        },
+        "floor_index": {
+          "anyOf": [
+            {
+              "type": "integer"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "description": "입구가 있는 층 (FloorInfo.index). 추정 입구면 null"
         }
       },
       "required": [
@@ -799,7 +811,8 @@
         "y",
         "z",
         "type",
-        "building_id"
+        "building_id",
+        "floor_index"
       ],
       "title": "PathNode",
       "type": "object"
@@ -977,6 +990,285 @@
         "tags"
       ],
       "title": "RoomIndexEntry",
+      "type": "object"
+    },
+    "RouteDoor": {
+      "additionalProperties": false,
+      "properties": {
+        "node_id": {
+          "type": "string"
+        },
+        "building_id": {
+          "type": "string"
+        },
+        "floor_label": {
+          "type": "string"
+        },
+        "estimated": {
+          "description": "실제 출입구 데이터가 없어 추정한 입구면 true",
+          "type": "boolean"
+        }
+      },
+      "required": [
+        "node_id",
+        "building_id",
+        "floor_label",
+        "estimated"
+      ],
+      "title": "RouteDoor",
+      "type": "object"
+    },
+    "RouteOption": {
+      "additionalProperties": false,
+      "properties": {
+        "id": {
+          "type": "string"
+        },
+        "label": {
+          "description": "추천 / 대안 1 …",
+          "type": "string"
+        },
+        "distance_m": {
+          "description": "실외 이동 거리",
+          "type": "number"
+        },
+        "duration_s": {
+          "description": "실내 이동을 포함한 예상 시간",
+          "type": "number"
+        },
+        "indoor_s": {
+          "description": "그중 건물 안(층 이동 포함) 시간",
+          "type": "number"
+        },
+        "road_m": {
+          "description": "차도를 따라 걷는 거리",
+          "type": "number"
+        },
+        "origin_door": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/RouteDoor"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "destination_door": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/RouteDoor"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "points": {
+          "items": {
+            "maxItems": 3,
+            "minItems": 3,
+            "type": "array",
+            "items": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "number"
+              },
+              {
+                "type": "number"
+              }
+            ],
+            "additionalItems": false
+          },
+          "type": "array"
+        },
+        "steps": {
+          "items": {
+            "$ref": "#/$defs/RouteStep"
+          },
+          "type": "array"
+        },
+        "warnings": {
+          "items": {
+            "type": "string"
+          },
+          "type": "array"
+        }
+      },
+      "required": [
+        "id",
+        "label",
+        "distance_m",
+        "duration_s",
+        "indoor_s",
+        "road_m",
+        "origin_door",
+        "destination_door",
+        "points",
+        "steps",
+        "warnings"
+      ],
+      "title": "RouteOption",
+      "type": "object"
+    },
+    "RoutePlace": {
+      "additionalProperties": false,
+      "properties": {
+        "building_id": {
+          "type": "string"
+        },
+        "room_id": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null
+        }
+      },
+      "required": [
+        "building_id"
+      ],
+      "title": "RoutePlace",
+      "type": "object"
+    },
+    "RouteRequest": {
+      "additionalProperties": false,
+      "properties": {
+        "origin": {
+          "$ref": "#/$defs/RoutePlace"
+        },
+        "destination": {
+          "$ref": "#/$defs/RoutePlace"
+        },
+        "profile": {
+          "default": "recommended",
+          "enum": [
+            "recommended",
+            "accessible",
+            "walkway"
+          ],
+          "type": "string"
+        },
+        "alternatives": {
+          "default": true,
+          "type": "boolean"
+        }
+      },
+      "required": [
+        "origin",
+        "destination"
+      ],
+      "title": "RouteRequest",
+      "type": "object"
+    },
+    "RouteResponse": {
+      "additionalProperties": false,
+      "properties": {
+        "profile": {
+          "enum": [
+            "recommended",
+            "accessible",
+            "walkway"
+          ],
+          "type": "string"
+        },
+        "engine": {
+          "enum": [
+            "python-networkx",
+            "browser"
+          ],
+          "type": "string"
+        },
+        "routes": {
+          "items": {
+            "$ref": "#/$defs/RouteOption"
+          },
+          "type": "array"
+        }
+      },
+      "required": [
+        "profile",
+        "engine",
+        "routes"
+      ],
+      "title": "RouteResponse",
+      "type": "object"
+    },
+    "RouteStep": {
+      "additionalProperties": false,
+      "properties": {
+        "maneuver": {
+          "enum": [
+            "depart",
+            "straight",
+            "slight_left",
+            "left",
+            "sharp_left",
+            "slight_right",
+            "right",
+            "sharp_right",
+            "stairs",
+            "arrive",
+            "indoor"
+          ],
+          "type": "string"
+        },
+        "instruction": {
+          "type": "string"
+        },
+        "distance_m": {
+          "minimum": 0,
+          "type": "number"
+        },
+        "duration_s": {
+          "minimum": 0,
+          "type": "number"
+        },
+        "point": {
+          "description": "이 단계가 시작되는 위치 (카메라 이동용)",
+          "maxItems": 3,
+          "minItems": 3,
+          "type": "array",
+          "items": [
+            {
+              "type": "number"
+            },
+            {
+              "type": "number"
+            },
+            {
+              "type": "number"
+            }
+          ],
+          "additionalItems": false
+        },
+        "floor_label": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null
+        }
+      },
+      "required": [
+        "maneuver",
+        "instruction",
+        "distance_m",
+        "duration_s",
+        "point",
+        "floor_label"
+      ],
+      "title": "RouteStep",
       "type": "object"
     },
     "StartTourAction": {

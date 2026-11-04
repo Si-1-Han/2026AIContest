@@ -26,6 +26,7 @@ export function CameraDirector() {
   const floorIndex = useCampusStore((s) => s.floorIndex);
   const route = useCampusStore((s) => s.route);
   const viewNonce = useCampusStore((s) => s.viewNonce);
+  const focusPoint = useCampusStore((s) => s.focusPoint);
   const building = useCampusStore((s) => s.building);
 
   // 인트로: 데이터 준비 후 하강
@@ -86,6 +87,15 @@ export function CameraDirector() {
     // 왼쪽 길찾기 패널과 오른쪽 건물 패널 사이 가운데에 두기
     void c.setFocalOffset(0, 0, 0, true);
   }, [route]);
+
+  // 단계 안내에서 고른 지점으로
+  useEffect(() => {
+    const c = controls.current;
+    if (!c || !focusPoint) return;
+    const [x, y, z] = focusPoint.point;
+    void c.setLookAt(x - 40, y + 55, z + 50, x, y, z, true);
+    void c.setFocalOffset(0, 0, 0, true);
+  }, [focusPoint]);
 
   return (
     <CameraControls

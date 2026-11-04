@@ -1,7 +1,16 @@
-import type { PathEdge, PathGraph, PathNode } from '../../types/generated/campus';
+import type { PathEdge, PathGraph, PathNode, RouteRequest } from '../../types/generated/campus';
 
-/** 간선 종류별 비용 가중치. 계단은 실제 거리보다 멀게 느껴지도록 한다. */
-const KIND_COST: Record<PathEdge['kind'], number> = { walk: 1, road: 1.15, stairs: 1.6 };
+export type RouteProfile = NonNullable<RouteRequest['profile']>;
+
+/**
+ * 간선 종류별 비용 가중치 (안내 모드별). Infinity면 그 간선은 쓰지 않는다.
+ * 서버 엔진(backend/campus/routing/engine.py)과 같은 방향으로 맞춰 둔다.
+ */
+const KIND_COST: Record<RouteProfile, Record<PathEdge['kind'], number>> = {
+  recommended: { walk: 1, road: 1.04, stairs: 1.8 },
+  walkway: { walk: 1, road: 1.66, stairs: 1.8 },
+  accessible: { walk: 1, road: 1.04, stairs: Infinity },
+};
 
 export type Vec3 = [number, number, number];
 
@@ -14,7 +23,7 @@ export interface PathResult {
 
 interface Neighbor {
   to: string;
-  cost: number;
+  kind: PathEdge['kind'];
   length: number;
 }
 
@@ -29,9 +38,8 @@ export class Router {
       this.adj.set(n.id, []);
     }
     for (const e of graph.edges) {
-      const cost = e.length * KIND_COST[e.kind];
-      this.adj.get(e.a)?.push({ to: e.b, cost, length: e.length });
-      this.adj.get(e.b)?.push({ to: e.a, cost, length: e.length });
+      this.adj.get(e.a)?.push({ to: e.b, kind: e.kind, length: e.length });
+      this.adj.get(e.b)?.push({ to: e.a, kind: e.kind, length: e.length });
     }
   }
 
@@ -41,8 +49,9 @@ export class Router {
     return Math.hypot(p.x - q.x, p.z - q.z);
   }
 
-  find(start: string, goal: string): PathResult | null {
+  find(start: string, goal: string, profile: RouteProfile = 'recommended'): PathResult | null {
     if (!this.nodes.has(start) || !this.nodes.has(goal)) return null;
+    const weights = KIND_COST[profile];
 
     const g = new Map<string, number>([[start, 0]]);
     const dist = new Map<string, number>([[start, 0]]);
@@ -58,7 +67,9 @@ export class Router {
       closed.add(cur);
 
       for (const nb of this.adj.get(cur) ?? []) {
-        const tentative = g.get(cur)! + nb.cost;
+        const step = nb.length * weights[nb.kind];
+        if (!Number.isFinite(step)) continue;
+        const tentative = g.get(cur)! + step;
         if (tentative < (g.get(nb.to) ?? Infinity)) {
           g.set(nb.to, tentative);
           dist.set(nb.to, dist.get(cur)! + nb.length);

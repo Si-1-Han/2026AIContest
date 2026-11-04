@@ -348,6 +348,10 @@ export interface PathNode {
    * 입구 노드면 건물 ID
    */
   building_id: string | null;
+  /**
+   * 입구가 있는 층 (FloorInfo.index). 추정 입구면 null
+   */
+  floor_index: number | null;
 }
 /**
  * This interface was referenced by `CampusContracts`'s JSON-Schema
@@ -370,6 +374,107 @@ export interface RoomIndexEntry {
   name: string;
   category: '공간' | '시설물';
   tags: string[];
+}
+/**
+ * This interface was referenced by `CampusContracts`'s JSON-Schema
+ * via the `definition` "RouteDoor".
+ */
+export interface RouteDoor {
+  node_id: string;
+  building_id: string;
+  floor_label: string;
+  /**
+   * 실제 출입구 데이터가 없어 추정한 입구면 true
+   */
+  estimated: boolean;
+}
+/**
+ * This interface was referenced by `CampusContracts`'s JSON-Schema
+ * via the `definition` "RouteOption".
+ */
+export interface RouteOption {
+  id: string;
+  /**
+   * 추천 / 대안 1 …
+   */
+  label: string;
+  /**
+   * 실외 이동 거리
+   */
+  distance_m: number;
+  /**
+   * 실내 이동을 포함한 예상 시간
+   */
+  duration_s: number;
+  /**
+   * 그중 건물 안(층 이동 포함) 시간
+   */
+  indoor_s: number;
+  /**
+   * 차도를 따라 걷는 거리
+   */
+  road_m: number;
+  origin_door: RouteDoor | null;
+  destination_door: RouteDoor | null;
+  points: [number, number, number][];
+  steps: RouteStep[];
+  warnings: string[];
+}
+/**
+ * This interface was referenced by `CampusContracts`'s JSON-Schema
+ * via the `definition` "RouteStep".
+ */
+export interface RouteStep {
+  maneuver:
+    | 'depart'
+    | 'straight'
+    | 'slight_left'
+    | 'left'
+    | 'sharp_left'
+    | 'slight_right'
+    | 'right'
+    | 'sharp_right'
+    | 'stairs'
+    | 'arrive'
+    | 'indoor';
+  instruction: string;
+  distance_m: number;
+  duration_s: number;
+  /**
+   * 이 단계가 시작되는 위치 (카메라 이동용)
+   *
+   * @minItems 3
+   * @maxItems 3
+   */
+  point: [number, number, number];
+  floor_label: string | null;
+}
+/**
+ * This interface was referenced by `CampusContracts`'s JSON-Schema
+ * via the `definition` "RoutePlace".
+ */
+export interface RoutePlace {
+  building_id: string;
+  room_id?: string | null;
+}
+/**
+ * This interface was referenced by `CampusContracts`'s JSON-Schema
+ * via the `definition` "RouteRequest".
+ */
+export interface RouteRequest {
+  origin: RoutePlace;
+  destination: RoutePlace;
+  profile?: 'recommended' | 'accessible' | 'walkway';
+  alternatives?: boolean;
+}
+/**
+ * This interface was referenced by `CampusContracts`'s JSON-Schema
+ * via the `definition` "RouteResponse".
+ */
+export interface RouteResponse {
+  profile: 'recommended' | 'accessible' | 'walkway';
+  engine: 'python-networkx' | 'browser';
+  routes: RouteOption[];
 }
 /**
  * This interface was referenced by `CampusContracts`'s JSON-Schema

@@ -11,6 +11,8 @@ const RUNNER_SPEED = 40; // m/s (연출용)
 /** 길찾기 결과: 흐르는 발광 경로 + 경로를 따라 달리는 빛 + 출발/도착 표시 */
 export function RouteLine() {
   const route = useCampusStore((s) => s.route);
+  const routes = useCampusStore((s) => s.routes);
+  const selectRoute = useCampusStore((s) => s.selectRoute);
 
   const { points, curve } = useMemo(() => {
     if (!route) return { points: null, curve: null };
@@ -36,6 +38,23 @@ export function RouteLine() {
 
   return (
     <group>
+      {/* 선택하지 않은 대안 경로: 흐린 회색, 클릭하면 선택 */}
+      {routes.map((r, i) =>
+        r.id === route.id || r.points.length < 2 ? null : (
+          <Line
+            key={r.id}
+            points={r.points.map(([x, y, z]) => [x, y + LIFT * 0.6, z] as [number, number, number])}
+            color="#8ea3c7"
+            lineWidth={5}
+            transparent
+            opacity={0.45}
+            onClick={(e) => {
+              e.stopPropagation();
+              selectRoute(i);
+            }}
+          />
+        ),
+      )}
       {/* 바닥의 넓고 흐린 광선 + 위의 흐르는 점선 */}
       <Line points={points} color={COLORS.route} lineWidth={10} transparent opacity={0.18} toneMapped={false} />
       <Line

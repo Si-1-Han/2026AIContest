@@ -235,3 +235,23 @@ def room_index(interiors: dict[str, BuildingInterior]) -> list[RoomIndexEntry]:
         for f in interior.floors
         for r in f.rooms
     ]
+
+
+DOOR_WORDS = ("출입구", "입구", "츨입구")
+
+
+def doors(
+    interiors: dict[str, BuildingInterior],
+) -> dict[str, list[tuple[tuple[float, float], int]]]:
+    """층·강의실 데이터의 '출입구' 시설물 → 건물별 (문 중심, 층 index)"""
+    out: dict[str, list[tuple[tuple[float, float], int]]] = {}
+    for bid, interior in interiors.items():
+        for f in interior.floors:
+            for r in f.rooms:
+                if r.category != "시설물":
+                    continue
+                if r.group != "entrances" and not any(w in r.name for w in DOOR_WORDS):
+                    continue
+                c = Polygon(r.polygon).centroid
+                out.setdefault(bid, []).append(((c.x, c.y), f.index))
+    return out

@@ -24,9 +24,12 @@ from campus.models import (
     EventIn,
     Health,
     PathGraph,
+    RouteRequest,
+    RouteResponse,
     StatsOut,
     TopDestination,
 )
+from campus.routing import RouteError, RoutingEngine
 
 
 def create_app(settings: Settings | None = None) -> FastAPI:
@@ -34,6 +37,8 @@ def create_app(settings: Settings | None = None) -> FastAPI:
     app = FastAPI(title="Hansei 3D Campus API", version="0.1.0")
     app.state.settings = settings
     app.state.store = CampusStore(settings.data_dir)
+    store_ = app.state.store
+    app.state.router = RoutingEngine(store_.campus, store_.graph, store_.interior)
     app.state.engine = make_engine(settings.database_url)
 
     app.add_middleware(
@@ -85,6 +90,18 @@ def create_app(settings: Settings | None = None) -> FastAPI:
         if interior is None:
             raise HTTPException(status.HTTP_404_NOT_FOUND, "층·강의실 데이터가 없습니다.")
         return interior
+
+    @app.post("/api/v1/route", response_model=RouteResponse)
+    def route(req: RouteRequest, request: Request) -> RouteResponse:
+        """출발·도착(건물 또는 강의실) 사이의 경로와 단계별 안내.
+
+        출입구 조합을 자동으로 고르고, 강의실 ↔ 출입구 층 이동까지 시간에 넣는다.
+        profile: recommended(최단 시간) · accessible(엘리베이터 우선) · walkway(차도 회피)
+        """
+        try:
+            return request.app.state.router.route(req)
+        except RouteError as err:
+            raise HTTPException(err.status, err.message) from err
 
     @app.put(
         "/api/v1/buildings/{building_id}",

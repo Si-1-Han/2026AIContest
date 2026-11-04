@@ -41,7 +41,9 @@ def build(raw_path: Path = RAW_OSM_PATH, out_dir: Path = WEB_DATA_DIR) -> None:
     buildings, context, b_report = classify(elements, proj, boundary, meta)
     # 층·강의실을 붙이고 건물을 합친 뒤에 입구를 연결해야 한다.
     buildings, interiors, i_report = interior.attach(buildings, meta, proj)
-    graph, g_report = build_graph(elements, proj, boundary, buildings)
+    graph, g_report = build_graph(
+        elements, proj, boundary, buildings, doors=interior.doors(interiors)
+    )
 
     campus = CampusData(
         source_timestamp=source_timestamp,
@@ -88,7 +90,10 @@ def build(raw_path: Path = RAW_OSM_PATH, out_dir: Path = WEB_DATA_DIR) -> None:
         f"원본 연결 요소 {g_report.components_before}개 "
         f"(가장 큰 요소 외 노드 {g_report.dropped_nodes}개 제외)"
     )
-    print(f"입구 연결 {g_report.linked_buildings}/{len(buildings)}개 건물")
+    print(
+        f"입구 연결 {g_report.linked_buildings}/{len(buildings)}개 건물 "
+        f"(실제 출입구 {g_report.real_doors}개, 나머지는 추정)"
+    )
     if g_report.unlinked_buildings:
         print(f"  ⚠ 보행로에 연결 못 한 건물: {', '.join(g_report.unlinked_buildings)}")
     unnamed = [b.id for b in buildings if b.id.startswith("osm_")]

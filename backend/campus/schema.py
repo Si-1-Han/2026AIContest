@@ -23,6 +23,8 @@ EXPORTED = [
     (models.BuildingInterior, "serialization"),
     (models.RoomIndex, "serialization"),
     (models.GuideRequest, "validation"),
+    (models.RouteRequest, "validation"),
+    (models.RouteResponse, "serialization"),
     (models.GuideResponse, "serialization"),
     (models.BuildingPatch, "validation"),
     (models.EventIn, "validation"),

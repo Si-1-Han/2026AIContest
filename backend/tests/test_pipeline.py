@@ -63,6 +63,30 @@ def test_classify_and_graph(proj: Projector) -> None:
     assert g_report.unlinked_buildings == []
     entrances = {n.building_id for n in graph.nodes if n.type == "entrance"}
     assert entrances == {"main", "osm_11"}
-    assert buildings[0].entrances == ["e_main"]
+    assert buildings[0].entrances == ["e_main_0"]
     ids = {n.id for n in graph.nodes}
     assert all(e.a in ids and e.b in ids for e in graph.edges)
+
+
+def test_real_doors_create_multiple_entrances(proj: Projector) -> None:
+    elements = _fixture_elements()
+    boundary = campus_boundary(elements, proj, way_id=1)
+    meta = {"10": {"id": "main", "name": "본관"}}
+    buildings, _, _ = classify(elements, proj, boundary, meta)
+    main = next(b for b in buildings if b.id == "main")
+    xs = [p[0] for p in main.footprint]
+    zs = [p[1] for p in main.footprint]
+    # 건물 남쪽 벽(1F)과 북쪽 벽(2F)에 문 하나씩, 그리고 첫 문 바로 옆에 중복 문
+    south = ((min(xs) + max(xs)) / 2, max(zs) - 0.5)
+    north = ((min(xs) + max(xs)) / 2, min(zs) + 0.5)
+    dup = (south[0] + 1.0, south[1])
+    graph, report = build_graph(
+        elements, proj, boundary, buildings, doors={"main": [(south, 0), (dup, 0), (north, 1)]}
+    )
+    assert report.real_doors == 2
+    assert main.entrances == ["e_main_0", "e_main_1"]
+    floors = {n.id: n.floor_index for n in graph.nodes if n.building_id == "main"}
+    assert floors == {"e_main_0": 0, "e_main_1": 1}
+    # 문이 없는 건물은 추정 입구 하나
+    other = next(b for b in buildings if b.id == "osm_11")
+    assert other.entrances == ["e_osm_11_0"]

@@ -15,6 +15,9 @@ from pydantic import BaseModel, ConfigDict, Field
 Point2 = tuple[float, float]
 """[x, z] 로컬 미터 좌표"""
 
+Point3 = tuple[float, float, float]
+"""[x, y, z] 로컬 미터 좌표"""
+
 
 class Contract(BaseModel):
     # 내보내는 JSON에는 기본값이 있는 필드도 항상 들어가므로, 스키마에서도 필수로 표시한다.
@@ -146,6 +149,9 @@ class PathNode(Contract):
     z: float
     type: Literal["junction", "entrance", "gate", "stairs"] = "junction"
     building_id: str | None = Field(default=None, description="입구 노드면 건물 ID")
+    floor_index: int | None = Field(
+        default=None, description="입구가 있는 층 (FloorInfo.index). 추정 입구면 null"
+    )
 
 
 class PathEdge(Contract):
@@ -215,6 +221,74 @@ class GuideRequest(Contract):
 class GuideResponse(Contract):
     result: GuideAction
     source: Literal["llm", "fallback"]
+
+
+# ── 경로 안내 (POST /api/v1/route) ──────────────────────────────────────────────
+
+RouteProfile = Literal["recommended", "accessible", "walkway"]
+"""recommended = 최단 시간, accessible = 엘리베이터 우선·계단 회피, walkway = 차도 회피"""
+
+Maneuver = Literal[
+    "depart",
+    "straight",
+    "slight_left",
+    "left",
+    "sharp_left",
+    "slight_right",
+    "right",
+    "sharp_right",
+    "stairs",
+    "arrive",
+    "indoor",
+]
+
+
+class RoutePlace(Contract):
+    building_id: str
+    room_id: str | None = None
+
+
+class RouteRequest(Contract):
+    origin: RoutePlace
+    destination: RoutePlace
+    profile: RouteProfile = "recommended"
+    alternatives: bool = True
+
+
+class RouteStep(Contract):
+    maneuver: Maneuver
+    instruction: str
+    distance_m: float = Field(ge=0)
+    duration_s: float = Field(ge=0)
+    point: Point3 = Field(description="이 단계가 시작되는 위치 (카메라 이동용)")
+    floor_label: str | None = None
+
+
+class RouteDoor(Contract):
+    node_id: str
+    building_id: str
+    floor_label: str
+    estimated: bool = Field(description="실제 출입구 데이터가 없어 추정한 입구면 true")
+
+
+class RouteOption(Contract):
+    id: str
+    label: str = Field(description="추천 / 대안 1 …")
+    distance_m: float = Field(description="실외 이동 거리")
+    duration_s: float = Field(description="실내 이동을 포함한 예상 시간")
+    indoor_s: float = Field(description="그중 건물 안(층 이동 포함) 시간")
+    road_m: float = Field(description="차도를 따라 걷는 거리")
+    origin_door: RouteDoor | None
+    destination_door: RouteDoor | None
+    points: list[Point3]
+    steps: list[RouteStep]
+    warnings: list[str] = Field(default_factory=list)
+
+
+class RouteResponse(Contract):
+    profile: RouteProfile
+    engine: Literal["python-networkx", "browser"]
+    routes: list[RouteOption]
 
 
 # ── Campus API (FastAPI) ────────────────────────────────────────────────────────

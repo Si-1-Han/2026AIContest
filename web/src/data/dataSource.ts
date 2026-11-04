@@ -1,4 +1,6 @@
 import { API_TIMEOUT_MS, API_URL } from '../config';
+
+const ROUTE_TIMEOUT_MS = 3000;
 import type {
   BuildingIndex,
   BuildingInterior,
@@ -6,6 +8,8 @@ import type {
   EventIn,
   PathGraph,
   RoomIndex,
+  RouteRequest,
+  RouteResponse,
 } from '../types/generated/campus';
 
 export type DataSourceKind = 'api' | 'static';
@@ -68,6 +72,27 @@ export async function loadInterior(buildingId: string): Promise<BuildingInterior
     }
   }
   return fetchJson<BuildingInterior>(staticUrl(`floors/${buildingId}.json`));
+}
+
+/** 서버 경로 엔진이 있는지 (VITE_API_URL 설정 여부) */
+export const hasRouteApi = () => Boolean(API_URL);
+
+/** Python 경로 엔진 호출. 실패하면 null → 호출한 쪽이 브라우저 간이 계산으로 전환 */
+export async function routeViaApi(req: RouteRequest): Promise<RouteResponse | null> {
+  if (!API_URL) return null;
+  try {
+    const res = await fetch(`${API_URL}/api/v1/route`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(req),
+      signal: AbortSignal.timeout(ROUTE_TIMEOUT_MS),
+    });
+    if (!res.ok) return null;
+    return (await res.json()) as RouteResponse;
+  } catch (err) {
+    console.warn('[dataSource] 경로 API 실패 → 브라우저 계산', err);
+    return null;
+  }
 }
 
 /** 이용 이벤트 기록. 응답을 기다리지 않고, 실패해도 무시한다. */
