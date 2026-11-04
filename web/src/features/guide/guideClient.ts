@@ -1,5 +1,5 @@
-import type { BuildingIndexEntry, GuideResponse } from '../../types/generated/campus';
-import { fallbackMatch } from './fallbackMatcher';
+import type { GuideResponse } from '../../types/generated/campus';
+import { fallbackMatch, type GuideIndex } from './fallbackMatcher';
 
 const ACTIONS = new Set(['navigate', 'focus_building', 'start_tour', 'unknown']);
 
@@ -12,10 +12,7 @@ function isGuideResponse(v: unknown): v is GuideResponse {
  * /api/guide(Vercel 함수)에 묻는다. 로컬 `npm run dev`처럼 함수가 없거나
  * 네트워크가 실패하면 브라우저에서 바로 규칙 기반 폴백으로 답한다.
  */
-export async function askGuide(
-  query: string,
-  buildings: BuildingIndexEntry[],
-): Promise<GuideResponse> {
+export async function askGuide(query: string, index: GuideIndex): Promise<GuideResponse> {
   try {
     const res = await fetch('/api/guide', {
       method: 'POST',
@@ -30,5 +27,5 @@ export async function askGuide(
   } catch {
     // 아래 폴백으로
   }
-  return { result: fallbackMatch(query, buildings), source: 'fallback' };
+  return { result: fallbackMatch(query, index), source: 'fallback' };
 }

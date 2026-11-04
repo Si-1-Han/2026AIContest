@@ -57,6 +57,60 @@ export interface Building {
   entrances: string[];
   description: string;
   facilities: string[];
+  /**
+   * 층·강의실 데이터가 있으면 true
+   */
+  has_interior: boolean;
+  /**
+   * 아래층부터. 비어 있으면 footprint로 단순 렌더링
+   */
+  floors: FloorInfo[];
+  volumes: Volume[];
+}
+/**
+ * 층 요약. 강의실 상세는 floors/<building_id>.json에서 따로 불러온다.
+ *
+ * This interface was referenced by `CampusContracts`'s JSON-Schema
+ * via the `definition` "FloorInfo".
+ */
+export interface FloorInfo {
+  /**
+   * 아래부터 0, 1, 2 … (지하층 포함)
+   */
+  index: number;
+  /**
+   * 지하 1층 = -1, 지상 1층 = 1
+   */
+  level: number;
+  /**
+   * 표시 이름 (예: B1, 3F)
+   */
+  label: string;
+  /**
+   * 이 층의 외곽선
+   */
+  outline: [number, number][];
+  /**
+   * 강의실 등 '공간' 수 (시설물 제외)
+   */
+  room_count: number;
+}
+/**
+ * 층 데이터가 없는 보조 덩어리 (부속동 등). 캠퍼스 보기에서만 그린다.
+ *
+ * This interface was referenced by `CampusContracts`'s JSON-Schema
+ * via the `definition` "Volume".
+ */
+export interface Volume {
+  footprint: [number, number][];
+  /**
+   * 바닥 높이(m)
+   */
+  base: number;
+  /**
+   * 높이(m)
+   */
+  height: number;
 }
 /**
  * This interface was referenced by `CampusContracts`'s JSON-Schema
@@ -73,6 +127,62 @@ export interface BuildingIndexEntry {
   id: string;
   name: string;
   aliases: string[];
+}
+/**
+ * This interface was referenced by `CampusContracts`'s JSON-Schema
+ * via the `definition` "BuildingInterior".
+ */
+export interface BuildingInterior {
+  schema_version: 1;
+  building_id: string;
+  attribution: string;
+  floors: InteriorFloor[];
+}
+/**
+ * This interface was referenced by `CampusContracts`'s JSON-Schema
+ * via the `definition` "InteriorFloor".
+ */
+export interface InteriorFloor {
+  index: number;
+  level: number;
+  label: string;
+  outline: [number, number][];
+  rooms: Room[];
+}
+/**
+ * This interface was referenced by `CampusContracts`'s JSON-Schema
+ * via the `definition` "Room".
+ */
+export interface Room {
+  /**
+   * <building_id>:<층 index>:<원본 배열 index>
+   */
+  id: string;
+  name: string;
+  /**
+   * 원본 분류 (예: 강의실,세미나실,멀티실)
+   */
+  type: string;
+  /**
+   * 공간 = 강의실 등, 시설물 = 계단·엘베·화장실·출입구
+   */
+  category: '공간' | '시설물';
+  /**
+   * 같이 선택할 시설물 묶음 (stairs 등)
+   */
+  group: string | null;
+  /**
+   * 예: main-auditorium
+   */
+  space_group: string | null;
+  description: string;
+  /**
+   * 검색용 별칭 (예: 영비스터디룸)
+   */
+  tags: string[];
+  color: string;
+  polygon: [number, number][];
+  holes: [number, number][][];
 }
 /**
  * 편집 모드에서 수정 가능한 필드. 지오메트리는 파이프라인에서만 바뀐다.
@@ -139,6 +249,10 @@ export interface EventIn {
 export interface FocusBuildingAction {
   action: 'focus_building';
   building_id: string;
+  /**
+   * 건물 안의 강의실 (Room.id)
+   */
+  room_id: string | null;
   message: string;
 }
 /**
@@ -167,6 +281,10 @@ export interface NavigateAction {
    */
   from_id: string | null;
   to_id: string;
+  /**
+   * 도착 건물 안의 강의실 (Room.id)
+   */
+  room_id: string | null;
   message: string;
 }
 /**
@@ -230,6 +348,28 @@ export interface PathNode {
    * 입구 노드면 건물 ID
    */
   building_id: string | null;
+}
+/**
+ * This interface was referenced by `CampusContracts`'s JSON-Schema
+ * via the `definition` "RoomIndex".
+ */
+export interface RoomIndex {
+  rooms: RoomIndexEntry[];
+}
+/**
+ * 길안내·검색용 경량 목록 (rooms-index.json)
+ *
+ * This interface was referenced by `CampusContracts`'s JSON-Schema
+ * via the `definition` "RoomIndexEntry".
+ */
+export interface RoomIndexEntry {
+  id: string;
+  building_id: string;
+  floor_index: number;
+  floor_label: string;
+  name: string;
+  category: '공간' | '시설물';
+  tags: string[];
 }
 /**
  * This interface was referenced by `CampusContracts`'s JSON-Schema

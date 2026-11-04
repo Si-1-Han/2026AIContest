@@ -4,12 +4,16 @@ import { askGuide } from '../features/guide/guideClient';
 import { useCampusStore } from '../store/useCampusStore';
 import type { GuideResponse } from '../types/generated/campus';
 
+const ROUTE_THEN_ROOM_MS = 2600;
+
 /** AI 길안내 입력창 (채팅 UI는 M3에서 확장) */
 export function GuideBox() {
   const index = useCampusStore((s) => s.index);
+  const rooms = useCampusStore((s) => s.rooms);
   const navigate = useCampusStore((s) => s.navigate);
   const select = useCampusStore((s) => s.select);
   const clearRoute = useCampusStore((s) => s.clearRoute);
+  const focusRoom = useCampusStore((s) => s.focusRoom);
 
   const [query, setQuery] = useState('');
   const [busy, setBusy] = useState(false);
@@ -18,9 +22,9 @@ export function GuideBox() {
   async function onSubmit(e: FormEvent) {
     e.preventDefault();
     const q = query.trim();
-    if (!q || !index || busy) return;
+    if (!q || !index || !rooms || busy) return;
     setBusy(true);
-    const { result, source } = await askGuide(q, index.buildings);
+    const { result, source } = await askGuide(q, { buildings: index.buildings, rooms: rooms.rooms });
     let text = result.message;
     let success = true;
     let target: string | null = null;
@@ -31,12 +35,17 @@ export function GuideBox() {
         if (!navigate(result.from_id, result.to_id)) {
           text = '경로를 찾지 못했어요. 출발지와 도착지를 다시 알려주세요.';
           success = false;
+        } else if (result.room_id) {
+          // 경로 전체를 먼저 보여 준 뒤, 도착 건물의 해당 층·강의실로 들어간다
+          const roomId = result.room_id;
+          void useCampusStore.getState().ensureInterior(result.to_id);
+          window.setTimeout(() => void focusRoom(roomId), ROUTE_THEN_ROOM_MS);
         }
         break;
       case 'focus_building':
         target = result.building_id;
         clearRoute();
-        select(result.building_id);
+        if (!result.room_id || !(await focusRoom(result.room_id))) select(result.building_id);
         break;
       case 'start_tour':
         text = '캠퍼스 투어는 곧 공개됩니다! (M4)';
@@ -52,7 +61,7 @@ export function GuideBox() {
   }
 
   return (
-    <div className="absolute bottom-8 left-1/2 w-[min(640px,calc(100%-32px))] -translate-x-1/2">
+    <div className="absolute bottom-8 left-1/2 z-40 w-[min(640px,calc(100%-32px))] -translate-x-1/2">
       {reply && (
         <div className="mb-3 rounded-2xl border border-white/10 bg-[#0d1528]/85 px-4 py-3 text-sm text-slate-100 shadow-xl backdrop-blur">
           <span className="mr-2 rounded-full bg-accent/15 px-2 py-0.5 text-[11px] font-semibold text-accent">
@@ -70,7 +79,7 @@ export function GuideBox() {
           value={query}
           onChange={(e) => setQuery(e.target.value)}
           maxLength={200}
-          placeholder="예: 학생회관에서 이공관 가는 길 알려줘"
+          placeholder="예: 이공관 301호 어디야? · 학생회관에서 보건실 가는 길"
           className="min-w-0 flex-1 bg-transparent px-2 py-2 text-[15px] text-white placeholder:text-slate-500 focus:outline-none"
         />
         <button

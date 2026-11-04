@@ -7,7 +7,7 @@ export function Hud() {
 
   return (
     <>
-      <header className="pointer-events-none absolute left-5 top-5 select-none">
+      <header className="pointer-events-none absolute left-5 top-5 z-40 select-none">
         <p className="text-xs font-semibold tracking-[0.35em] text-accent/80">HANSEI UNIVERSITY</p>
         <h1 className="mt-1 text-3xl font-extrabold tracking-tight text-white drop-shadow-[0_0_18px_rgba(79,209,255,0.35)]">
           한세 3D 캠퍼스

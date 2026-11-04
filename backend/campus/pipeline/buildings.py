@@ -46,15 +46,15 @@ def load_meta(path: Path = BUILDING_META_PATH) -> dict[str, dict[str, Any]]:
     return {k: v for k, v in raw.items() if not k.startswith("_")}
 
 
-def to_polygon(local: list[tuple[float, float]]) -> Polygon | None:
+def to_polygon(local: list[tuple[float, float]], min_area: float = 4.0) -> Polygon | None:
     if len(local) < 4:
         return None
     geom = make_valid(Polygon(local))
     if isinstance(geom, MultiPolygon):
         geom = max(geom.geoms, key=lambda g: g.area)
-    if not isinstance(geom, Polygon) or geom.area < 4.0:
+    if not isinstance(geom, Polygon) or geom.area < min_area:
         return None
-    return geom.simplify(0.2, preserve_topology=True)
+    return geom.simplify(min(0.2, min_area / 20), preserve_topology=True)
 
 
 def exterior(poly: Polygon) -> list[tuple[float, float]]:
@@ -101,7 +101,8 @@ def classify(
         rep = poly.representative_point()
         levels = parse_levels(tags)
 
-        if inside.contains(rep):
+        # building=roof(캐노피·지붕 구조물)는 클릭 대상이 아니므로 배경으로 둔다.
+        if inside.contains(rep) and tags.get("building") != "roof":
             m = meta.get(str(el["id"]), {})
             bid = m.get("id") or f"osm_{el['id']}"
             name = m.get("name") or tags.get("name") or "이름 미확인 건물"
@@ -134,6 +135,8 @@ def classify(
                 if levels
                 else CONTEXT_DEFAULT_HEIGHT.get(tags.get("building", ""), 9.0)
             )
+            if tags.get("building") == "roof":
+                height = 4.0
             context.append(ContextBuilding(footprint=exterior(poly), height=height))
             report.context += 1
 

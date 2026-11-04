@@ -5,7 +5,16 @@ from fastapi.testclient import TestClient
 
 from campus.api.main import create_app
 from campus.api.settings import Settings
-from campus.models import Building, CampusData, PathEdge, PathGraph, PathNode
+from campus.models import (
+    Building,
+    BuildingInterior,
+    CampusData,
+    InteriorFloor,
+    PathEdge,
+    PathGraph,
+    PathNode,
+    Room,
+)
 
 TOKEN = "test-token"
 
@@ -44,6 +53,30 @@ def client(tmp_path: Path) -> TestClient:
     )
     (tmp_path / "campus.json").write_text(campus.model_dump_json(), encoding="utf-8")
     (tmp_path / "paths.json").write_text(graph.model_dump_json(), encoding="utf-8")
+    interior = BuildingInterior(
+        building_id="main",
+        attribution="test",
+        floors=[
+            InteriorFloor(
+                index=0,
+                level=1,
+                label="1F",
+                outline=[(0, 0), (5, 0), (5, 5), (0, 5)],
+                rooms=[
+                    Room(
+                        id="main:0:0",
+                        name="101호",
+                        type="강의실",
+                        category="공간",
+                        color="#289D8F",
+                        polygon=[(0, 0), (1, 0), (1, 1)],
+                    )
+                ],
+            )
+        ],
+    )
+    (tmp_path / "floors").mkdir()
+    (tmp_path / "floors" / "main.json").write_text(interior.model_dump_json(), encoding="utf-8")
     settings = Settings(
         data_dir=tmp_path,
         database_url=f"sqlite:///{tmp_path / 'test.db'}",
@@ -58,6 +91,13 @@ def test_health_and_read(client: TestClient) -> None:
     assert client.get("/api/v1/buildings/main").json()["name"] == "본관"
     assert client.get("/api/v1/buildings/nope").status_code == 404
     assert len(client.get("/api/v1/graph").json()["edges"]) == 1
+
+
+def test_interior(client: TestClient) -> None:
+    body = client.get("/api/v1/buildings/main/interior").json()
+    assert body["floors"][0]["rooms"][0]["name"] == "101호"
+    assert client.get("/api/v1/buildings/science/interior").status_code == 404
+    assert client.get("/api/v1/buildings/nope/interior").status_code == 404
 
 
 def test_update_requires_token_and_merges(client: TestClient) -> None:

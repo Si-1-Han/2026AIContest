@@ -18,8 +18,8 @@ from campus.config import (
     RAW_OSM_PATH,
     WEB_DATA_DIR,
 )
-from campus.models import BuildingIndex, BuildingIndexEntry, CampusData
-from campus.pipeline import osm
+from campus.models import BuildingIndex, BuildingIndexEntry, CampusData, RoomIndex
+from campus.pipeline import interior, osm
 from campus.pipeline.buildings import campus_boundary, classify, exterior, load_meta
 from campus.pipeline.graph import build_graph
 from campus.pipeline.project import Projector
@@ -36,8 +36,11 @@ def write_json(path: Path, model: BaseModel) -> None:
 def build(raw_path: Path = RAW_OSM_PATH, out_dir: Path = WEB_DATA_DIR) -> None:
     elements, source_timestamp = osm.load(raw_path)
     proj = Projector()
+    meta = load_meta()
     boundary = campus_boundary(elements, proj, CAMPUS_BOUNDARY_WAY_ID)
-    buildings, context, b_report = classify(elements, proj, boundary, load_meta())
+    buildings, context, b_report = classify(elements, proj, boundary, meta)
+    # 층·강의실을 붙이고 건물을 합친 뒤에 입구를 연결해야 한다.
+    buildings, interiors, i_report = interior.attach(buildings, meta, proj)
     graph, g_report = build_graph(elements, proj, boundary, buildings)
 
     campus = CampusData(
@@ -56,23 +59,44 @@ def build(raw_path: Path = RAW_OSM_PATH, out_dir: Path = WEB_DATA_DIR) -> None:
     write_json(out_dir / "paths.json", graph)
     write_json(out_dir / "buildings-index.json", index)
 
+    floors_dir = out_dir / "floors"
+    floors_dir.mkdir(parents=True, exist_ok=True)
+    for stale in floors_dir.glob("*.json"):
+        if stale.stem not in interiors:
+            stale.unlink()
+    for bid, data in interiors.items():
+        write_json(floors_dir / f"{bid}.json", data)
+    write_json(out_dir / "rooms-index.json", RoomIndex(rooms=interior.room_index(interiors)))
+
     print("── 파이프라인 리포트 ──")
     print(
-        f"캠퍼스 건물 {b_report.campus}개 · 주변 건물 {b_report.context}개 "
+        f"캠퍼스 건물 {len(buildings)}개 · 주변 건물 {b_report.context}개 "
         f"· 제외 {b_report.skipped}개"
     )
+    print(
+        f"층·강의실 연결 {len(i_report.attached)}개 건물 · 공간 {i_report.rooms}개 "
+        f"· 시설물 {i_report.facilities}개"
+    )
+    for main_id, merged in i_report.merged.items():
+        print(f"  ↳ {main_id}에 합침: {', '.join(merged)}")
+    for w in i_report.warnings:
+        print(f"  ⚠ {w}")
+    if i_report.unmatched_sources:
+        print(f"  ⚠ 연결 안 된 층 데이터: {', '.join(i_report.unmatched_sources)}")
     print(f"보행로 노드 {g_report.nodes}개 · 간선 {g_report.edges}개")
     print(
         f"원본 연결 요소 {g_report.components_before}개 "
         f"(가장 큰 요소 외 노드 {g_report.dropped_nodes}개 제외)"
     )
-    print(f"입구 연결 {g_report.linked_buildings}/{b_report.campus}개 건물")
+    print(f"입구 연결 {g_report.linked_buildings}/{len(buildings)}개 건물")
     if g_report.unlinked_buildings:
         print(f"  ⚠ 보행로에 연결 못 한 건물: {', '.join(g_report.unlinked_buildings)}")
-    if b_report.unnamed:
-        print(f"  ⚠ 이름 없는 건물(building_meta.json에 추가 필요): {', '.join(b_report.unnamed)}")
-    if b_report.estimated_levels:
-        print(f"  ⚠ 층수 추정값 사용: {', '.join(b_report.estimated_levels)}")
+    unnamed = [b.id for b in buildings if b.id.startswith("osm_")]
+    if unnamed:
+        print(f"  ⚠ 이름 없는 건물(building_meta.json에 추가 필요): {', '.join(unnamed)}")
+    estimated = [b.id for b in buildings if b.levels_estimated]
+    if estimated:
+        print(f"  ⚠ 층수 추정값 사용: {', '.join(estimated)}")
     print(f"→ {out_dir}")
 
 

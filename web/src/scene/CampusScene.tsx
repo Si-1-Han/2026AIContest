@@ -7,17 +7,23 @@ import { ContextBuildings } from './ContextBuildings';
 import { Effects } from './Effects';
 import { Ground } from './Ground';
 import { Paths } from './Paths';
+import { RoomLayer } from './RoomLayer';
 import { RouteLine } from './RouteLine';
 
 export function CampusScene() {
-  const select = useCampusStore((s) => s.select);
+  // 빈 곳 클릭: 강의실 선택 해제 → (층 분해 보기에서만) 건물 선택 해제. 층 보기는 뒤로 버튼으로 나간다.
+  const onMissed = () => {
+    const s = useCampusStore.getState();
+    if (s.selectedRoomId) s.selectRoom(null);
+    else if (s.floorIndex === null) s.select(null);
+  };
 
   return (
     <Canvas
       shadows="percentage"
       dpr={[1, 2]}
       camera={{ position: INITIAL_CAMERA.position, fov: 38, near: 1, far: 6000 }}
-      onPointerMissed={() => select(null)}
+      onPointerMissed={onMissed}
     >
       <color attach="background" args={[COLORS.background]} />
       <fog attach="fog" args={[COLORS.background, 650, 1700]} />
@@ -41,6 +47,7 @@ export function CampusScene() {
       <ContextBuildings />
       <Paths />
       <Buildings />
+      <RoomLayer />
       <RouteLine />
 
       <CameraDirector />

@@ -98,6 +98,24 @@
             "type": "string"
           },
           "type": "array"
+        },
+        "has_interior": {
+          "default": false,
+          "description": "층·강의실 데이터가 있으면 true",
+          "type": "boolean"
+        },
+        "floors": {
+          "description": "아래층부터. 비어 있으면 footprint로 단순 렌더링",
+          "items": {
+            "$ref": "#/$defs/FloorInfo"
+          },
+          "type": "array"
+        },
+        "volumes": {
+          "items": {
+            "$ref": "#/$defs/Volume"
+          },
+          "type": "array"
         }
       },
       "required": [
@@ -113,7 +131,10 @@
         "center",
         "entrances",
         "description",
-        "facilities"
+        "facilities",
+        "has_interior",
+        "floors",
+        "volumes"
       ],
       "title": "Building",
       "type": "object"
@@ -156,6 +177,36 @@
         "aliases"
       ],
       "title": "BuildingIndexEntry",
+      "type": "object"
+    },
+    "BuildingInterior": {
+      "additionalProperties": false,
+      "properties": {
+        "schema_version": {
+          "const": 1,
+          "default": 1,
+          "type": "integer"
+        },
+        "building_id": {
+          "type": "string"
+        },
+        "attribution": {
+          "type": "string"
+        },
+        "floors": {
+          "items": {
+            "$ref": "#/$defs/InteriorFloor"
+          },
+          "type": "array"
+        }
+      },
+      "required": [
+        "schema_version",
+        "building_id",
+        "attribution",
+        "floors"
+      ],
+      "title": "BuildingInterior",
       "type": "object"
     },
     "BuildingPatch": {
@@ -382,6 +433,57 @@
       "title": "EventIn",
       "type": "object"
     },
+    "FloorInfo": {
+      "additionalProperties": false,
+      "description": "층 요약. 강의실 상세는 floors/<building_id>.json에서 따로 불러온다.",
+      "properties": {
+        "index": {
+          "description": "아래부터 0, 1, 2 … (지하층 포함)",
+          "minimum": 0,
+          "type": "integer"
+        },
+        "level": {
+          "description": "지하 1층 = -1, 지상 1층 = 1",
+          "type": "integer"
+        },
+        "label": {
+          "description": "표시 이름 (예: B1, 3F)",
+          "type": "string"
+        },
+        "outline": {
+          "description": "이 층의 외곽선",
+          "items": {
+            "maxItems": 2,
+            "minItems": 2,
+            "type": "array",
+            "items": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "number"
+              }
+            ],
+            "additionalItems": false
+          },
+          "type": "array"
+        },
+        "room_count": {
+          "description": "강의실 등 '공간' 수 (시설물 제외)",
+          "minimum": 0,
+          "type": "integer"
+        }
+      },
+      "required": [
+        "index",
+        "level",
+        "label",
+        "outline",
+        "room_count"
+      ],
+      "title": "FloorInfo",
+      "type": "object"
+    },
     "FocusBuildingAction": {
       "additionalProperties": false,
       "properties": {
@@ -392,6 +494,18 @@
         "building_id": {
           "type": "string"
         },
+        "room_id": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "description": "건물 안의 강의실 (Room.id)"
+        },
         "message": {
           "type": "string"
         }
@@ -399,6 +513,7 @@
       "required": [
         "action",
         "building_id",
+        "room_id",
         "message"
       ],
       "title": "FocusBuildingAction",
@@ -484,6 +599,52 @@
       "title": "Health",
       "type": "object"
     },
+    "InteriorFloor": {
+      "additionalProperties": false,
+      "properties": {
+        "index": {
+          "type": "integer"
+        },
+        "level": {
+          "type": "integer"
+        },
+        "label": {
+          "type": "string"
+        },
+        "outline": {
+          "items": {
+            "maxItems": 2,
+            "minItems": 2,
+            "type": "array",
+            "items": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "number"
+              }
+            ],
+            "additionalItems": false
+          },
+          "type": "array"
+        },
+        "rooms": {
+          "items": {
+            "$ref": "#/$defs/Room"
+          },
+          "type": "array"
+        }
+      },
+      "required": [
+        "index",
+        "level",
+        "label",
+        "outline",
+        "rooms"
+      ],
+      "title": "InteriorFloor",
+      "type": "object"
+    },
     "NavigateAction": {
       "additionalProperties": false,
       "properties": {
@@ -506,6 +667,18 @@
         "to_id": {
           "type": "string"
         },
+        "room_id": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "description": "도착 건물 안의 강의실 (Room.id)"
+        },
         "message": {
           "type": "string"
         }
@@ -514,6 +687,7 @@
         "action",
         "from_id",
         "to_id",
+        "room_id",
         "message"
       ],
       "title": "NavigateAction",
@@ -630,6 +804,181 @@
       "title": "PathNode",
       "type": "object"
     },
+    "Room": {
+      "additionalProperties": false,
+      "properties": {
+        "id": {
+          "description": "<building_id>:<층 index>:<원본 배열 index>",
+          "type": "string"
+        },
+        "name": {
+          "type": "string"
+        },
+        "type": {
+          "description": "원본 분류 (예: 강의실,세미나실,멀티실)",
+          "type": "string"
+        },
+        "category": {
+          "description": "공간 = 강의실 등, 시설물 = 계단·엘베·화장실·출입구",
+          "enum": [
+            "공간",
+            "시설물"
+          ],
+          "type": "string"
+        },
+        "group": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "description": "같이 선택할 시설물 묶음 (stairs 등)"
+        },
+        "space_group": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "description": "예: main-auditorium"
+        },
+        "description": {
+          "default": "",
+          "type": "string"
+        },
+        "tags": {
+          "description": "검색용 별칭 (예: 영비스터디룸)",
+          "items": {
+            "type": "string"
+          },
+          "type": "array"
+        },
+        "color": {
+          "type": "string"
+        },
+        "polygon": {
+          "items": {
+            "maxItems": 2,
+            "minItems": 2,
+            "type": "array",
+            "items": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "number"
+              }
+            ],
+            "additionalItems": false
+          },
+          "type": "array"
+        },
+        "holes": {
+          "items": {
+            "items": {
+              "maxItems": 2,
+              "minItems": 2,
+              "type": "array",
+              "items": [
+                {
+                  "type": "number"
+                },
+                {
+                  "type": "number"
+                }
+              ],
+              "additionalItems": false
+            },
+            "type": "array"
+          },
+          "type": "array"
+        }
+      },
+      "required": [
+        "id",
+        "name",
+        "type",
+        "category",
+        "group",
+        "space_group",
+        "description",
+        "tags",
+        "color",
+        "polygon",
+        "holes"
+      ],
+      "title": "Room",
+      "type": "object"
+    },
+    "RoomIndex": {
+      "additionalProperties": false,
+      "properties": {
+        "rooms": {
+          "items": {
+            "$ref": "#/$defs/RoomIndexEntry"
+          },
+          "type": "array"
+        }
+      },
+      "required": [
+        "rooms"
+      ],
+      "title": "RoomIndex",
+      "type": "object"
+    },
+    "RoomIndexEntry": {
+      "additionalProperties": false,
+      "description": "길안내·검색용 경량 목록 (rooms-index.json)",
+      "properties": {
+        "id": {
+          "type": "string"
+        },
+        "building_id": {
+          "type": "string"
+        },
+        "floor_index": {
+          "type": "integer"
+        },
+        "floor_label": {
+          "type": "string"
+        },
+        "name": {
+          "type": "string"
+        },
+        "category": {
+          "enum": [
+            "공간",
+            "시설물"
+          ],
+          "type": "string"
+        },
+        "tags": {
+          "items": {
+            "type": "string"
+          },
+          "type": "array"
+        }
+      },
+      "required": [
+        "id",
+        "building_id",
+        "floor_index",
+        "floor_label",
+        "name",
+        "category",
+        "tags"
+      ],
+      "title": "RoomIndexEntry",
+      "type": "object"
+    },
     "StartTourAction": {
       "additionalProperties": false,
       "properties": {
@@ -719,6 +1068,46 @@
         "message"
       ],
       "title": "UnknownAction",
+      "type": "object"
+    },
+    "Volume": {
+      "additionalProperties": false,
+      "description": "층 데이터가 없는 보조 덩어리 (부속동 등). 캠퍼스 보기에서만 그린다.",
+      "properties": {
+        "footprint": {
+          "items": {
+            "maxItems": 2,
+            "minItems": 2,
+            "type": "array",
+            "items": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "number"
+              }
+            ],
+            "additionalItems": false
+          },
+          "type": "array"
+        },
+        "base": {
+          "description": "바닥 높이(m)",
+          "minimum": 0,
+          "type": "number"
+        },
+        "height": {
+          "description": "높이(m)",
+          "exclusiveMinimum": 0,
+          "type": "number"
+        }
+      },
+      "required": [
+        "footprint",
+        "base",
+        "height"
+      ],
+      "title": "Volume",
       "type": "object"
     }
   },

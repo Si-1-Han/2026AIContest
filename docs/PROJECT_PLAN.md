@@ -1,7 +1,7 @@
 # 프로젝트 계획서 — 한세 3D 캠퍼스 (가칭)
 
 > 2026-2 한세대학교 AI Contest 출품작
-> 작성일: 2026-11-03 · 최종 수정: 2026-11-03 (기본 구조 완료) · 상태: M1 진행 중
+> 작성일: 2026-11-03 · 최종 수정: 2026-11-04 (층·강의실 통합) · 상태: M2 진행 중
 
 ---
 
@@ -47,7 +47,7 @@
 | F5 | AI 길안내 챗봇 | 자연어 입력("학생회관에서 이공관 어떻게 가?") → 출발지·목적지 인식 → F4 실행. API 장애 시 규칙 기반 폴백 | TS | P0 |
 | F6 | 정적 배포 | Vercel(정적 사이트 + 서버리스 함수 1개)로 공개 URL 제공 | TS | P0 |
 | **F15** | **데이터 파이프라인** | HMH/OSM 원본 → 좌표 변환·폴리곤 정리 → `campus.json`·`paths.json`·`rooms.json` 생성. 보행로 그래프 연결성 검증 | **Python** | **P0** |
-| F7 | 층 분해 뷰 | 건물 선택 시 층이 위아래로 벌어지며 층별 강의실 표시 | TS | P1 |
+| F7 | 층 분해 뷰 ✅ | 건물 선택 시 층이 벌어지고, 층을 고르면 강의실·시설 표시. 길안내가 강의실까지 인식 (11/4 완료) | TS + Python | P1 |
 | F8 | 자동 캠퍼스 투어 | 미리 정한 동선으로 카메라가 순회하고 나레이션(TTS)과 자막 재생. **발표 시연용** | TS | P1 |
 | F9 | 분위기 전환 | 낮/노을/밤 조명 전환. 밤에는 창문 발광과 블룸 효과 | TS | P1 |
 | F10 | 사운드 디자인 | 상황별 효과음(클릭, 비행, 도착)과 BGM, 음소거 토글 | TS | P1 |
@@ -151,7 +151,8 @@
 | 데이터 | 출처 | 라이선스·조건 |
 |---|---|---|
 | 건물 외곽선 | OpenStreetMap (HMH `buildings.geojson`에 포함) | ODbL — **출처 표기 필수** |
-| 층·강의실 폴리곤 | HMH `rooms.json` (wjdgh0628/open_source_5) | LICENSE 없음 → **원작자 허락 후 사용, README에 출처 표기** |
+| 층·강의실 폴리곤 | HMH `rooms.json` (wjdgh0628/open_source_5) + 팀원 보완(시설물 분류·대강당) → `backend/data/interior/` | 원작자 허락, README에 출처 표기 |
+| 건물 공식 이름·층별 안내 | 한세대학교 사이버투어 | `building_meta.json`에서 관리 |
 | 보행로 그래프 | OSM footway를 Overpass로 추출 → 파이프라인이 그래프로 변환 → geojson.io로 수작업 보정 | ODbL + 우리 팀 |
 | 건물 설명·별칭 | 학교 홈페이지 등을 참고해 직접 작성 | 우리 팀 |
 
@@ -299,7 +300,8 @@ class PathEdge(BaseModel):
 - [x] `web/` 초기 세팅: Vite + React + TS + R3F (건물 렌더·클릭·A* 경로 연출·폴백 길안내까지 동작)
 - [x] `backend/` 초기 세팅: uv + Pydantic 모델 + 파이프라인(OSM) + FastAPI + 테스트
 - [x] 타입 자동 생성(`web/scripts/gen-types.mjs`) 연결, CI 구성
-- [ ] 이름 없는 건물 3개(`osm_834838408`, `osm_834838429`, `osm_834838432`)와 층수 추정 건물 확인 → `backend/data/building_meta.json` 보강
+- [x] 조원 층·강의실 데이터 이전·통합 (`backend/data/interior/`). 본관(+대강당 동)·대학원관(+부속동) 자동 병합, 공식 건물 이름 적용, 층수 추정 문제 해소
+- [ ] 강의실 설명(`desc`)·별칭(`tags`) 보강, 대강당 좌석 보기(P2, `auditoriums.json`)
 - [ ] 기본 출발지(정문) 노드 지정 (`web/src/config.ts`의 `DEFAULT_FROM_ID`)
 - [ ] Vercel(`web/`)·Render(`backend/`) 프로젝트 연결
 - [ ] `docs/ai-log/` 기록 시작

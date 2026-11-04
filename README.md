@@ -6,7 +6,7 @@
 한세대학교 캠퍼스를 게임처럼 화려한 3D로 재현한 웹 서비스입니다.
 "학생회관에서 이공관 어떻게 가?"라고 물으면 AI가 출발지와 목적지를 알아듣고, 빛나는 경로를 따라 카메라가 캠퍼스를 날아갑니다.
 
-> 🚧 **현재 상태:** 기본 구조 완료 (2026-11-03). 3D 캠퍼스 렌더링, 건물 선택, A* 길찾기 연출, 규칙 기반 길안내가 동작합니다.
+> 🚧 **현재 상태 (2026-11-04):** 3D 캠퍼스, 층 분해 뷰와 층별 강의실(963개 공간·시설), A* 길찾기 연출, 강의실까지 알아듣는 규칙 기반 길안내가 동작합니다.
 > 자세한 내용은 [📄 프로젝트 계획서](docs/PROJECT_PLAN.md)를 참고하세요.
 
 ---
@@ -19,7 +19,7 @@
 | 🏢 | **3D 캠퍼스** | 건물 11개 동을 스타일라이즈드 3D로 재현. 낮/노을/밤 전환과 블룸 효과 |
 | 🧭 | **길찾기** | 보행로 그래프를 A*로 탐색하고, 발광 경로와 따라가는 카메라로 안내 |
 | 🤖 | **AI 길안내 챗봇** | 자연어로 묻고 답하는 길안내. 네트워크 장애 시 규칙 기반 폴백 |
-| 🧱 | **층 분해 뷰** | 건물을 선택하면 층이 벌어지며 강의실을 표시 |
+| 🧱 | **층 분해 뷰 · 강의실** | 건물을 선택하면 층이 벌어지고, 층을 고르면 강의실·시설이 나타남. "이공관 301호 어디야?"로 바로 이동 |
 | 🎥 | **자동 캠퍼스 투어** | 나레이션과 자막이 있는 카메라 투어 |
 | 🐍 | **데이터 파이프라인** | 원본 지도 데이터를 3D 좌표로 변환하고 보행로 그래프를 생성·검증 (Python) |
 | 📈 | **캠퍼스 API · 이용 통계** | 캠퍼스 데이터 조회·편집 API, 인기 목적지 등 이용 통계 (FastAPI) |
@@ -59,7 +59,7 @@
 ```
 ├── web/                      # TypeScript
 │   ├── api/guide.ts          # AI 길안내 서버리스 함수 (Vercel)
-│   ├── public/data/          # 파이프라인 산출물 (커밋됨, 정적 폴백)
+│   ├── public/data/          # 파이프라인 산출물 (커밋됨, 정적 폴백, floors/<건물>.json)
 │   ├── scripts/gen-types.mjs # JSON Schema → TS 타입
 │   └── src/
 │       ├── scene/            # 지면·건물·보행로·경로·이펙트
@@ -73,7 +73,7 @@
 │   ├── campus/models.py      # 데이터 계약의 기준 (Pydantic)
 │   ├── campus/pipeline/      # OSM → JSON 변환, 보행로 그래프 생성·검증
 │   ├── campus/api/           # FastAPI
-│   ├── data/                 # 원본(raw/osm.json), 건물 메타데이터
+│   ├── data/                 # OSM 원본, 건물 메타데이터, interior/(층·강의실 원본)
 │   └── tests/
 ├── shared/schema/            # Pydantic → JSON Schema (두 언어의 접점)
 ├── .github/workflows/ci.yml
@@ -143,4 +143,5 @@ CI가 생성 결과가 커밋된 것과 같은지 검사합니다.
 ## 📜 데이터 출처 및 감사
 
 - 건물 외곽선: © [OpenStreetMap](https://www.openstreetmap.org/copyright) contributors, [ODbL](https://opendatacommons.org/licenses/odbl/)
-- 층·강의실 데이터: [HMH – 한세대학교 3D 캠퍼스맵](https://github.com/wjdgh0628/open_source_5) 팀의 작업을 참고합니다. *(원작자 허락을 받은 뒤 사용하며, 사용 범위는 이 항목에 명시할 예정)*
+- 층·강의실 데이터: [HMH – 한세대학교 3D 캠퍼스맵](https://github.com/wjdgh0628/open_source_5) 팀의 데이터를 원작자 허락을 받아 사용하고, 팀에서 시설물 분류·대강당 데이터를 보완했습니다. ([backend/data/interior](backend/data/interior/README.md))
+- 건물 공식 이름·층별 안내 요약: [한세대학교 사이버투어](https://hansei.ac.kr/view.do?no=10270)

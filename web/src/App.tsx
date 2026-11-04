@@ -14,6 +14,15 @@ export default function App() {
     void load();
   }, [load]);
 
+  // Esc: 강의실 → 층 → 건물 → 캠퍼스 순서로 뒤로
+  useEffect(() => {
+    const onKey = (e: KeyboardEvent) => {
+      if (e.key === 'Escape' && !(e.target instanceof HTMLInputElement)) useCampusStore.getState().back();
+    };
+    window.addEventListener('keydown', onKey);
+    return () => window.removeEventListener('keydown', onKey);
+  }, []);
+
   return (
     <main className="relative h-full w-full">
       <CampusScene />

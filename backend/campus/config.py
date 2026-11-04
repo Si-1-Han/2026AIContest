@@ -8,6 +8,14 @@ REPO_ROOT = BACKEND_DIR.parent
 RAW_DIR = BACKEND_DIR / "data" / "raw"
 RAW_OSM_PATH = RAW_DIR / "osm.json"
 BUILDING_META_PATH = BACKEND_DIR / "data" / "building_meta.json"
+INTERIOR_DIR = BACKEND_DIR / "data" / "interior"  # 층·강의실 원본 (팀 관리)
+
+# 원본 건물 외곽이 OSM 건물을 이 비율 이상 덮으면 하나의 건물로 합친다 (예: 본관 + 대강당 동)
+MERGE_COVERAGE = 0.7
+
+INTERIOR_ATTRIBUTION = (
+    "층·강의실: HMH 한세대학교 3D 캠퍼스맵(wjdgh0628/open_source_5) 기반, 팀 보완"
+)
 
 WEB_DATA_DIR = REPO_ROOT / "web" / "public" / "data"
 SCHEMA_PATH = REPO_ROOT / "shared" / "schema" / "campus.schema.json"

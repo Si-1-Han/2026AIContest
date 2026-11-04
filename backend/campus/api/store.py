@@ -5,7 +5,7 @@ from pathlib import Path
 from sqlmodel import Session, select
 
 from campus.api.db import BuildingOverride
-from campus.models import Building, BuildingPatch, CampusData, PathGraph
+from campus.models import Building, BuildingInterior, BuildingPatch, CampusData, PathGraph
 
 
 class CampusStore:
@@ -17,6 +17,21 @@ class CampusStore:
             (data_dir / "paths.json").read_text(encoding="utf-8")
         )
         self.building_ids = {b.id for b in self.campus.buildings}
+        self._floors_dir = data_dir / "floors"
+        self._interiors: dict[str, BuildingInterior] = {}
+
+    def interior(self, building_id: str) -> BuildingInterior | None:
+        """층·강의실 데이터 (처음 요청할 때 읽고 캐시)"""
+        if building_id not in self.building_ids:
+            return None
+        if building_id not in self._interiors:
+            path = self._floors_dir / f"{building_id}.json"
+            if not path.exists():
+                return None
+            self._interiors[building_id] = BuildingInterior.model_validate_json(
+                path.read_text(encoding="utf-8")
+            )
+        return self._interiors[building_id]
 
     def merged_campus(self, session: Session) -> CampusData:
         overrides = {o.building_id: o for o in session.exec(select(BuildingOverride))}

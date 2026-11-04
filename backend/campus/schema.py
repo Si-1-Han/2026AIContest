@@ -20,6 +20,8 @@ EXPORTED = [
     (models.CampusData, "serialization"),
     (models.PathGraph, "serialization"),
     (models.BuildingIndex, "serialization"),
+    (models.BuildingInterior, "serialization"),
+    (models.RoomIndex, "serialization"),
     (models.GuideRequest, "validation"),
     (models.GuideResponse, "serialization"),
     (models.BuildingPatch, "validation"),

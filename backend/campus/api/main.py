@@ -18,6 +18,7 @@ from campus.api.settings import Settings, get_settings
 from campus.api.store import CampusStore
 from campus.models import (
     Building,
+    BuildingInterior,
     BuildingPatch,
     CampusData,
     EventIn,
@@ -77,6 +78,13 @@ def create_app(settings: Settings | None = None) -> FastAPI:
         if b is None:
             raise HTTPException(status.HTTP_404_NOT_FOUND, "건물을 찾을 수 없습니다.")
         return b
+
+    @app.get("/api/v1/buildings/{building_id}/interior", response_model=BuildingInterior)
+    def building_interior(building_id: str, store: StoreDep) -> BuildingInterior:
+        interior = store.interior(building_id)
+        if interior is None:
+            raise HTTPException(status.HTTP_404_NOT_FOUND, "층·강의실 데이터가 없습니다.")
+        return interior
 
     @app.put(
         "/api/v1/buildings/{building_id}",

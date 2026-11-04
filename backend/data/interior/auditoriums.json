@@ -1,0 +1,634 @@
+{
+  "main-auditorium": {
+    "id": "main-auditorium",
+    "name": "대강당",
+    "building": "main",
+    "floor_footprint": {
+      "coordinate_system": "campus_local_xy",
+      "center": [
+        -42.3,
+        208.5
+      ],
+      "size": [
+        42.0,
+        31.5
+      ],
+      "rotation_degrees": -60.2
+    },
+    "seat_width": 0.45,
+    "seat_depth": 0.42,
+    "seat_height": 0.12,
+    "seat_pitch_x": 0.64,
+    "seat_pitch_y": 0.72,
+    "section_seats": {
+      "A": {
+        "columns": 15,
+        "rows": 11,
+        "faculty_rows": [
+          1
+        ]
+      },
+      "B": {
+        "columns": 11,
+        "rows": 11,
+        "faculty_rows": [
+          1
+        ]
+      },
+      "C": {
+        "columns": 11,
+        "rows": 11,
+        "faculty_rows": [
+          1
+        ]
+      },
+      "D": {
+        "columns": 13,
+        "rows": 4
+      },
+      "E": {
+        "columns": 15,
+        "rows": 12,
+        "row_counts": [
+          15,
+          15,
+          15,
+          15,
+          15,
+          15,
+          15,
+          15,
+          12,
+          11,
+          9,
+          2
+        ]
+      },
+      "F": {
+        "columns": 11,
+        "rows": 10,
+        "row_counts": [
+          11,
+          11,
+          11,
+          11,
+          11,
+          11,
+          11,
+          11,
+          8,
+          8
+        ]
+      },
+      "G": {
+        "columns": 11,
+        "rows": 10
+      },
+      "H": {
+        "columns": 15,
+        "rows": 12,
+        "row_counts": [
+          13,
+          13,
+          13,
+          13,
+          13,
+          14,
+          15,
+          15,
+          12,
+          11,
+          8,
+          4
+        ]
+      },
+      "I": {
+        "columns": 10,
+        "rows": 7,
+        "supplemental_first": true
+      },
+      "J": {
+        "columns": 14,
+        "rows": 8,
+        "row_counts": [
+          14,
+          14,
+          14,
+          14,
+          13,
+          12,
+          12,
+          8
+        ],
+        "row_alignment": "right"
+      },
+      "K": {
+        "columns": 14,
+        "rows": 8,
+        "row_counts": [
+          14,
+          14,
+          14,
+          14,
+          13,
+          12,
+          12,
+          8
+        ],
+        "row_alignment": "left"
+      },
+      "L": {
+        "columns": 10,
+        "rows": 7
+      }
+    },
+    "floors": [
+      {
+        "index": 2,
+        "name": "1층",
+        "building_floor": "본관 2층",
+        "sections": [
+          "A",
+          "B",
+          "C",
+          "D",
+          "E",
+          "F",
+          "G",
+          "H"
+        ]
+      },
+      {
+        "index": 3,
+        "name": "2층",
+        "building_floor": "본관 3층",
+        "sections": [
+          "I",
+          "J",
+          "K",
+          "L"
+        ]
+      }
+    ],
+    "connections": [
+      {
+        "from": 2,
+        "to": 3,
+        "type": "stairs",
+        "name": "대강당 내부 계단"
+      }
+    ],
+    "level_gap": 4.5,
+    "seating_accuracy": "photo_layout_draft",
+    "note": "A구역은 교수석 1줄과 번호 좌석 15×10줄(A001–A150)입니다. A·B·C의 교수석에는 번호가 없습니다. 구역을 선택하면 2D 좌석도로 볼 수 있으며 I구역의 왼쪽 6석은 번호 확인을 위해 본 좌석 옆에 모아 표시합니다.",
+    "seat_number_overrides": {},
+    "interior_layout": {
+      "coordinate_system": "photo_plan_normalized",
+      "dimensions": [
+        36,
+        36
+      ],
+      "source": "사용자 제공 대강당 평면도 사진",
+      "verification": "photo_layout_draft",
+      "floors": {
+        "2": {
+          "boundary": [
+            [
+              0.2,
+              0.02
+            ],
+            [
+              0.8,
+              0.02
+            ],
+            [
+              1.0,
+              0.22
+            ],
+            [
+              1.0,
+              1.04
+            ],
+            [
+              0.0,
+              1.04
+            ],
+            [
+              0.0,
+              0.22
+            ]
+          ],
+          "entrances": [
+            {
+              "edge": 2,
+              "at": 0.38,
+              "width": 0.06
+            },
+            {
+              "edge": 2,
+              "at": 0.7,
+              "width": 0.06
+            },
+            {
+              "edge": 3,
+              "at": 0.2,
+              "width": 0.06
+            },
+            {
+              "edge": 3,
+              "at": 0.5,
+              "width": 0.06
+            },
+            {
+              "edge": 3,
+              "at": 0.8,
+              "width": 0.06
+            },
+            {
+              "edge": 4,
+              "at": 0.3,
+              "width": 0.06
+            },
+            {
+              "edge": 4,
+              "at": 0.7,
+              "width": 0.06
+            }
+          ],
+          "aisles": [],
+          "stairs": [
+            {
+              "name": "오른쪽 연결 계단",
+              "polygon": [
+                [
+                  0.965,
+                  0.525
+                ],
+                [
+                  0.995,
+                  0.525
+                ],
+                [
+                  0.995,
+                  0.745
+                ],
+                [
+                  0.965,
+                  0.745
+                ]
+              ]
+            }
+          ],
+          "sections": [
+            {
+              "name": "A",
+              "overview_rect": [
+                0.065,
+                0.235,
+                0.23,
+                0.27
+              ],
+              "verified": false,
+              "seat_rotation_degrees": 26.57
+            },
+            {
+              "name": "B",
+              "overview_rect": [
+                0.345,
+                0.325,
+                0.195,
+                0.26
+              ],
+              "verified": false,
+              "seat_rotation_degrees": 7.7
+            },
+            {
+              "name": "C",
+              "overview_rect": [
+                0.585,
+                0.325,
+                0.195,
+                0.26
+              ],
+              "verified": false,
+              "seat_rotation_degrees": -10.44
+            },
+            {
+              "name": "D",
+              "overview_rect": [
+                0.825,
+                0.435,
+                0.12,
+                0.145
+              ],
+              "verified": false,
+              "seat_rotation_degrees": -29.48
+            },
+            {
+              "name": "E",
+              "overview_rect": [
+                0.065,
+                0.625,
+                0.23,
+                0.265
+              ],
+              "verified": false,
+              "seat_rotation_degrees": 24.08
+            },
+            {
+              "name": "F",
+              "overview_rect": [
+                0.345,
+                0.68,
+                0.195,
+                0.255
+              ],
+              "verified": false,
+              "seat_rotation_degrees": 8.97
+            },
+            {
+              "name": "G",
+              "overview_rect": [
+                0.585,
+                0.68,
+                0.195,
+                0.255
+              ],
+              "verified": false,
+              "seat_rotation_degrees": -9.69
+            },
+            {
+              "name": "H",
+              "overview_rect": [
+                0.825,
+                0.69,
+                0.12,
+                0.22
+              ],
+              "verified": false,
+              "seat_rotation_degrees": -28.44
+            }
+          ],
+          "stage": [
+            [
+              0.22,
+              0.04
+            ],
+            [
+              0.78,
+              0.04
+            ],
+            [
+              0.88,
+              0.15
+            ],
+            [
+              0.8,
+              0.19
+            ],
+            [
+              0.7,
+              0.22
+            ],
+            [
+              0.6,
+              0.24
+            ],
+            [
+              0.5,
+              0.245
+            ],
+            [
+              0.4,
+              0.24
+            ],
+            [
+              0.3,
+              0.22
+            ],
+            [
+              0.2,
+              0.19
+            ],
+            [
+              0.12,
+              0.15
+            ]
+          ]
+        },
+        "3": {
+          "boundary": [
+            [
+              0.015,
+              0.04
+            ],
+            [
+              0.085,
+              0.04
+            ],
+            [
+              0.085,
+              0.43
+            ],
+            [
+              0.13,
+              0.48
+            ],
+            [
+              0.24,
+              0.535
+            ],
+            [
+              0.36,
+              0.575
+            ],
+            [
+              0.5,
+              0.59
+            ],
+            [
+              0.64,
+              0.575
+            ],
+            [
+              0.76,
+              0.535
+            ],
+            [
+              0.87,
+              0.48
+            ],
+            [
+              0.935,
+              0.43
+            ],
+            [
+              0.935,
+              0.04
+            ],
+            [
+              1.0,
+              0.04
+            ],
+            [
+              1.0,
+              1.06
+            ],
+            [
+              0.015,
+              1.06
+            ]
+          ],
+          "entrances": [
+            {
+              "edge": 12,
+              "at": 0.89,
+              "width": 0.055
+            },
+            {
+              "edge": 13,
+              "at": 0.2,
+              "width": 0.06
+            },
+            {
+              "edge": 13,
+              "at": 0.8,
+              "width": 0.06
+            }
+          ],
+          "aisles": [],
+          "stairs": [
+            {
+              "name": "발코니 오른쪽 계단",
+              "polygon": [
+                [
+                  0.945,
+                  0.08
+                ],
+                [
+                  0.985,
+                  0.08
+                ],
+                [
+                  0.985,
+                  0.43
+                ],
+                [
+                  0.945,
+                  0.43
+                ]
+              ]
+            },
+            {
+              "name": "발코니 왼쪽 계단",
+              "polygon": [
+                [
+                  0.015,
+                  0.94
+                ],
+                [
+                  0.085,
+                  0.94
+                ],
+                [
+                  0.085,
+                  1.06
+                ],
+                [
+                  0.015,
+                  1.06
+                ]
+              ]
+            }
+          ],
+          "extra_seats": [
+            {
+              "section": "I",
+              "centers": [
+                [
+                  0.047,
+                  0.16
+                ],
+                [
+                  0.047,
+                  0.21
+                ],
+                [
+                  0.047,
+                  0.26
+                ],
+                [
+                  0.047,
+                  0.31
+                ],
+                [
+                  0.047,
+                  0.36
+                ],
+                [
+                  0.047,
+                  0.41
+                ]
+              ]
+            }
+          ],
+          "sections": [
+            {
+              "name": "I",
+              "overview_rect": [
+                0.105,
+                0.6,
+                0.18,
+                0.23
+              ],
+              "verified": false,
+              "seat_rotation_degrees": 23.96
+            },
+            {
+              "name": "J",
+              "overview_rect": [
+                0.33,
+                0.69,
+                0.17,
+                0.23
+              ],
+              "verified": false,
+              "seat_rotation_degrees": 6.91,
+              "seat_center": [
+                0.415,
+                0.805
+              ]
+            },
+            {
+              "name": "K",
+              "overview_rect": [
+                0.54,
+                0.69,
+                0.17,
+                0.23
+              ],
+              "verified": false,
+              "seat_rotation_degrees": -6.91,
+              "seat_center": [
+                0.625,
+                0.805
+              ]
+            },
+            {
+              "name": "L",
+              "overview_rect": [
+                0.755,
+                0.6,
+                0.18,
+                0.23
+              ],
+              "verified": false,
+              "seat_rotation_degrees": -23.96
+            }
+          ]
+        }
+      }
+    },
+    "counts_source": "user_provided"
+  }
+}

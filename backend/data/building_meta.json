@@ -1,15 +1,58 @@
 {
-  "_comment": "OSM way ID → 팀이 관리하는 건물 정보. id는 영문 소문자로 한 번 정하면 바꾸지 마세요(경로·로그가 참조). levels를 적으면 OSM 값보다 우선합니다. description·facilities·aliases는 직접 채워 주세요.",
-  "834838417": { "id": "main", "name": "본관", "aliases": ["본관"] },
-  "834838430": { "id": "graduate", "name": "대학원관", "aliases": ["대학원관", "대학원"] },
-  "834838431": { "id": "design", "name": "디자인관", "aliases": ["디자인관"] },
-  "834838436": { "id": "music", "name": "음악관", "aliases": ["음악관"] },
-  "834838437": { "id": "dormitory", "name": "생활관", "aliases": ["생활관", "기숙사"] },
-  "834838438": { "id": "vision_center", "name": "영상비전센터", "aliases": ["영상비전센터"] },
-  "834838439": { "id": "science", "name": "이공관", "aliases": ["이공관"] },
-  "834838440": { "id": "student_union", "name": "학생회관", "aliases": ["학생회관"] },
-  "834838442": { "id": "theology", "name": "신학관", "aliases": ["신학관"] },
-  "834838443": { "id": "jonghap", "name": "종합관", "aliases": ["종합관"] },
-  "834838433": { "id": "eco_lab", "name": "환경친화연구동", "aliases": ["환경친화연구동"] },
-  "834838407": { "id": "church", "name": "여의도순복음한세교회", "aliases": ["한세교회", "교회"] }
+  "_comment": "OSM way ID → 팀이 관리하는 건물 정보. id는 영문 소문자로 한 번 정하면 바꾸지 마세요(경로·로그·강의실 ID가 참조). interior_id는 data/interior/buildings.geojson의 @id입니다. 이름은 한세대학교 공식 사이버투어 기준, description은 공식 층별 안내 요약입니다.",
+  "834838417": {
+    "id": "main", "name": "본관", "aliases": ["본관", "대강당", "채플"],
+    "interior_id": "main",
+    "description": "1F 식당·카페 / 3F 보건안전센터·서점 / 4F 학생복지팀"
+  },
+  "834838430": {
+    "id": "graduate", "name": "대학원관", "aliases": ["대학원관", "대학원"],
+    "interior_id": "grad",
+    "description": "1F 상담센터·편의점 / 2F 학생 휴게공간"
+  },
+  "834838431": {
+    "id": "design", "name": "디자인관", "aliases": ["디자인관"],
+    "interior_id": "design",
+    "description": "디자인 실습·강의 공간 / 2F 카페"
+  },
+  "834838433": {
+    "id": "gemi", "name": "환경친화연구동", "aliases": ["환경친화연구동", "게미관", "GEM관"],
+    "interior_id": "gemi",
+    "description": "1F 전시실 / 2F 스터디라운지 / 3~4F 컴퓨터 실습"
+  },
+  "834838436": {
+    "id": "music", "name": "음악관", "aliases": ["음악관"],
+    "interior_id": "music",
+    "description": "B1 한세문화홀 / 4F 대연주홀"
+  },
+  "834838437": {
+    "id": "rodem", "name": "로뎀관", "aliases": ["로뎀관"],
+    "interior_id": "rodem",
+    "description": "1F 카페·통합예술상담센터"
+  },
+  "834838438": {
+    "id": "vision_center", "name": "영산비전센터", "aliases": ["영산비전센터", "영비", "영상비전센터"],
+    "interior_id": "visionCentre",
+    "description": "2~6F 도서관 관련 공간 / 8~10F 기숙사"
+  },
+  "834838439": {
+    "id": "science", "name": "이공관", "aliases": ["이공관"],
+    "interior_id": "stem",
+    "description": "1~2F 강의·실습 공간 / 4F 실습실"
+  },
+  "834838440": {
+    "id": "student_union", "name": "학생회관", "aliases": ["학생회관"],
+    "interior_id": "council",
+    "description": "1F 카페·스터디라운지 / 2~3F 학생자치·동아리"
+  },
+  "834838442": {
+    "id": "theology", "name": "신학관", "aliases": ["신학관"],
+    "interior_id": "theology",
+    "description": "1F 신학부 행정실 / 5F 영산홀"
+  },
+  "834838443": {
+    "id": "vision", "name": "비전관", "aliases": ["비전관"],
+    "interior_id": "vision",
+    "description": "2F 생활관 사무실 / 4~6F 기숙사"
+  }
 }

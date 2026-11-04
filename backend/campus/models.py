@@ -24,6 +24,24 @@ class Contract(BaseModel):
 # ── 캠퍼스 데이터 (파이프라인 산출물: campus.json) ──────────────────────────────
 
 
+class FloorInfo(Contract):
+    """층 요약. 강의실 상세는 floors/<building_id>.json에서 따로 불러온다."""
+
+    index: int = Field(ge=0, description="아래부터 0, 1, 2 … (지하층 포함)")
+    level: int = Field(description="지하 1층 = -1, 지상 1층 = 1")
+    label: str = Field(description="표시 이름 (예: B1, 3F)")
+    outline: list[Point2] = Field(description="이 층의 외곽선")
+    room_count: int = Field(ge=0, description="강의실 등 '공간' 수 (시설물 제외)")
+
+
+class Volume(Contract):
+    """층 데이터가 없는 보조 덩어리 (부속동 등). 캠퍼스 보기에서만 그린다."""
+
+    footprint: list[Point2]
+    base: float = Field(ge=0, description="바닥 높이(m)")
+    height: float = Field(gt=0, description="높이(m)")
+
+
 class Building(Contract):
     """캠퍼스 건물. 클릭·길찾기·AI 안내의 대상."""
 
@@ -42,6 +60,11 @@ class Building(Contract):
     entrances: list[str] = Field(default_factory=list, description="PathNode.id 목록")
     description: str = ""
     facilities: list[str] = Field(default_factory=list)
+    has_interior: bool = Field(default=False, description="층·강의실 데이터가 있으면 true")
+    floors: list[FloorInfo] = Field(
+        default_factory=list, description="아래층부터. 비어 있으면 footprint로 단순 렌더링"
+    )
+    volumes: list[Volume] = Field(default_factory=list)
 
 
 class ContextBuilding(Contract):
@@ -61,6 +84,56 @@ class CampusData(Contract):
     boundary: list[Point2] = Field(description="캠퍼스 경계")
     buildings: list[Building]
     context: list[ContextBuilding]
+
+
+# ── 건물 내부 (floors/<building_id>.json) ───────────────────────────────────────
+
+RoomCategory = Literal["공간", "시설물"]
+
+
+class Room(Contract):
+    id: str = Field(description="<building_id>:<층 index>:<원본 배열 index>")
+    name: str
+    type: str = Field(description="원본 분류 (예: 강의실,세미나실,멀티실)")
+    category: RoomCategory = Field(description="공간 = 강의실 등, 시설물 = 계단·엘베·화장실·출입구")
+    group: str | None = Field(default=None, description="같이 선택할 시설물 묶음 (stairs 등)")
+    space_group: str | None = Field(default=None, description="예: main-auditorium")
+    description: str = ""
+    tags: list[str] = Field(default_factory=list, description="검색용 별칭 (예: 영비스터디룸)")
+    color: str
+    polygon: list[Point2]
+    holes: list[list[Point2]] = Field(default_factory=list)
+
+
+class InteriorFloor(Contract):
+    index: int
+    level: int
+    label: str
+    outline: list[Point2]
+    rooms: list[Room]
+
+
+class BuildingInterior(Contract):
+    schema_version: Literal[1] = 1
+    building_id: str
+    attribution: str
+    floors: list[InteriorFloor]
+
+
+class RoomIndexEntry(Contract):
+    """길안내·검색용 경량 목록 (rooms-index.json)"""
+
+    id: str
+    building_id: str
+    floor_index: int
+    floor_label: str
+    name: str
+    category: RoomCategory
+    tags: list[str]
+
+
+class RoomIndex(Contract):
+    rooms: list[RoomIndexEntry]
 
 
 # ── 보행로 그래프 (paths.json) ──────────────────────────────────────────────────
@@ -108,12 +181,14 @@ class NavigateAction(Contract):
     action: Literal["navigate"]
     from_id: str | None = Field(default=None, description="없으면 정문 등 기본 출발지")
     to_id: str
+    room_id: str | None = Field(default=None, description="도착 건물 안의 강의실 (Room.id)")
     message: str
 
 
 class FocusBuildingAction(Contract):
     action: Literal["focus_building"]
     building_id: str
+    room_id: str | None = Field(default=None, description="건물 안의 강의실 (Room.id)")
     message: str
 
 

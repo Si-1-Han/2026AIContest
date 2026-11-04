@@ -17,6 +17,7 @@ uv run python -m campus.pipeline build    # 원본 → web/public/data/{campus,p
 uv run python -m campus.pipeline schema   # 모델 → shared/schema/campus.schema.json
 ```
 
+- `build`는 OSM 건물에 `data/interior/`의 층·강의실을 붙입니다. 원본 외곽이 70% 이상 덮는 OSM 건물은 한 건물로 합칩니다(예: 본관 + 대강당 동). 형식은 [data/interior/README.md](data/interior/README.md)를 참고하세요.
 - `build`는 리포트를 출력합니다. 이름 없는 건물, 층수 추정 건물, 보행로에 연결되지 않은 건물이 나오면 `data/building_meta.json`을 보강하세요.
 - `data/raw/osm.json`은 커밋합니다. 같은 원본에서 항상 같은 결과가 나오도록 하기 위해서예요. OSM을 갱신하고 싶을 때만 `fetch`를 다시 실행합니다.
 - 데이터 형식은 `campus/models.py`에서만 바꿉니다. 바꾼 뒤에는 `schema`를 실행하고, `web`에서 `npm run gen:types`를 실행합니다.
@@ -33,6 +34,7 @@ uv run uvicorn campus.api.main:app --reload    # http://localhost:8000/docs
 | GET | `/api/v1/campus` | 캠퍼스 데이터 (편집 내용 반영) |
 | GET | `/api/v1/graph` | 보행로 그래프 |
 | GET | `/api/v1/buildings/{id}` | 건물 하나 |
+| GET | `/api/v1/buildings/{id}/interior` | 층·강의실 |
 | PUT | `/api/v1/buildings/{id}` | 건물 정보 수정 (`X-Admin-Token` 필요) |
 | POST | `/api/v1/events` | 검색·길찾기·AI 안내 이벤트 기록 |
 | GET | `/api/v1/stats` | 이용 통계 |
