@@ -84,36 +84,49 @@
 
 ## 🚀 시작하기
 
-**필요한 것:** Node.js 22+, (백엔드 작업 시) [uv](https://docs.astral.sh/uv/)
+**필요한 것:** Node.js 22+, [uv](https://docs.astral.sh/uv/) (Python 3.12는 uv가 자동 설치)
 
 ```bash
 git clone https://github.com/Si-1-Han/2026AIContest.git
-cd 2026AIContest/web
-npm install
-npm run dev          # http://localhost:5173
+cd 2026AIContest
+npm run setup     # 처음 한 번: web 패키지 + backend 파이썬 환경 설치
+npm run dev       # 웹(5173) + Python API(8000)를 함께 실행
 ```
 
-프론트만 작업한다면 여기까지면 됩니다. 캠퍼스 데이터(`web/public/data`)는 이미 커밋되어 있어요.
+브라우저에서 http://localhost:5173 을 열면 됩니다. `Ctrl + C`를 한 번 누르면 둘 다 종료돼요.
 
-**백엔드 (Python)**
+- 터미널에는 `[web]`(Vite)과 `[api]`(uvicorn) 로그가 함께 나옵니다. Python 코드를 고치면 API가 자동으로 재시작됩니다.
+- 웹은 `/api/v1/*` 요청을 Vite 프록시로 Python 서버에 넘깁니다. 그래서 `.env`나 CORS 설정이 필요 없어요.
+- 화면 왼쪽 위 배지로 상태를 확인할 수 있어요.
+  - **Python API 연결됨**: 길찾기를 Python 경로 엔진이 계산합니다.
+  - **꺼짐 · 간이 모드**: Python 서버가 꺼졌거나 늦게 켜지는 중이라 브라우저가 계산합니다. 5초마다 다시 확인해요.
+
+| 명령 (저장소 루트) | 하는 일 |
+|---|---|
+| `npm run dev` | 웹 + Python API 동시 실행 |
+| `npm run dev:web` | 웹만 실행 (Python 없이 정적 데이터·간이 경로) |
+| `npm run dev:api` | Python API만 실행 (http://localhost:8000/docs) |
+| `npm run test` | 백엔드 테스트 + 웹 빌드 |
+
+`web` 폴더 안에서 `npm run dev`를 실행해도 똑같이 동작합니다.
+
+**데이터를 다시 만들 때 (Python)**
 
 ```bash
 cd backend
-uv sync
-uv run python -m campus.pipeline build     # 데이터 다시 생성
-uv run uvicorn campus.api.main:app --reload  # API → http://localhost:8000/docs
-uv run pytest                                # 테스트
+uv run python -m campus.pipeline build    # 데이터 다시 생성
+uv run pytest                             # 테스트
 ```
-
-API를 프론트에 연결하려면 `web/.env.local`에 `VITE_API_URL=http://localhost:8000`을 넣습니다. 비워 두면 정적 JSON만 사용해요. Docker가 있다면 저장소 루트에서 `docker compose up --build`로도 API를 띄울 수 있어요.
 
 **데이터 형식을 바꿀 때**
 
 1. `backend/campus/models.py`를 수정합니다.
-2. `backend`에서 `uv run python -m campus.pipeline all`을 실행합니다. (`all`은 fetch부터 다시 하니, 원본 갱신이 필요 없으면 `build`와 `schema`만 실행하세요.)
+2. `backend`에서 `uv run python -m campus.pipeline build`와 `uv run python -m campus.pipeline schema`를 실행합니다.
 3. `web`에서 `npm run gen:types`를 실행합니다.
 
 CI가 생성 결과가 커밋된 것과 같은지 검사합니다.
+
+**배포:** 웹은 Vercel, API는 `docker compose`나 Render로 올립니다. 웹 빌드에 `VITE_API_URL=<API 주소>`를 지정하면 배포판에서도 Python 엔진을 씁니다(지정하지 않으면 간이 모드).
 
 ## 📅 일정
 

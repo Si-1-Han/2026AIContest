@@ -1,4 +1,4 @@
-import { API_TIMEOUT_MS, API_URL } from '../config';
+import { API_ENABLED, API_TIMEOUT_MS, API_URL } from '../config';
 
 const ROUTE_TIMEOUT_MS = 3000;
 import type {
@@ -40,7 +40,7 @@ export async function loadData(): Promise<LoadedData> {
     fetchJson<RoomIndex>(staticUrl('rooms-index.json')),
   ]);
 
-  if (API_URL) {
+  if (API_ENABLED) {
     try {
       const [campus, graph] = await Promise.all([
         fetchJson<CampusData>(`${API_URL}/api/v1/campus`, API_TIMEOUT_MS),
@@ -61,7 +61,7 @@ export async function loadData(): Promise<LoadedData> {
 
 /** 건물 하나의 층·강의실 (건물을 클릭할 때 불러온다) */
 export async function loadInterior(buildingId: string): Promise<BuildingInterior> {
-  if (API_URL) {
+  if (API_ENABLED) {
     try {
       return await fetchJson<BuildingInterior>(
         `${API_URL}/api/v1/buildings/${buildingId}/interior`,
@@ -74,12 +74,20 @@ export async function loadInterior(buildingId: string): Promise<BuildingInterior
   return fetchJson<BuildingInterior>(staticUrl(`floors/${buildingId}.json`));
 }
 
-/** 서버 경로 엔진이 있는지 (VITE_API_URL 설정 여부) */
-export const hasRouteApi = () => Boolean(API_URL);
+/** Python API가 응답하는지 (/health). API를 쓰지 않는 설정이면 null */
+export async function checkApiHealth(): Promise<boolean | null> {
+  if (!API_ENABLED) return null;
+  try {
+    const res = await fetch(`${API_URL}/health`, { signal: AbortSignal.timeout(1500) });
+    return res.ok;
+  } catch {
+    return false;
+  }
+}
 
 /** Python 경로 엔진 호출. 실패하면 null → 호출한 쪽이 브라우저 간이 계산으로 전환 */
 export async function routeViaApi(req: RouteRequest): Promise<RouteResponse | null> {
-  if (!API_URL) return null;
+  if (!API_ENABLED) return null;
   try {
     const res = await fetch(`${API_URL}/api/v1/route`, {
       method: 'POST',
@@ -97,7 +105,7 @@ export async function routeViaApi(req: RouteRequest): Promise<RouteResponse | nu
 
 /** 이용 이벤트 기록. 응답을 기다리지 않고, 실패해도 무시한다. */
 export function sendEvent(event: EventIn): void {
-  if (!API_URL) return;
+  if (!API_ENABLED) return;
   fetch(`${API_URL}/api/v1/events`, {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },

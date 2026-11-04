@@ -4,6 +4,7 @@ export function Hud() {
   const source = useCampusStore((s) => s.source);
   const count = useCampusStore((s) => s.campus?.buildings.length ?? 0);
   const attribution = useCampusStore((s) => s.campus?.attribution);
+  const apiOnline = useCampusStore((s) => s.apiOnline);
 
   return (
     <>
@@ -21,6 +22,19 @@ export function Hud() {
             <span className="rounded-full border border-white/15 bg-white/5 px-2 py-0.5">
               데이터: {source === 'api' ? 'Campus API' : '정적 JSON'}
             </span>
+            {apiOnline !== null && (
+              <span
+                className={`flex items-center gap-1 rounded-full border px-2 py-0.5 ${
+                  apiOnline
+                    ? 'border-emerald-400/40 bg-emerald-400/10 text-emerald-200'
+                    : 'border-amber-400/40 bg-amber-400/10 text-amber-200'
+                }`}
+                title={apiOnline ? 'Python 경로 엔진 사용 중' : 'Python 서버가 꺼져 있어 브라우저 간이 계산을 사용해요'}
+              >
+                <span className={`h-1.5 w-1.5 rounded-full ${apiOnline ? 'bg-emerald-400' : 'bg-amber-400'}`} />
+                Python API {apiOnline ? '연결됨' : '꺼짐 · 간이 모드'}
+              </span>
+            )}
           </div>
         )}
       </header>

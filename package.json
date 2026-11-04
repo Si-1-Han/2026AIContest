@@ -1,0 +1,12 @@
+{
+  "name": "hansei-3d-campus",
+  "private": true,
+  "description": "한세 3D 캠퍼스 — 저장소 루트에서 실행하는 단축 명령",
+  "scripts": {
+    "setup": "npm --prefix web install && uv --directory backend sync",
+    "dev": "npm --prefix web run dev",
+    "dev:web": "npm --prefix web run dev:web",
+    "dev:api": "npm --prefix web run dev:api",
+    "test": "uv --directory backend run pytest -q && npm --prefix web run build"
+  }
+}

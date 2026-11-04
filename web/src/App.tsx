@@ -15,6 +15,8 @@ export default function App() {
     void load();
   }, [load]);
 
+  useEffect(() => useCampusStore.getState().watchApi(), []);
+
   // Esc: 강의실 → 층 → 건물 → 캠퍼스 순서로 뒤로
   useEffect(() => {
     const onKey = (e: KeyboardEvent) => {
@@ -26,7 +28,10 @@ export default function App() {
 
   return (
     <main className="relative h-full w-full">
-      <CampusScene />
+      {/* 3D 라벨(Html)이 화면 UI 위로 올라오지 않도록 장면을 별도 레이어로 분리 */}
+      <div className="absolute inset-0 isolate z-0">
+        <CampusScene />
+      </div>
       <Hud />
       {status === 'ready' && (
         <>

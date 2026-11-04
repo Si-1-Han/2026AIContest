@@ -1,5 +1,7 @@
 import { create } from 'zustand';
+import { API_HEALTH_INTERVAL_MS } from '../config';
 import {
+  checkApiHealth,
   loadData,
   loadInterior,
   routeViaApi,
@@ -110,6 +112,8 @@ interface CampusState {
   status: 'loading' | 'ready' | 'error';
   error: string | null;
   source: DataSourceKind | null;
+  /** Python API 응답 여부 (null = API를 쓰지 않는 설정) */
+  apiOnline: boolean | null;
   campus: CampusData | null;
   graph: PathGraph | null;
   index: BuildingIndex | null;
@@ -135,6 +139,8 @@ interface CampusState {
   viewNonce: number;
 
   load: () => Promise<void>;
+  /** Python API 상태를 주기적으로 확인 (서버가 늦게 켜지거나 꺼져도 반영) */
+  watchApi: () => () => void;
   ensureInterior: (buildingId: string) => Promise<BuildingInterior | null>;
   hover: (id: string | null) => void;
   /** 건물 선택. 층·강의실 선택은 초기화된다. */
@@ -166,6 +172,7 @@ export const useCampusStore = create<CampusState>()((set, get) => ({
   status: 'loading',
   error: null,
   source: null,
+  apiOnline: null,
   campus: null,
   graph: null,
   index: null,
@@ -192,6 +199,21 @@ export const useCampusStore = create<CampusState>()((set, get) => ({
     } catch (err) {
       set({ status: 'error', error: err instanceof Error ? err.message : String(err) });
     }
+  },
+
+  watchApi: () => {
+    let stopped = false;
+    const tick = async () => {
+      const online = await checkApiHealth();
+      if (stopped) return;
+      if (online !== get().apiOnline) set({ apiOnline: online });
+      if (online !== null) timer = window.setTimeout(tick, API_HEALTH_INTERVAL_MS);
+    };
+    let timer = window.setTimeout(tick, 0);
+    return () => {
+      stopped = true;
+      window.clearTimeout(timer);
+    };
   },
 
   ensureInterior: async (buildingId) => {
