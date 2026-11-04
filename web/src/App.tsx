@@ -4,6 +4,7 @@ import { useCampusStore } from './store/useCampusStore';
 import { BuildingPanel } from './ui/BuildingPanel';
 import { GuideBox } from './ui/GuideBox';
 import { Hud } from './ui/Hud';
+import { RoutePlanner } from './ui/RoutePlanner';
 
 export default function App() {
   const status = useCampusStore((s) => s.status);
@@ -29,6 +30,7 @@ export default function App() {
       <Hud />
       {status === 'ready' && (
         <>
+          <RoutePlanner />
           <BuildingPanel />
           <GuideBox />
         </>

@@ -1,5 +1,4 @@
 import { useMemo } from 'react';
-import { DEFAULT_FROM_ID } from '../config';
 import { josa } from '../features/guide/fallbackMatcher';
 import { useCampusStore } from '../store/useCampusStore';
 import type { Building, InteriorFloor, Room } from '../types/generated/campus';
@@ -226,32 +225,38 @@ function RouteBox({
   route: ReturnType<typeof useCampusStore.getState>['route'];
   roomName?: string;
 }) {
-  const navigate = useCampusStore((s) => s.navigate);
-  const clearRoute = useCampusStore((s) => s.clearRoute);
+  const roomId = useCampusStore((s) => s.selectedRoomId);
+  const openPlanner = useCampusStore((s) => s.openPlanner);
   const from = useCampusStore((s) => s.building(route?.fromId ?? null));
-  const defaultFrom = useCampusStore((s) => s.building(DEFAULT_FROM_ID));
+  const endpoint = { buildingId: building.id, roomId: roomName ? roomId : null };
+  const target = roomName ?? building.name;
 
-  if (route?.toId === building.id) {
-    return (
-      <div className="mt-5 rounded-xl border border-route/40 bg-route/10 p-4">
-        <p className="text-xs text-route">{from?.name ?? '출발지'}에서 출발</p>
-        <p className="mt-1 text-xl font-bold text-white">
-          {route.length}m · 도보 약 {route.minutes}분
-        </p>
-        <button className="mt-3 text-xs text-slate-300 underline-offset-4 hover:underline" onClick={clearRoute}>
-          경로 지우기
+  return (
+    <>
+      {route?.toId === building.id && (
+        <div className="mt-5 rounded-xl border border-route/40 bg-route/10 p-4">
+          <p className="text-xs text-route">{from?.name ?? '출발지'}에서 출발</p>
+          <p className="mt-1 text-xl font-bold text-white">
+            {route.length}m · 도보 약 {route.minutes}분
+          </p>
+        </div>
+      )}
+      <div className="mt-5 grid grid-cols-2 gap-2">
+        <button
+          className="rounded-xl border border-[#ffd166]/50 bg-[#ffd166]/10 px-3 py-2.5 text-sm font-semibold text-[#ffd166] transition hover:bg-[#ffd166]/20"
+          onClick={() => openPlanner({ from: endpoint })}
+          title={`${target}에서 출발`}
+        >
+          출발
+        </button>
+        <button
+          className="rounded-xl bg-accent px-3 py-2.5 text-sm font-semibold text-[#06101f] shadow-[0_0_24px_rgba(79,209,255,0.45)] transition hover:brightness-110"
+          onClick={() => openPlanner({ to: endpoint })}
+          title={`${josa(target, '으로', '로')} 도착`}
+        >
+          도착
         </button>
       </div>
-    );
-  }
-  if (building.id === DEFAULT_FROM_ID) return null;
-  return (
-    <button
-      className="mt-5 w-full rounded-xl bg-accent px-4 py-3 font-semibold text-[#06101f] shadow-[0_0_24px_rgba(79,209,255,0.45)] transition hover:brightness-110"
-      onClick={() => navigate(null, building.id)}
-    >
-      {roomName ? `${josa(roomName, '으로', '로')} 길찾기` : '여기로 길찾기'}{' '}
-      {defaultFrom && <span className="font-normal">({defaultFrom.name} 출발)</span>}
-    </button>
+    </>
   );
 }

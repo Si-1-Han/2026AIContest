@@ -69,6 +69,7 @@ function RoomMesh({ room, building }: { room: Room; building: Building }) {
   const selected = useCampusStore((s) => s.selectedRoomId === room.id);
   const hoverRoom = useCampusStore((s) => s.hoverRoom);
   const selectRoom = useCampusStore((s) => s.selectRoom);
+  const pickOnMap = useCampusStore((s) => s.pickOnMap);
 
   // 층을 고르면 바닥에서 올라오는 연출
   const mesh = useRef<THREE.Mesh>(null);
@@ -92,10 +93,10 @@ function RoomMesh({ room, building }: { room: Room; building: Building }) {
   };
   const onClick = (e: ThreeEvent<MouseEvent>) => {
     e.stopPropagation();
+    if (room.category === '공간' && pickOnMap(building.id, room.id)) return;
     selectRoom(room.id);
   };
 
-  void building;
   return (
     <group>
       <mesh

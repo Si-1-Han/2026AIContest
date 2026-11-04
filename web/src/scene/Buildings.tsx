@@ -97,6 +97,7 @@ function usePointer(building: Building, floorIndex?: number) {
   const select = useCampusStore((s) => s.select);
   const selectFloor = useCampusStore((s) => s.selectFloor);
   const selectedId = useCampusStore((s) => s.selectedId);
+  const pickOnMap = useCampusStore((s) => s.pickOnMap);
 
   return {
     onPointerOver: (e: ThreeEvent<PointerEvent>) => {
@@ -110,6 +111,7 @@ function usePointer(building: Building, floorIndex?: number) {
     },
     onClick: (e: ThreeEvent<MouseEvent>) => {
       e.stopPropagation();
+      if (pickOnMap(building.id)) return; // 길찾기 출발·도착 고르는 중
       if (selectedId !== building.id) select(building.id);
       else if (floorIndex !== undefined) selectFloor(floorIndex);
     },

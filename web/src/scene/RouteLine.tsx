@@ -52,7 +52,7 @@ export function RouteLine() {
         <sphereGeometry args={[1.6, 16, 16]} />
         <meshBasicMaterial color={'#e9fffa'} toneMapped={false} />
       </mesh>
-      <Marker position={start} color="#ffd166" />
+      <Marker position={start} color={COLORS.origin} />
       <Marker position={end} color={COLORS.route} />
     </group>
   );

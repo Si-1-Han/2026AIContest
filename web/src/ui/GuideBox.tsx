@@ -4,13 +4,11 @@ import { askGuide } from '../features/guide/guideClient';
 import { useCampusStore } from '../store/useCampusStore';
 import type { GuideResponse } from '../types/generated/campus';
 
-const ROUTE_THEN_ROOM_MS = 2600;
-
 /** AI 길안내 입력창 (채팅 UI는 M3에서 확장) */
 export function GuideBox() {
   const index = useCampusStore((s) => s.index);
   const rooms = useCampusStore((s) => s.rooms);
-  const navigate = useCampusStore((s) => s.navigate);
+  const openPlanner = useCampusStore((s) => s.openPlanner);
   const select = useCampusStore((s) => s.select);
   const clearRoute = useCampusStore((s) => s.clearRoute);
   const focusRoom = useCampusStore((s) => s.focusRoom);
@@ -30,18 +28,20 @@ export function GuideBox() {
     let target: string | null = null;
 
     switch (result.action) {
-      case 'navigate':
+      case 'navigate': {
         target = result.to_id;
-        if (!navigate(result.from_id, result.to_id)) {
-          text = '경로를 찾지 못했어요. 출발지와 도착지를 다시 알려주세요.';
-          success = false;
-        } else if (result.room_id) {
-          // 경로 전체를 먼저 보여 준 뒤, 도착 건물의 해당 층·강의실로 들어간다
-          const roomId = result.room_id;
-          void useCampusStore.getState().ensureInterior(result.to_id);
-          window.setTimeout(() => void focusRoom(roomId), ROUTE_THEN_ROOM_MS);
+        const to = { buildingId: result.to_id, roomId: result.room_id };
+        if (result.from_id) {
+          openPlanner({ from: { buildingId: result.from_id, roomId: null }, to });
+          if (useCampusStore.getState().planner.error) success = false;
+        } else {
+          // 출발지를 말하지 않았으면 도착만 채우고 출발지를 고르게 한다
+          select(null);
+          openPlanner({ from: null, to });
+          text = `${text.replace(/\s*가는 길을 안내할게요\.?$/, ' 가는 길이요.')} 출발지를 지도에서 클릭하거나 입력해 주세요.`;
         }
         break;
+      }
       case 'focus_building':
         target = result.building_id;
         clearRoute();

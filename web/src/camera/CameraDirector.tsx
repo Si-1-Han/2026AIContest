@@ -83,7 +83,8 @@ export function CameraDirector() {
     const eye = ROUTE_VIEW_DIR.clone().multiplyScalar(dist).add(sphere.center);
     const { x, y, z } = sphere.center;
     void c.setLookAt(eye.x, eye.y, eye.z, x, y, z, true);
-    void c.setFocalOffset(dist * PANEL_SHIFT, 0, 0, true);
+    // 왼쪽 길찾기 패널과 오른쪽 건물 패널 사이 가운데에 두기
+    void c.setFocalOffset(0, 0, 0, true);
   }, [route]);
 
   return (

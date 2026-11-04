@@ -1,5 +1,5 @@
 import { create } from 'zustand';
-import { DEFAULT_FROM_ID, WALKING_SPEED } from '../config';
+import { WALKING_SPEED } from '../config';
 import { loadData, loadInterior, sendEvent, type DataSourceKind } from '../data/dataSource';
 import { Router, type PathResult } from '../features/navigation/router';
 import type {
@@ -17,6 +17,30 @@ export interface Route extends PathResult {
   toId: string;
   minutes: number;
 }
+
+/** 출발·도착 지점: 건물 (+ 선택하면 그 안의 강의실) */
+export interface Endpoint {
+  buildingId: string;
+  roomId: string | null;
+}
+
+export type EndpointSlot = 'from' | 'to';
+
+export interface Planner {
+  open: boolean;
+  from: Endpoint | null;
+  to: Endpoint | null;
+  /** 지도 클릭으로 채울 칸. null이면 지도 클릭은 평소처럼 건물 선택 */
+  active: EndpointSlot | null;
+  /** 경로를 만들 수 없을 때 이유 */
+  error: string | null;
+}
+
+const CLOSED_PLANNER: Planner = { open: false, from: null, to: null, active: null, error: null };
+
+/** 경로를 먼저 보여 준 뒤 도착 강의실로 들어가기까지의 시간 */
+const ROUTE_THEN_ROOM_MS = 2600;
+let roomTimer: number | undefined;
 
 /** Room.id = "<building_id>:<층 index>:<번호>" */
 export function parseRoomId(roomId: string): { buildingId: string; floorIndex: number } | null {
@@ -43,6 +67,7 @@ interface CampusState {
   hoveredRoomId: string | null;
   selectedRoomId: string | null;
   route: Route | null;
+  planner: Planner;
   /** 카메라가 다시 맞춰야 할 때마다 증가 (같은 건물을 다시 골라도 카메라가 움직이게) */
   viewNonce: number;
 
@@ -58,8 +83,14 @@ interface CampusState {
   focusRoom: (roomId: string) => Promise<boolean>;
   /** 강의실 → 층 → 건물 → 캠퍼스 순서로 한 단계 뒤로 */
   back: () => void;
-  /** 성공하면 true. fromId가 없으면 기본 출발지에서 출발 */
-  navigate: (fromId: string | null, toId: string) => boolean;
+  /** 길찾기 패널 열기. 주어진 지점을 채우고, 비어 있는 첫 칸을 지도 선택 대상으로 */
+  openPlanner: (patch?: { from?: Endpoint | null; to?: Endpoint | null }) => void;
+  closePlanner: () => void;
+  setEndpoint: (slot: EndpointSlot, endpoint: Endpoint | null) => void;
+  setActiveSlot: (slot: EndpointSlot | null) => void;
+  swapEndpoints: () => void;
+  /** 지도에서 건물·강의실을 클릭했을 때. 길찾기 칸을 채웠으면 true (평소 선택은 하지 않음) */
+  pickOnMap: (buildingId: string, roomId?: string | null) => boolean;
   clearRoute: () => void;
   building: (id: string | null) => Building | undefined;
   room: (id: string | null) => Room | undefined;
@@ -81,6 +112,7 @@ export const useCampusStore = create<CampusState>()((set, get) => ({
   hoveredRoomId: null,
   selectedRoomId: null,
   route: null,
+  planner: CLOSED_PLANNER,
   viewNonce: 0,
 
   load: async () => {
@@ -160,37 +192,47 @@ export const useCampusStore = create<CampusState>()((set, get) => ({
     const bump = { viewNonce: get().viewNonce + 1 };
     if (selectedRoomId) set({ selectedRoomId: null });
     else if (floorIndex !== null) set({ floorIndex: null, ...bump });
-    else if (selectedId) set({ selectedId: null, route: null, ...bump });
-    else if (route) set({ route: null, ...bump });
+    else if (selectedId) set({ selectedId: null, ...bump });
+    else if (route || get().planner.open) get().closePlanner();
   },
 
-  navigate: (fromId, toId) => {
-    const { router, building, selectedId } = get();
-    const from = building(fromId ?? DEFAULT_FROM_ID);
-    const to = building(toId);
-    const start = from?.entrances[0];
-    const goal = to?.entrances[0];
-    if (!router || !from || !to || !start || !goal || from.id === to.id) return false;
+  openPlanner: (patch = {}) => {
+    const prev = get().planner;
+    const from = patch.from !== undefined ? patch.from : prev.open ? prev.from : null;
+    const to = patch.to !== undefined ? patch.to : prev.open ? prev.to : null;
+    set({ planner: { open: true, from, to, active: null, error: null } });
+    afterEndpointsChanged(get, set);
+  },
 
-    const path = router.find(start, goal);
-    if (!path) return false;
-    const keepInterior = selectedId === to.id; // 같은 건물이면 보던 층·강의실 유지
-    set({
-      route: {
-        ...path,
-        fromId: from.id,
-        toId: to.id,
-        minutes: Math.max(1, Math.round(path.length / WALKING_SPEED / 60)),
-      },
-      selectedId: to.id,
-      ...(keepInterior ? {} : { floorIndex: null, selectedRoomId: null }),
-    });
-    void get().ensureInterior(to.id);
-    sendEvent({ type: 'route', target_id: to.id });
+  closePlanner: () => {
+    window.clearTimeout(roomTimer);
+    set((s) => ({ planner: CLOSED_PLANNER, route: null, viewNonce: s.viewNonce + 1 }));
+  },
+
+  setEndpoint: (slot, endpoint) => {
+    set((s) => ({ planner: { ...s.planner, open: true, [slot]: endpoint } }));
+    afterEndpointsChanged(get, set);
+  },
+
+  setActiveSlot: (slot) => set((s) => ({ planner: { ...s.planner, active: slot } })),
+
+  swapEndpoints: () => {
+    const { from, to } = get().planner;
+    set((s) => ({ planner: { ...s.planner, from: to, to: from } }));
+    afterEndpointsChanged(get, set);
+  },
+
+  pickOnMap: (buildingId, roomId = null) => {
+    const { open, active } = get().planner;
+    if (!open || !active) return false;
+    get().setEndpoint(active, { buildingId, roomId });
     return true;
   },
 
-  clearRoute: () => set({ route: null }),
+  clearRoute: () => {
+    window.clearTimeout(roomTimer);
+    set({ route: null });
+  },
 
   building: (id) => (id ? get().campus?.buildings.find((b) => b.id === id) : undefined),
 
@@ -201,3 +243,53 @@ export const useCampusStore = create<CampusState>()((set, get) => ({
       .interiors[parsed.buildingId]?.floors[parsed.floorIndex]?.rooms.find((r) => r.id === id);
   },
 }));
+
+type Get = () => CampusState;
+type Set = (partial: Partial<CampusState> | ((s: CampusState) => Partial<CampusState>)) => void;
+
+/** 출발·도착이 바뀔 때마다: 둘 다 있으면 경로 계산, 아니면 비어 있는 칸을 지도 선택 대상으로 */
+function afterEndpointsChanged(get: Get, set: Set) {
+  window.clearTimeout(roomTimer);
+  const { planner, router, building, selectedId } = get();
+  const { from, to } = planner;
+
+  if (!from || !to) {
+    set({ route: null, planner: { ...planner, active: !from ? 'from' : 'to', error: null } });
+    return;
+  }
+
+  const a = building(from.buildingId);
+  const b = building(to.buildingId);
+  const fail = (error: string) => set({ route: null, planner: { ...planner, active: null, error } });
+  if (!router || !a || !b) return fail('건물 정보를 찾지 못했어요.');
+  if (a.id === b.id) {
+    // 실내 길찾기는 아직 지원하지 않으므로 도착 강의실 위치만 보여 준다
+    if (to.roomId) void get().focusRoom(to.roomId);
+    return fail('같은 건물 안이에요. 도착 위치를 표시했어요.');
+  }
+  const path = a.entrances[0] && b.entrances[0] ? router.find(a.entrances[0], b.entrances[0]) : null;
+  if (!path) return fail('두 건물을 잇는 보행로를 찾지 못했어요.');
+
+  const keepInterior = selectedId === b.id && !to.roomId; // 같은 건물을 보던 중이면 층 유지
+  set((s) => ({
+    route: {
+      ...path,
+      fromId: a.id,
+      toId: b.id,
+      minutes: Math.max(1, Math.round(path.length / WALKING_SPEED / 60)),
+    },
+    planner: { ...planner, active: null, error: null },
+    selectedId: b.id,
+    hoveredId: null,
+    ...(keepInterior ? {} : { floorIndex: null, selectedRoomId: null }),
+    viewNonce: s.viewNonce,
+  }));
+  void get().ensureInterior(b.id);
+  sendEvent({ type: 'route', target_id: b.id });
+
+  // 경로 전체를 먼저 보여 준 뒤 도착 강의실로 들어간다
+  if (to.roomId) {
+    const roomId = to.roomId;
+    roomTimer = window.setTimeout(() => void get().focusRoom(roomId), ROUTE_THEN_ROOM_MS);
+  }
+}

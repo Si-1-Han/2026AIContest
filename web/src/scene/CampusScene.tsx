@@ -5,6 +5,7 @@ import { useCampusStore } from '../store/useCampusStore';
 import { Buildings } from './Buildings';
 import { ContextBuildings } from './ContextBuildings';
 import { Effects } from './Effects';
+import { EndpointPins } from './EndpointPins';
 import { Ground } from './Ground';
 import { Paths } from './Paths';
 import { RoomLayer } from './RoomLayer';
@@ -49,6 +50,7 @@ export function CampusScene() {
       <Buildings />
       <RoomLayer />
       <RouteLine />
+      <EndpointPins />
 
       <CameraDirector />
       <Effects />

@@ -1,6 +1,3 @@
-/** 출발지를 말하지 않았을 때 쓰는 기본 출발 건물. TODO: 정문 노드가 정해지면 교체 */
-export const DEFAULT_FROM_ID = 'main';
-
 /** 보행 속도 (m/s) — 소요 시간 표시용 */
 export const WALKING_SPEED = 1.2;
 
@@ -21,4 +18,5 @@ export const COLORS = {
   context: '#202b45',
   path: '#2f4a78',
   route: '#7cf7d4',
+  origin: '#ffd166',
 } as const;
