@@ -159,9 +159,9 @@
         ]
       },
       {
-        "index": 3,
+        "index": 4,
         "name": "2층",
-        "building_floor": "본관 3층",
+        "building_floor": "본관 4층",
         "sections": [
           "I",
           "J",
@@ -173,7 +173,7 @@
     "connections": [
       {
         "from": 2,
-        "to": 3,
+        "to": 4,
         "type": "stairs",
         "name": "대강당 내부 계단"
       }
@@ -416,7 +416,7 @@
             ]
           ]
         },
-        "3": {
+        "4": {
           "boundary": [
             [
               0.015,

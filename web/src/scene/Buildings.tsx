@@ -131,9 +131,14 @@ function FloorSlab({
   dimmed: boolean;
   hovered: boolean;
 }) {
+  // 실내와 외형이 서로 다른 시점에 로드되어도 좌석과 바닥은 같은 외곽선을 쓴다.
+  const interiorOutline = useCampusStore(
+    (s) => s.interiors[building.id]?.floors.find((f) => f.index === floor.index)?.outline,
+  );
+  const outline = interiorOutline ?? floor.outline;
   const geometry = useMemo(
-    () => extrudeFootprint(floor.outline, building.floor_height),
-    [floor.outline, building.floor_height],
+    () => extrudeFootprint(outline, building.floor_height),
+    [outline, building.floor_height],
   );
   useEffect(() => () => geometry.dispose(), [geometry]);
 
