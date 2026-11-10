@@ -7,7 +7,7 @@
     "dev": "concurrently -n web,api -c cyan,yellow \"npm:dev:vite\" \"npm:dev:api\"",
     "dev:vite": "vite",
     "dev:web": "vite --mode static",
-    "dev:api": "uv --directory ../backend run uvicorn campus.api.main:app --reload --port 8000",
+    "dev:api": "node scripts/dev-api.mjs",
     "build": "tsc -b && vite build",
     "preview": "vite preview",
     "typecheck": "tsc -b",

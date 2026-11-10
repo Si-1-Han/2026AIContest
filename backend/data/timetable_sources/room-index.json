@@ -1,0 +1,832 @@
+[
+  {
+    "file": "gemi_201.json",
+    "name": "환경친화연구동 201호",
+    "building_id": "gemi",
+    "room_id": "gemi:1:1",
+    "room_name": "201호",
+    "source_location": "G201",
+    "mapping_status": "linked",
+    "courses": 7
+  },
+  {
+    "file": "gemi_203.json",
+    "name": "환경친화연구동 203호",
+    "building_id": "gemi",
+    "room_id": "gemi:1:3",
+    "room_name": "203호",
+    "source_location": "G203",
+    "mapping_status": "linked",
+    "courses": 4
+  },
+  {
+    "file": "gemi_301.json",
+    "name": "환경친화연구동 301호",
+    "building_id": "gemi",
+    "room_id": "gemi:2:0",
+    "room_name": "301호",
+    "source_location": "G301",
+    "mapping_status": "linked",
+    "courses": 5
+  },
+  {
+    "file": "gemi_302.json",
+    "name": "환경친화연구동 302호",
+    "building_id": "gemi",
+    "room_id": "gemi:2:1",
+    "room_name": "302호",
+    "source_location": "G302",
+    "mapping_status": "linked",
+    "courses": 5
+  },
+  {
+    "file": "gemi_304.json",
+    "name": "환경친화연구동 304호",
+    "building_id": "gemi",
+    "room_id": "gemi:2:3",
+    "room_name": "304호",
+    "source_location": "G304",
+    "mapping_status": "linked",
+    "courses": 3
+  },
+  {
+    "file": "gemi_401.json",
+    "name": "환경친화연구동 401호",
+    "building_id": "gemi",
+    "room_id": "gemi:3:0",
+    "room_name": "401호",
+    "source_location": "G401",
+    "mapping_status": "linked",
+    "courses": 2
+  },
+  {
+    "file": "gemi_402.json",
+    "name": "환경친화연구동 402호",
+    "building_id": "gemi",
+    "room_id": "gemi:3:1",
+    "room_name": "402호",
+    "source_location": "G402",
+    "mapping_status": "linked",
+    "courses": 2
+  },
+  {
+    "file": "gemi_403.json",
+    "name": "환경친화연구동 403호",
+    "building_id": "gemi",
+    "room_id": "gemi:3:2",
+    "room_name": "403호",
+    "source_location": "G403",
+    "mapping_status": "linked",
+    "courses": 6
+  },
+  {
+    "file": "gemi_404.json",
+    "name": "환경친화연구동 404호",
+    "building_id": "gemi",
+    "room_id": "gemi:3:3",
+    "room_name": "404호",
+    "source_location": "G404",
+    "mapping_status": "linked",
+    "courses": 1
+  },
+  {
+    "file": "gemi_501.json",
+    "name": "환경친화연구동 501호",
+    "building_id": "gemi",
+    "room_id": "gemi:4:0",
+    "room_name": "501호",
+    "source_location": "G501",
+    "mapping_status": "linked",
+    "courses": 5
+  },
+  {
+    "file": "gemi_601.json",
+    "name": "환경친화연구동 601호",
+    "building_id": "gemi",
+    "room_id": "gemi:5:0",
+    "room_name": "601호",
+    "source_location": "G601",
+    "mapping_status": "linked",
+    "courses": 5
+  },
+  {
+    "file": "graduate_205.json",
+    "name": "대학원관 205호",
+    "building_id": "graduate",
+    "room_id": "graduate:1:7",
+    "room_name": "205호",
+    "source_location": "대205",
+    "mapping_status": "linked",
+    "courses": 3
+  },
+  {
+    "file": "graduate_207.json",
+    "name": "대학원관 207호",
+    "building_id": "graduate",
+    "room_id": "graduate:1:10",
+    "room_name": "207호",
+    "source_location": "대207",
+    "mapping_status": "linked",
+    "courses": 5
+  },
+  {
+    "file": "graduate_301.json",
+    "name": "대학원관 301호",
+    "building_id": "graduate",
+    "room_id": "graduate:2:6",
+    "room_name": "301호",
+    "source_location": "대301",
+    "mapping_status": "linked",
+    "courses": 7
+  },
+  {
+    "file": "graduate_306.json",
+    "name": "대학원관 306호",
+    "building_id": "graduate",
+    "room_id": "graduate:2:10",
+    "room_name": "306호",
+    "source_location": "대306",
+    "mapping_status": "linked",
+    "courses": 7
+  },
+  {
+    "file": "graduate_501.json",
+    "name": "대학원관 501호",
+    "building_id": "graduate",
+    "room_id": "graduate:4:8",
+    "room_name": "501호",
+    "source_location": "대501",
+    "mapping_status": "linked",
+    "courses": 9
+  },
+  {
+    "file": "graduate_502.json",
+    "name": "대학원관 502호",
+    "building_id": "graduate",
+    "room_id": "graduate:4:9",
+    "room_name": "502호",
+    "source_location": "대502",
+    "mapping_status": "linked",
+    "courses": 3
+  },
+  {
+    "file": "graduate_504.json",
+    "name": "대학원관 504호",
+    "building_id": "graduate",
+    "room_id": "graduate:4:7",
+    "room_name": "504호",
+    "source_location": "대504",
+    "mapping_status": "linked",
+    "courses": 9
+  },
+  {
+    "file": "graduate_601.json",
+    "name": "대학원관 601호",
+    "building_id": "graduate",
+    "room_id": "graduate:5:10",
+    "room_name": "601호",
+    "source_location": "대601",
+    "mapping_status": "linked",
+    "courses": 3
+  },
+  {
+    "file": "graduate_602.json",
+    "name": "대학원관 602호",
+    "building_id": "graduate",
+    "room_id": "graduate:5:9",
+    "room_name": "602호",
+    "source_location": "대602",
+    "mapping_status": "linked",
+    "courses": 4
+  },
+  {
+    "file": "graduate_603.json",
+    "name": "대학원관 603호",
+    "building_id": "graduate",
+    "room_id": "graduate:5:8",
+    "room_name": "603호",
+    "source_location": "대603",
+    "mapping_status": "linked",
+    "courses": 7
+  },
+  {
+    "file": "graduate_704.json",
+    "name": "대학원관 704호",
+    "building_id": "graduate",
+    "room_id": "graduate:6:8",
+    "room_name": "704호",
+    "source_location": "대704",
+    "mapping_status": "linked",
+    "courses": 4
+  },
+  {
+    "file": "graduate_705.json",
+    "name": "대학원관 705호",
+    "building_id": "graduate",
+    "room_id": "graduate:6:3",
+    "room_name": "705호",
+    "source_location": "대705",
+    "mapping_status": "linked",
+    "courses": 6
+  },
+  {
+    "file": "design_102.json",
+    "name": "디자인관 102호",
+    "building_id": "design",
+    "room_id": "design:0:2",
+    "room_name": "102호",
+    "source_location": "디102",
+    "mapping_status": "linked",
+    "courses": 3
+  },
+  {
+    "file": "design_201.json",
+    "name": "디자인관 201호",
+    "building_id": "design",
+    "room_id": "design:1:1",
+    "room_name": "201호",
+    "source_location": "디201",
+    "mapping_status": "linked",
+    "courses": 7
+  },
+  {
+    "file": "design_202.json",
+    "name": "디자인관 202호",
+    "building_id": "design",
+    "room_id": "design:1:2",
+    "room_name": "202호",
+    "source_location": "디202",
+    "mapping_status": "linked",
+    "courses": 10
+  },
+  {
+    "file": "design_301-B.json",
+    "name": "디자인관 301-B호",
+    "building_id": "design",
+    "room_id": "design:2:2",
+    "room_name": "301-B호",
+    "source_location": "디301-B",
+    "mapping_status": "linked",
+    "courses": 8
+  },
+  {
+    "file": "design_304.json",
+    "name": "디자인관 304호",
+    "building_id": "design",
+    "room_id": "design:2:6",
+    "room_name": "304호",
+    "source_location": "디304",
+    "mapping_status": "linked",
+    "courses": 7
+  },
+  {
+    "file": "design_501.json",
+    "name": "디자인관 501호",
+    "building_id": "design",
+    "room_id": "design:4:0",
+    "room_name": "501호",
+    "source_location": "디501",
+    "mapping_status": "linked",
+    "courses": 6
+  },
+  {
+    "file": "design_502.json",
+    "name": "디자인관 502호",
+    "building_id": "design",
+    "room_id": "design:4:1",
+    "room_name": "502호",
+    "source_location": "디502",
+    "mapping_status": "linked",
+    "courses": 2
+  },
+  {
+    "file": "design_507.json",
+    "name": "디자인관 507호",
+    "building_id": "design",
+    "room_id": "design:4:6",
+    "room_name": "507호",
+    "source_location": "디507",
+    "mapping_status": "linked",
+    "courses": 6
+  },
+  {
+    "file": "design_602.json",
+    "name": "디자인관 602호",
+    "building_id": "design",
+    "room_id": "design:5:1",
+    "room_name": "602호",
+    "source_location": "디602",
+    "mapping_status": "linked",
+    "courses": 6
+  },
+  {
+    "file": "design_603.json",
+    "name": "디자인관 603호",
+    "building_id": "design",
+    "room_id": "design:5:2",
+    "room_name": "603호",
+    "source_location": "디603",
+    "mapping_status": "linked",
+    "courses": 3
+  },
+  {
+    "file": "design_701.json",
+    "name": "디자인관 701호",
+    "building_id": "design",
+    "room_id": "design:6:0",
+    "room_name": "701호",
+    "source_location": "디701",
+    "mapping_status": "linked",
+    "courses": 10
+  },
+  {
+    "file": "design_702.json",
+    "name": "디자인관 702호",
+    "building_id": "design",
+    "room_id": "design:6:1",
+    "room_name": "702호",
+    "source_location": "디702",
+    "mapping_status": "linked",
+    "courses": 4
+  },
+  {
+    "file": "main_201.json",
+    "name": "본관 201호",
+    "building_id": "main",
+    "room_id": "main:2:16",
+    "room_name": "201호",
+    "source_location": "본201",
+    "mapping_status": "linked",
+    "courses": 6
+  },
+  {
+    "file": "main_203.json",
+    "name": "본관 203호",
+    "building_id": "main",
+    "room_id": "main:2:18",
+    "room_name": "203호",
+    "source_location": "본203",
+    "mapping_status": "linked",
+    "courses": 5
+  },
+  {
+    "file": "main_204.json",
+    "name": "본관 204호",
+    "building_id": "main",
+    "room_id": "main:2:19",
+    "room_name": "204호",
+    "source_location": "본204",
+    "mapping_status": "linked",
+    "courses": 8
+  },
+  {
+    "file": "main_205.json",
+    "name": "본관 205호",
+    "building_id": "main",
+    "room_id": "main:2:20",
+    "room_name": "205호",
+    "source_location": "본205",
+    "mapping_status": "linked",
+    "courses": 6
+  },
+  {
+    "file": "main_206.json",
+    "name": "본관 206호",
+    "building_id": "main",
+    "room_id": "main:2:21",
+    "room_name": "206호",
+    "source_location": "본206",
+    "mapping_status": "linked",
+    "courses": 13
+  },
+  {
+    "file": "main_210.json",
+    "name": "본관 210호",
+    "building_id": "main",
+    "room_id": "main:2:25",
+    "room_name": "210호",
+    "source_location": "본210",
+    "mapping_status": "linked",
+    "courses": 10
+  },
+  {
+    "file": "main_212.json",
+    "name": "본관 212호",
+    "building_id": "main",
+    "room_id": "main:2:27",
+    "room_name": "212호",
+    "source_location": "본212",
+    "mapping_status": "linked",
+    "courses": 1
+  },
+  {
+    "file": "main_310.json",
+    "name": "본관 310호",
+    "building_id": "main",
+    "room_id": "main:3:3",
+    "room_name": "310호",
+    "source_location": "본310",
+    "mapping_status": "linked",
+    "courses": 7
+  },
+  {
+    "file": "main_507.json",
+    "name": "본관 507호",
+    "building_id": "main",
+    "room_id": "main:5:14",
+    "room_name": "507호",
+    "source_location": "본507",
+    "mapping_status": "linked",
+    "courses": 7
+  },
+  {
+    "file": "main_508.json",
+    "name": "본관 508호",
+    "building_id": "main",
+    "room_id": "main:5:13",
+    "room_name": "508호",
+    "source_location": "본508",
+    "mapping_status": "linked",
+    "courses": 9
+  },
+  {
+    "file": "main_509.json",
+    "name": "본관 509호",
+    "building_id": "main",
+    "room_id": "main:5:12",
+    "room_name": "509호",
+    "source_location": "본509",
+    "mapping_status": "linked",
+    "courses": 7
+  },
+  {
+    "file": "main_510.json",
+    "name": "본관 510호",
+    "building_id": "main",
+    "room_id": "main:5:11",
+    "room_name": "510호",
+    "source_location": "본510",
+    "mapping_status": "linked",
+    "courses": 7
+  },
+  {
+    "file": "main_511.json",
+    "name": "본관 511호",
+    "building_id": "main",
+    "room_id": "main:5:0",
+    "room_name": "511호",
+    "source_location": "본511",
+    "mapping_status": "linked",
+    "courses": 10
+  },
+  {
+    "file": "main_512.json",
+    "name": "본관 512호",
+    "building_id": "main",
+    "room_id": "main:5:1",
+    "room_name": "512호",
+    "source_location": "본512",
+    "mapping_status": "linked",
+    "courses": 10
+  },
+  {
+    "file": "main_514.json",
+    "name": "본관 514호",
+    "building_id": "main",
+    "room_id": "main:5:3",
+    "room_name": "514호",
+    "source_location": "본514",
+    "mapping_status": "linked",
+    "courses": 3
+  },
+  {
+    "file": "main_601.json",
+    "name": "본관 601호",
+    "building_id": "main",
+    "room_id": "main:6:15",
+    "room_name": "601호",
+    "source_location": "본601",
+    "mapping_status": "linked",
+    "courses": 12
+  },
+  {
+    "file": "main_602.json",
+    "name": "본관 602호",
+    "building_id": "main",
+    "room_id": "main:6:14",
+    "room_name": "602호",
+    "source_location": "본602",
+    "mapping_status": "linked",
+    "courses": 14
+  },
+  {
+    "file": "main_603.json",
+    "name": "본관 603호",
+    "building_id": "main",
+    "room_id": "main:6:13",
+    "room_name": "603호",
+    "source_location": "본603",
+    "mapping_status": "linked",
+    "courses": 12
+  },
+  {
+    "file": "main_604.json",
+    "name": "본관 604호",
+    "building_id": "main",
+    "room_id": "main:6:12",
+    "room_name": "604호",
+    "source_location": "본604",
+    "mapping_status": "linked",
+    "courses": 12
+  },
+  {
+    "file": "main_605.json",
+    "name": "본관 605호",
+    "building_id": "main",
+    "room_id": "main:6:11",
+    "room_name": "605호",
+    "source_location": "본605",
+    "mapping_status": "linked",
+    "courses": 10
+  },
+  {
+    "file": "main_609.json",
+    "name": "본관 609호",
+    "building_id": "main",
+    "room_id": "main:6:4",
+    "room_name": "609호",
+    "source_location": "본609",
+    "mapping_status": "linked",
+    "courses": 8
+  },
+  {
+    "file": "main_610.json",
+    "name": "본관 610호",
+    "building_id": "main",
+    "room_id": "main:6:1",
+    "room_name": "610호",
+    "source_location": "본610",
+    "mapping_status": "linked",
+    "courses": 13
+  },
+  {
+    "file": "main_611.json",
+    "name": "본관 611호",
+    "building_id": "main",
+    "room_id": "main:6:6",
+    "room_name": "611호",
+    "source_location": "본611",
+    "mapping_status": "linked",
+    "courses": 12
+  },
+  {
+    "file": "main_701.json",
+    "name": "본관 701호",
+    "building_id": "main",
+    "room_id": "main:7:17",
+    "room_name": "701호",
+    "source_location": "본701",
+    "mapping_status": "linked",
+    "courses": 8
+  },
+  {
+    "file": "theology_405.json",
+    "name": "신학관 405호",
+    "building_id": "theology",
+    "room_id": "theology:3:12",
+    "room_name": "405호",
+    "source_location": "신405",
+    "mapping_status": "linked",
+    "courses": 3
+  },
+  {
+    "file": "theology_407.json",
+    "name": "신학관 407호",
+    "building_id": "theology",
+    "room_id": "theology:3:6",
+    "room_name": "407호",
+    "source_location": "신407",
+    "mapping_status": "linked",
+    "courses": 9
+  },
+  {
+    "file": "music_101.json",
+    "name": "음악관 101호",
+    "building_id": "music",
+    "room_id": "music:2:1",
+    "room_name": "101호",
+    "source_location": "음101",
+    "mapping_status": "linked",
+    "courses": 4
+  },
+  {
+    "file": "music_105.json",
+    "name": "음악관 105호",
+    "building_id": "music",
+    "room_id": "music:2:6",
+    "room_name": "105호",
+    "source_location": "음105",
+    "mapping_status": "linked",
+    "courses": 3
+  },
+  {
+    "file": "music_110.json",
+    "name": "음악관 110호",
+    "building_id": "music",
+    "room_id": "music:2:11",
+    "room_name": "110호",
+    "source_location": "음110",
+    "mapping_status": "linked",
+    "courses": 5
+  },
+  {
+    "file": "music_113.json",
+    "name": "음악관 113호",
+    "building_id": "music",
+    "room_id": "music:2:14",
+    "room_name": "113호",
+    "source_location": "음113",
+    "mapping_status": "linked",
+    "courses": 7
+  },
+  {
+    "file": "music_114.json",
+    "name": "음악관 114호",
+    "building_id": "music",
+    "room_id": "music:2:15",
+    "room_name": "114호",
+    "source_location": "음114",
+    "mapping_status": "linked",
+    "courses": 6
+  },
+  {
+    "file": "music_205.json",
+    "name": "음악관 205호",
+    "building_id": "music",
+    "room_id": "music:3:4",
+    "room_name": "205호",
+    "source_location": "음205",
+    "mapping_status": "linked",
+    "courses": 6
+  },
+  {
+    "file": "music_206.json",
+    "name": "음악관 206호",
+    "building_id": "music",
+    "room_id": "music:3:5",
+    "room_name": "206호",
+    "source_location": "음206",
+    "mapping_status": "linked",
+    "courses": 10
+  },
+  {
+    "file": "music_211.json",
+    "name": "음악관 211호",
+    "building_id": "music",
+    "room_id": "music:3:11",
+    "room_name": "211호",
+    "source_location": "음211",
+    "mapping_status": "linked",
+    "courses": 5
+  },
+  {
+    "file": "music_212.json",
+    "name": "음악관 212호",
+    "building_id": "music",
+    "room_id": "music:3:12",
+    "room_name": "212호",
+    "source_location": "음212",
+    "mapping_status": "linked",
+    "courses": 2
+  },
+  {
+    "file": "music_214.json",
+    "name": "음악관 214호",
+    "building_id": "music",
+    "room_id": "music:3:14",
+    "room_name": "214호",
+    "source_location": "음214",
+    "mapping_status": "linked",
+    "courses": 9
+  },
+  {
+    "file": "music_215.json",
+    "name": "음악관 215호",
+    "building_id": "music",
+    "room_id": "music:3:15",
+    "room_name": "215호",
+    "source_location": "음215",
+    "mapping_status": "linked",
+    "courses": 15
+  },
+  {
+    "file": "music_B111.json",
+    "name": "음악관 B111호",
+    "building_id": "music",
+    "room_id": "music:1:10",
+    "room_name": "B111호",
+    "source_location": "음B111",
+    "mapping_status": "linked",
+    "courses": 9
+  },
+  {
+    "file": "music_B201.json",
+    "name": "음악관 B201호",
+    "building_id": "music",
+    "room_id": "music:0:0",
+    "room_name": "B201호",
+    "source_location": "음B201",
+    "mapping_status": "linked",
+    "courses": 5
+  },
+  {
+    "file": "science_102.json",
+    "name": "이공관 102호",
+    "building_id": "science",
+    "room_id": "science:0:0",
+    "room_name": "102호",
+    "source_location": "이102",
+    "mapping_status": "linked",
+    "courses": 5
+  },
+  {
+    "file": "science_104.json",
+    "name": "이공관 104호",
+    "building_id": "science",
+    "room_id": "science:0:4",
+    "room_name": "104호",
+    "source_location": "이104",
+    "mapping_status": "linked",
+    "courses": 8
+  },
+  {
+    "file": "science_201.json",
+    "name": "이공관 201호",
+    "building_id": "science",
+    "room_id": "science:1:4",
+    "room_name": "201호",
+    "source_location": "이201",
+    "mapping_status": "linked",
+    "courses": 7
+  },
+  {
+    "file": "science_202.json",
+    "name": "이공관 202호",
+    "building_id": "science",
+    "room_id": "science:1:5",
+    "room_name": "202호",
+    "source_location": "이202",
+    "mapping_status": "linked",
+    "courses": 1
+  },
+  {
+    "file": "science_402.json",
+    "name": "이공관 402호",
+    "building_id": "science",
+    "room_id": "science:3:5",
+    "room_name": "402호",
+    "source_location": "이402",
+    "mapping_status": "linked",
+    "courses": 10
+  },
+  {
+    "file": "science_405.json",
+    "name": "이공관 405호",
+    "building_id": "science",
+    "room_id": "science:3:8",
+    "room_name": "405호",
+    "source_location": "이405",
+    "mapping_status": "linked",
+    "courses": 3
+  },
+  {
+    "file": "student_union_101.json",
+    "name": "학생회관 101호",
+    "building_id": "student_union",
+    "room_id": "student_union:1:1",
+    "room_name": "101호",
+    "source_location": "학101",
+    "mapping_status": "linked",
+    "courses": 7
+  },
+  {
+    "file": "student_union_102.json",
+    "name": "학생회관 102호",
+    "building_id": "student_union",
+    "room_id": "student_union:1:2",
+    "room_name": "102호",
+    "source_location": "학102",
+    "mapping_status": "linked",
+    "courses": 7
+  },
+  {
+    "file": "student_union_B101.json",
+    "name": "학생회관 B101호",
+    "building_id": "student_union",
+    "room_id": "student_union:0:4",
+    "room_name": "B101호",
+    "source_location": "학B101",
+    "mapping_status": "linked",
+    "courses": 2
+  }
+]

@@ -1,3 +1,5 @@
+import json
+import os
 from pathlib import Path
 
 import pytest
@@ -98,6 +100,24 @@ def test_interior(client: TestClient) -> None:
     assert body["floors"][0]["rooms"][0]["name"] == "101호"
     assert client.get("/api/v1/buildings/science/interior").status_code == 404
     assert client.get("/api/v1/buildings/nope/interior").status_code == 404
+
+
+def test_dev_reload_updates_cached_rooms_and_router(client: TestClient) -> None:
+    settings = client.app.state.settings.model_copy(update={"dev_reload": True})
+    marker = settings.data_dir / "rooms-index.json"
+    marker.write_text("{}", encoding="utf-8")
+    dev = TestClient(create_app(settings))
+    url = "/api/v1/buildings/main/interior"
+    assert dev.get(url).json()["floors"][0]["rooms"][0]["name"] == "101호"
+    previous_router = dev.app.state.router
+    path = settings.data_dir / "floors" / "main.json"
+    data = json.loads(path.read_text(encoding="utf-8"))
+    data["floors"][0]["rooms"][0]["name"] = "학생회실"
+    path.write_text(json.dumps(data), encoding="utf-8")
+    stamp = marker.stat().st_mtime_ns + 1_000_000_000
+    os.utime(marker, ns=(stamp, stamp))
+    assert dev.get(url).json()["floors"][0]["rooms"][0]["name"] == "학생회실"
+    assert dev.app.state.router is not previous_router
 
 
 def test_update_requires_token_and_merges(client: TestClient) -> None:

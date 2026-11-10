@@ -1,7 +1,9 @@
 import { useMemo } from 'react';
+import { findTimetable } from '../data/timetables';
 import { josa } from '../features/guide/fallbackMatcher';
 import { useCampusStore } from '../store/useCampusStore';
 import type { Building, InteriorFloor, Room } from '../types/generated/campus';
+import { RoomTimetableLoader } from './RoomTimetableLoader';
 
 /** 오른쪽 패널: 건물 → 층 → 강의실 순서로 내용이 바뀐다 */
 export function BuildingPanel() {
@@ -17,9 +19,10 @@ export function BuildingPanel() {
 
   if (!b) return null;
   const floor = floorIndex !== null ? interior?.floors[floorIndex] : undefined;
+  const timetable = room ? findTimetable(b.id, room.id) : undefined;
 
   return (
-    <aside className="absolute right-5 top-5 z-40 flex max-h-[calc(100%-8.5rem)] w-[22rem] flex-col rounded-2xl border border-white/10 bg-[#0d1528]/88 shadow-2xl backdrop-blur-md">
+    <aside className={`absolute right-5 top-5 z-40 flex max-h-[calc(100%-8.5rem)] max-w-[calc(100%-2.5rem)] ${timetable ? 'w-[27rem]' : 'w-[22rem]'} flex-col rounded-2xl border border-white/10 bg-[#0d1528]/88 shadow-2xl backdrop-blur-md`}>
       <header className="flex items-start justify-between gap-2 border-b border-white/10 p-5 pb-4">
         <div className="min-w-0">
           <Breadcrumb building={b} floor={floor} room={room} />
@@ -57,6 +60,7 @@ export function BuildingPanel() {
           <BuildingDetail building={b} loading={b.has_interior && !interior} />
         )}
         <RouteBox building={b} route={route} roomName={room?.name} />
+        {timetable && <RoomTimetableLoader key={timetable.room_id} reference={timetable} />}
       </div>
     </aside>
   );

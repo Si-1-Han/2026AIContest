@@ -2,6 +2,13 @@
 
 3D 캠퍼스의 층별 외곽선과 강의실·시설 정보의 **원본**입니다. 여기서 수정하고 파이프라인을 다시 실행하면 화면에 반영됩니다.
 
+개발 중에는 루트에서 `npm run dev`를 실행하면 원본 JSON/GeoJSON 저장 시 자동으로
+파이프라인을 실행하고 API 캐시를 갱신한 뒤 브라우저를 새로고침합니다.
+`npm run dev:web`에서도 자동 변환과 새로고침이 동작합니다.
+새로고침 시 선택한 건물·층은 초기화됩니다. JSON 문법 오류가 있으면 터미널에
+오류가 표시되며, 수정하고 다시 저장하면 재시도합니다.
+`web/public/data`는 생성 결과이므로 원본을 수정하세요. 배포용 데이터는 아래 명령으로 생성합니다.
+
 ```bash
 cd backend
 uv run python -m campus.pipeline build    # → web/public/data/floors/*.json, rooms-index.json

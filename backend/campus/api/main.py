@@ -41,6 +41,24 @@ def create_app(settings: Settings | None = None) -> FastAPI:
     app.state.router = RoutingEngine(store_.campus, store_.graph, store_.interior)
     app.state.engine = make_engine(settings.database_url)
 
+    if settings.dev_reload:
+        # rooms-index is written last by the pipeline. Refresh both cached
+        # interiors and the routing engine before serving the next request.
+        revision_file = settings.data_dir / "rooms-index.json"
+        revision = revision_file.stat().st_mtime_ns
+
+        @app.middleware("http")
+        async def refresh_dev_data(request: Request, call_next):
+            nonlocal revision
+            current = revision_file.stat().st_mtime_ns
+            if current != revision:
+                fresh = CampusStore(settings.data_dir)
+                router = RoutingEngine(fresh.campus, fresh.graph, fresh.interior)
+                app.state.store = fresh
+                app.state.router = router
+                revision = current
+            return await call_next(request)
+
     app.add_middleware(
         CORSMiddleware,
         allow_origins=settings.cors_origins,
