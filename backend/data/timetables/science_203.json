@@ -310,7 +310,7 @@
     },
     "15910-001": {
       "name": "디지털공학및실습",
-      "instructor": "미배정",
+      "instructor": "차재상",
       "target": "2",
       "category": "전공선택",
       "department": "IT학부",
@@ -318,14 +318,14 @@
       "weekly_hours": 3.0,
       "capacity": 40,
       "note": "",
-      "periods": "목5 ,5.5 ,6 ,6.5 ,7 ,7.5(이203)",
+      "periods": "",
       "meetings": [
         {
           "day": "목",
           "start": "13:00",
           "end": "16:00",
           "location": "이203",
-          "periods": "목5, 5.5, 6, 6.5, 7, 7.5(이203)"
+          "periods": ""
         }
       ],
       "day": "목",
@@ -428,7 +428,7 @@
       "start": "13:00",
       "end": "16:00",
       "location": "이203",
-      "periods": "목5, 5.5, 6, 6.5, 7, 7.5(이203)"
+      "periods": ""
     },
     {
       "code": "15911-001",

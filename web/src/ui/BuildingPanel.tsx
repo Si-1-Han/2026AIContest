@@ -1,12 +1,14 @@
-import { useMemo } from 'react';
-import { findTimetable } from '../data/timetables';
+import { useEffect, useMemo, useState } from 'react';
+import { fetchTimetableIndex, findTimetable, type TimetableReference } from '../data/timetables';
 import { josa } from '../features/guide/fallbackMatcher';
 import { useCampusStore } from '../store/useCampusStore';
 import type { Building, InteriorFloor, Room } from '../types/generated/campus';
 import { RoomTimetableLoader } from './RoomTimetableLoader';
+import { useDataRevision } from '../data/dataUpdates';
+import { CampusRoomActions } from './CampusRoomActions';
 
 /** 오른쪽 패널: 건물 → 층 → 강의실 순서로 내용이 바뀐다 */
-export function BuildingPanel() {
+export function BuildingPanel({ adminUser = null }: { adminUser?: string | null }) {
   const selectedId = useCampusStore((s) => s.selectedId);
   const floorIndex = useCampusStore((s) => s.floorIndex);
   const selectedRoomId = useCampusStore((s) => s.selectedRoomId);
@@ -16,10 +18,19 @@ export function BuildingPanel() {
   const room = useCampusStore((s) => s.room(selectedRoomId));
   const select = useCampusStore((s) => s.select);
   const back = useCampusStore((s) => s.back);
+  const [liveTables, setLiveTables] = useState<TimetableReference[]>();
+  const revision = useDataRevision();
+  useEffect(() => {
+    let active = true;
+    void fetchTimetableIndex().then((tables) => { if (active) setLiveTables(tables); });
+    return () => { active = false; };
+  }, [selectedRoomId, revision]);
 
   if (!b) return null;
   const floor = floorIndex !== null ? interior?.floors[floorIndex] : undefined;
-  const timetable = room ? findTimetable(b.id, room.id) : undefined;
+  const timetable = room ? (liveTables
+    ? liveTables.find((table) => table.building_id === b.id && table.room_id === room.id)
+    : findTimetable(b.id, room.id)) : undefined;
 
   return (
     <aside className={`absolute right-5 top-5 z-40 flex max-h-[calc(100%-8.5rem)] max-w-[calc(100%-2.5rem)] ${timetable ? 'w-[27rem]' : 'w-[22rem]'} flex-col rounded-2xl border border-white/10 bg-[#0d1528]/88 shadow-2xl backdrop-blur-md`}>
@@ -31,6 +42,9 @@ export function BuildingPanel() {
           </h2>
         </div>
         <div className="flex shrink-0 gap-1">
+          {adminUser && room?.category === '공간' && floor && (
+            <CampusRoomActions key={`${b.id}/${room.id}`} buildingId={b.id} roomId={room.id} />
+          )}
           {(floor || room) && (
             <button
               className="rounded-full px-2 text-sm text-slate-300 hover:bg-white/10 hover:text-white"

@@ -14,6 +14,12 @@ export default defineConfig({
   },
   server: {
     port: 5173,
+    fs: {
+      deny: [
+        '.env', '.env.*', '*.{crt,pem,key,p12,pfx,cer,der}', '.npmrc', '.yarnrc.yml',
+        '**/.git/**', '**/backend/data/private/**',
+      ],
+    },
     // Python API를 같은 주소로 쓰기 위한 프록시 (CORS·환경변수 불필요).
     // /api/guide는 Vercel 함수라 여기서는 404 → 브라우저 규칙 기반 폴백으로 동작한다.
     proxy: {

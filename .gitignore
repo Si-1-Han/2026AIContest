@@ -32,3 +32,6 @@ npm-debug.log*
 Thumbs.db
 
 .venv-backup/
+
+# Local administrator credentials
+backend/data/private/

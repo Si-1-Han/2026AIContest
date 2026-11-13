@@ -1,19 +1,23 @@
 import { useEffect, useState } from 'react';
 import { loadTimetable, type RoomTimetable as Timetable, type TimetableReference } from '../data/timetables';
 import { RoomTimetable } from './RoomTimetable';
+import { useDataRevision } from '../data/dataUpdates';
 
 export function RoomTimetableLoader({ reference }: { reference: TimetableReference }) {
   const [table, setTable] = useState<Timetable>();
   const [failed, setFailed] = useState(false);
   const [attempt, setAttempt] = useState(0);
+  const revision = useDataRevision();
   useEffect(() => {
     let active = true;
+    setTable(undefined);
+    setFailed(false);
     loadTimetable(reference).then(
       (value) => { if (active) setTable(value); },
       () => { if (active) setFailed(true); },
     );
     return () => { active = false; };
-  }, [reference, attempt]);
+  }, [reference, attempt, revision]);
   if (table) return <RoomTimetable timetable={table} />;
   return (
     <div className="mt-5 text-xs text-slate-400" role="status">

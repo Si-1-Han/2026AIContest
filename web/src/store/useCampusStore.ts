@@ -139,6 +139,7 @@ interface CampusState {
   viewNonce: number;
 
   load: () => Promise<void>;
+  refresh: () => Promise<void>;
   /** Python API 상태를 주기적으로 확인 (서버가 늦게 켜지거나 꺼져도 반영) */
   watchApi: () => () => void;
   ensureInterior: (buildingId: string) => Promise<BuildingInterior | null>;
@@ -199,6 +200,32 @@ export const useCampusStore = create<CampusState>()((set, get) => ({
     } catch (err) {
       set({ status: 'error', error: err instanceof Error ? err.message : String(err) });
     }
+  },
+
+  refresh: async () => {
+    await get().load();
+    get().clearRoute();
+    const selected = get().selectedId;
+    if (!selected || !get().building(selected)) {
+      set({ interiors: {} });
+      if (selected) get().select(null);
+      return;
+    }
+    const interior = await loadInterior(selected).catch(() => null);
+    if (get().selectedId !== selected) {
+      set({ interiors: {} });
+      const latest = get().selectedId;
+      if (latest) await get().ensureInterior(latest);
+      return;
+    }
+    const current = get();
+    const roomExists = interior?.floors.some((floor) => floor.rooms.some((room) => room.id === current.selectedRoomId));
+    set({
+      interiors: interior ? { [selected]: interior } : {},
+      selectedRoomId: roomExists ? current.selectedRoomId : null,
+      floorIndex: interior?.floors.some((floor) => floor.index === current.floorIndex) ? current.floorIndex : null,
+      hoveredRoomId: null,
+    });
   },
 
   watchApi: () => {

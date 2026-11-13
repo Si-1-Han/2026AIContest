@@ -10,7 +10,8 @@ services:
       CAMPUS_ADMIN_TOKEN: ${CAMPUS_ADMIN_TOKEN:-dev-token}
       CAMPUS_CORS_ORIGINS: '["http://localhost:5173"]'
     volumes:
-      - ./web/public/data:/app/data:ro # 파이프라인을 다시 돌리면 재시작만 하면 반영
+      - ./web/public/data:/app/data # 관리자 변경 후 지도 산출물 저장
+      - ./backend/data:/app/backend/data # 원본 JSON 및 로컬 관리자 계정
       - api-data:/app/var # SQLite (편집 내용·이벤트)
 
 volumes:

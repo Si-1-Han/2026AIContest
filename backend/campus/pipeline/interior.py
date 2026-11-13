@@ -67,9 +67,15 @@ def _ring(proj: Projector, ring: list[list[float]]) -> list[tuple[float, float]]
     return proj.many([(c[0], c[1]) for c in ring])
 
 
-def load_sources(proj: Projector, src_dir: Path = INTERIOR_DIR) -> dict[str, SourceBuilding]:
+def load_sources(
+    proj: Projector, src_dir: Path = INTERIOR_DIR, rooms_override: dict | None = None
+) -> dict[str, SourceBuilding]:
     geo = json.loads((src_dir / "buildings.geojson").read_text(encoding="utf-8"))
-    rooms = json.loads((src_dir / "rooms.json").read_text(encoding="utf-8"))
+    rooms = (
+        json.loads((src_dir / "rooms.json").read_text(encoding="utf-8"))
+        if rooms_override is None
+        else rooms_override
+    )
     feats = {f["properties"]["@id"]: f for f in geo["features"]}
 
     out: dict[str, SourceBuilding] = {}
@@ -113,7 +119,7 @@ def _room(proj: Projector, bid: str, floor_index: int, i: int, raw: dict[str, An
     holes = [exterior(h) for r in rings[1:] if (h := to_polygon(r, min_area=0.05)) is not None]
     desc = (raw.get("desc") or "").strip()
     return Room(
-        id=f"{bid}:{floor_index}:{i}",
+        id=raw.get("id") or f"{bid}:{floor_index}:{i}",
         name=raw["name"].strip(),
         type=raw.get("type", ""),
         category="시설물" if raw.get("category") == "시설물" else "공간",
@@ -132,6 +138,7 @@ def attach(
     meta: dict[str, dict[str, Any]],
     proj: Projector,
     src_dir: Path = INTERIOR_DIR,
+    rooms_override: dict | None = None,
 ) -> tuple[list[Building], dict[str, BuildingInterior], InteriorReport]:
     """층 정보를 건물에 붙이고, 원본 외곽에 덮이는 OSM 건물은 주 건물로 합친다."""
     report = InteriorReport()
@@ -139,7 +146,7 @@ def attach(
         report.warnings.append(f"{src_dir}에 층·강의실 데이터가 없어 건너뜁니다.")
         return buildings, {}, report
 
-    sources = load_sources(proj, src_dir)
+    sources = load_sources(proj, src_dir, rooms_override)
     by_osm = {str(b.osm_id): b for b in buildings}
     interiors: dict[str, BuildingInterior] = {}
     absorbed: set[str] = set()

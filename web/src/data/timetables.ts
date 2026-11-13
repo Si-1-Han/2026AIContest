@@ -1,4 +1,5 @@
 import roomIndex from '../../../backend/data/timetable_sources/room-index.json';
+import { API_ENABLED, API_TIMEOUT_MS, API_URL } from '../config';
 
 export interface TimetableMeeting {
   day: string;
@@ -48,7 +49,25 @@ export function findTimetable(buildingId: string, roomId: string): TimetableRefe
   return roomIndex.find((table) => table.building_id === buildingId && table.room_id === roomId);
 }
 
-export function loadTimetable(reference: TimetableReference): Promise<RoomTimetable> {
+export async function fetchTimetableIndex(): Promise<TimetableReference[]> {
+  if (API_ENABLED) {
+    try {
+      const response = await fetch(`${API_URL}/api/v1/timetables`, { signal: AbortSignal.timeout(API_TIMEOUT_MS), cache: 'no-store' });
+      if (response.ok) return await response.json();
+    } catch { /* Static campus remains usable without the API. */ }
+  }
+  return roomIndex;
+}
+
+export async function loadTimetable(reference: TimetableReference): Promise<RoomTimetable> {
+  if (API_ENABLED) {
+    let response: Response | undefined;
+    try {
+      response = await fetch(`${API_URL}/api/v1/timetables/${encodeURIComponent(reference.file)}`, { signal: AbortSignal.timeout(API_TIMEOUT_MS), cache: 'no-store' });
+      if (response.ok) return await response.json();
+    } catch { /* Fall back to bundled data if the API is unavailable. */ }
+    if (response?.status === 404) throw new Error('삭제된 시간표입니다.');
+  }
   const load = files[`../../../backend/data/timetables/${reference.file}`];
   if (!load) return Promise.reject(new Error('시간표 파일을 찾을 수 없습니다.'));
   return load();

@@ -23,7 +23,7 @@ export interface LoadedData {
 }
 
 async function fetchJson<T>(url: string, timeoutMs?: number): Promise<T> {
-  const res = await fetch(url, timeoutMs ? { signal: AbortSignal.timeout(timeoutMs) } : undefined);
+  const res = await fetch(url, { cache: 'no-store', ...(timeoutMs ? { signal: AbortSignal.timeout(timeoutMs) } : {}) });
   if (!res.ok) throw new Error(`${res.status} ${url}`);
   return (await res.json()) as T;
 }

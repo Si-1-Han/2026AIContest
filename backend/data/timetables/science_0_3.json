@@ -1,11 +1,11 @@
 {
   "schema_version": 2,
   "semester": "2026학년도 2학기",
-  "name": "이공관 104호",
+  "name": "이공관 1F 104호",
   "building_id": "science",
-  "room_id": "science:0:4",
+  "room_id": "science:0:3",
   "room_name": "104호",
-  "source_location": "이104",
+  "source_location": "science:0:3",
   "mapping_status": "linked",
   "time_basis": {
     "first_period_start": "09:00",
@@ -162,14 +162,14 @@
       "weekly_hours": 3.0,
       "capacity": 30,
       "note": "",
-      "periods": "목1 ,1.5 ,2 ,2.5 ,3 ,3.5(이104)",
+      "periods": "",
       "meetings": [
         {
           "day": "목",
           "start": "09:00",
           "end": "12:00",
-          "location": "이104",
-          "periods": "목1, 1.5, 2, 2.5, 3, 3.5(이104)"
+          "location": "science:0:3",
+          "periods": ""
         }
       ],
       "day": "목",
@@ -186,14 +186,14 @@
       "weekly_hours": 3.0,
       "capacity": 30,
       "note": "",
-      "periods": "화5 ,5.5 ,6 ,6.5 ,7 ,7.5(이104)",
+      "periods": "",
       "meetings": [
         {
           "day": "화",
           "start": "13:00",
           "end": "16:00",
-          "location": "이104",
-          "periods": "화5, 5.5, 6, 6.5, 7, 7.5(이104)"
+          "location": "science:0:3",
+          "periods": ""
         }
       ],
       "day": "화",
@@ -210,14 +210,14 @@
       "weekly_hours": 2.0,
       "capacity": 30,
       "note": "",
-      "periods": "목6 ,6.5 ,7 ,7.5(이104)",
+      "periods": "",
       "meetings": [
         {
           "day": "목",
           "start": "14:00",
           "end": "16:00",
-          "location": "이104",
-          "periods": "목6, 6.5, 7, 7.5(이104)"
+          "location": "science:0:3",
+          "periods": ""
         }
       ],
       "day": "목",
@@ -234,14 +234,14 @@
       "weekly_hours": 2.0,
       "capacity": 30,
       "note": "",
-      "periods": "수5 ,5.5 ,6 ,6.5(이104)",
+      "periods": "",
       "meetings": [
         {
           "day": "수",
           "start": "13:00",
           "end": "15:00",
-          "location": "이104",
-          "periods": "수5, 5.5, 6, 6.5(이104)"
+          "location": "science:0:3",
+          "periods": ""
         }
       ],
       "day": "수",
@@ -258,14 +258,14 @@
       "weekly_hours": 2.0,
       "capacity": 30,
       "note": "",
-      "periods": "목8 ,8.5 ,9 ,9.5(이104)",
+      "periods": "",
       "meetings": [
         {
           "day": "목",
           "start": "16:00",
           "end": "18:00",
-          "location": "이104",
-          "periods": "목8, 8.5, 9, 9.5(이104)"
+          "location": "science:0:3",
+          "periods": ""
         }
       ],
       "day": "목",
@@ -282,14 +282,14 @@
       "weekly_hours": 2.0,
       "capacity": 30,
       "note": "",
-      "periods": "수7 ,7.5 ,8 ,8.5(이104)",
+      "periods": "",
       "meetings": [
         {
           "day": "수",
           "start": "15:00",
           "end": "17:00",
-          "location": "이104",
-          "periods": "수7, 7.5, 8, 8.5(이104)"
+          "location": "science:0:3",
+          "periods": ""
         }
       ],
       "day": "수",
@@ -306,14 +306,14 @@
       "weekly_hours": 3.0,
       "capacity": 30,
       "note": "",
-      "periods": "금5 ,5.5 ,6 ,6.5 ,7 ,7.5(이104)",
+      "periods": "",
       "meetings": [
         {
           "day": "금",
           "start": "13:00",
           "end": "16:00",
-          "location": "이104",
-          "periods": "금5, 5.5, 6, 6.5, 7, 7.5(이104)"
+          "location": "science:0:3",
+          "periods": ""
         }
       ],
       "day": "금",
@@ -330,14 +330,14 @@
       "weekly_hours": 3.0,
       "capacity": 30,
       "note": "",
-      "periods": "금8 ,8.5 ,9 ,9.5 ,10 ,10.5(이104)",
+      "periods": "",
       "meetings": [
         {
           "day": "금",
           "start": "16:00",
           "end": "19:00",
-          "location": "이104",
-          "periods": "금8, 8.5, 9, 9.5, 10, 10.5(이104)"
+          "location": "science:0:3",
+          "periods": ""
         }
       ],
       "day": "금",
@@ -351,64 +351,64 @@
       "day": "화",
       "start": "13:00",
       "end": "16:00",
-      "location": "이104",
-      "periods": "화5, 5.5, 6, 6.5, 7, 7.5(이104)"
+      "location": "science:0:3",
+      "periods": ""
     },
     {
       "code": "14555-001",
       "day": "수",
       "start": "13:00",
       "end": "15:00",
-      "location": "이104",
-      "periods": "수5, 5.5, 6, 6.5(이104)"
+      "location": "science:0:3",
+      "periods": ""
     },
     {
       "code": "15045-001",
       "day": "수",
       "start": "15:00",
       "end": "17:00",
-      "location": "이104",
-      "periods": "수7, 7.5, 8, 8.5(이104)"
+      "location": "science:0:3",
+      "periods": ""
     },
     {
       "code": "13463-001",
       "day": "목",
       "start": "09:00",
       "end": "12:00",
-      "location": "이104",
-      "periods": "목1, 1.5, 2, 2.5, 3, 3.5(이104)"
+      "location": "science:0:3",
+      "periods": ""
     },
     {
       "code": "14554-001",
       "day": "목",
       "start": "14:00",
       "end": "16:00",
-      "location": "이104",
-      "periods": "목6, 6.5, 7, 7.5(이104)"
+      "location": "science:0:3",
+      "periods": ""
     },
     {
       "code": "14658-001",
       "day": "목",
       "start": "16:00",
       "end": "18:00",
-      "location": "이104",
-      "periods": "목8, 8.5, 9, 9.5(이104)"
+      "location": "science:0:3",
+      "periods": ""
     },
     {
       "code": "15047-001",
       "day": "금",
       "start": "13:00",
       "end": "16:00",
-      "location": "이104",
-      "periods": "금5, 5.5, 6, 6.5, 7, 7.5(이104)"
+      "location": "science:0:3",
+      "periods": ""
     },
     {
       "code": "15350-001",
       "day": "금",
       "start": "16:00",
       "end": "19:00",
-      "location": "이104",
-      "periods": "금8, 8.5, 9, 9.5, 10, 10.5(이104)"
+      "location": "science:0:3",
+      "periods": ""
     }
   ],
   "cell_format": "강좌 코드 또는 null. 시간 중복은 코드 배열로 보존하며 sessions에 모든 수업을 기록합니다."

@@ -16,6 +16,11 @@ COPY backend/pyproject.toml backend/uv.lock backend/README.md ./
 RUN uv sync --frozen --no-dev --no-install-project
 
 COPY backend/campus ./campus
+COPY backend/data/building_meta.json ./data/building_meta.json
+COPY backend/data/raw ./data/raw
+COPY backend/data/interior ./data/interior
+COPY backend/data/timetables ./data/timetables
+COPY backend/data/timetable_sources ./data/timetable_sources
 RUN uv sync --frozen --no-dev
 
 # 파이프라인 산출물을 이미지에 포함 (docker compose에서는 볼륨으로 덮어씀)

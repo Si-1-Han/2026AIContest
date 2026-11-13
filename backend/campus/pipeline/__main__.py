@@ -15,6 +15,7 @@ from campus import schema
 from campus.config import (
     ATTRIBUTION,
     CAMPUS_BOUNDARY_WAY_ID,
+    INTERIOR_DIR,
     RAW_OSM_PATH,
     WEB_DATA_DIR,
 )
@@ -33,14 +34,23 @@ def write_json(path: Path, model: BaseModel) -> None:
     )
 
 
-def build(raw_path: Path = RAW_OSM_PATH, out_dir: Path = WEB_DATA_DIR) -> None:
+def build(
+    raw_path: Path = RAW_OSM_PATH,
+    out_dir: Path = WEB_DATA_DIR,
+    meta_override: dict | None = None,
+    interior_dir: Path = INTERIOR_DIR,
+    verbose: bool = True,
+    rooms_override: dict | None = None,
+) -> None:
     elements, source_timestamp = osm.load(raw_path)
     proj = Projector()
-    meta = load_meta()
+    meta = load_meta() if meta_override is None else meta_override
     boundary = campus_boundary(elements, proj, CAMPUS_BOUNDARY_WAY_ID)
     buildings, context, b_report = classify(elements, proj, boundary, meta)
     # 층·강의실을 붙이고 건물을 합친 뒤에 입구를 연결해야 한다.
-    buildings, interiors, i_report = interior.attach(buildings, meta, proj)
+    buildings, interiors, i_report = interior.attach(
+        buildings, meta, proj, src_dir=interior_dir, rooms_override=rooms_override
+    )
     graph, g_report = build_graph(
         elements, proj, boundary, buildings, doors=interior.doors(interiors)
     )
@@ -69,6 +79,9 @@ def build(raw_path: Path = RAW_OSM_PATH, out_dir: Path = WEB_DATA_DIR) -> None:
     for bid, data in interiors.items():
         write_json(floors_dir / f"{bid}.json", data)
     write_json(out_dir / "rooms-index.json", RoomIndex(rooms=interior.room_index(interiors)))
+
+    if not verbose:
+        return
 
     print("── 파이프라인 리포트 ──")
     print(
