@@ -16,7 +16,7 @@
     "description": "디자인 실습·강의 공간 / 2F 카페"
   },
   "834838433": {
-    "id": "gemi", "name": "환경친화연구동", "aliases": ["환경친화연구동", "게미관", "GEM관"],
+    "id": "gemi", "name": "GEMI관", "aliases": ["GEMI관", "GEMI 관", "환경친화연구동", "게미관", "GEM관"],
     "interior_id": "gemi",
     "description": "1F 전시실 / 2F 스터디라운지 / 3~4F 컴퓨터 실습"
   },

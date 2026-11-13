@@ -61,7 +61,7 @@ export function GuideBox() {
   }
 
   return (
-    <div className="absolute bottom-8 left-1/2 z-40 w-[min(640px,calc(100%-32px))] -translate-x-1/2">
+    <div className="absolute bottom-16 left-1/2 z-40 w-[min(640px,calc(100%-32px))] -translate-x-1/2 min-[1100px]:bottom-8">
       {reply && (
         <div className="mb-3 rounded-2xl border border-white/10 bg-[#0d1528]/85 px-4 py-3 text-sm text-slate-100 shadow-xl backdrop-blur">
           <span className="mr-2 rounded-full bg-accent/15 px-2 py-0.5 text-[11px] font-semibold text-accent">

@@ -1,7 +1,7 @@
 import tailwindcss from '@tailwindcss/vite';
 import react from '@vitejs/plugin-react';
 import { defineConfig } from 'vite';
-import { campusDataPlugin } from './scripts/campus-data-plugin';
+import { campusDataPlugin } from './scripts/campus-data-plugin.ts';
 
 /** `npm run dev`가 함께 띄우는 Python 서버 (uvicorn) */
 const PY_API = process.env.PY_API ?? 'http://127.0.0.1:8000';

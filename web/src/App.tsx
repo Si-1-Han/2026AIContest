@@ -4,6 +4,7 @@ import { useCampusStore } from './store/useCampusStore';
 import { BuildingPanel } from './ui/BuildingPanel';
 import { GuideBox } from './ui/GuideBox';
 import { Hud } from './ui/Hud';
+import { BackgroundMusic } from './ui/BackgroundMusic';
 import { RoutePlanner } from './ui/RoutePlanner';
 
 export default function App() {
@@ -33,6 +34,7 @@ export default function App() {
         <CampusScene />
       </div>
       <Hud />
+      <BackgroundMusic />
       {status === 'ready' && (
         <>
           <RoutePlanner />
