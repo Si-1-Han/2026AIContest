@@ -29,7 +29,7 @@ export function CampusScene() {
       <color attach="background" args={[COLORS.background]} />
       <fog attach="fog" args={[COLORS.background, 650, 1700]} />
 
-      <hemisphereLight args={['#c8dcff', '#141c30', 0.9]} />
+      <hemisphereLight args={['#eef6ff', '#d9ccaa', 1.1]} />
       <directionalLight
         castShadow
         position={[-220, 320, 160]}

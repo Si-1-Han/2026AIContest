@@ -162,11 +162,11 @@ function FloorSlab({
   });
 
   const color = isPlate
-    ? '#1b2742'
+    ? '#1d3f66'
     : hovered && mode.kind !== 'floor'
       ? COLORS.buildingHover
       : mode.kind === 'building'
-        ? '#cfe0f5'
+        ? '#c0e6ff'
         : COLORS.building;
 
   return (
@@ -192,7 +192,7 @@ function FloorSlab({
         threshold={20}
         color={COLORS.edge}
         transparent
-        opacity={dimmed ? 0.06 : isPlate ? 1 : mode.kind === 'floor' ? 0.25 : 0.45}
+        opacity={dimmed ? 0.06 : isPlate ? 1 : mode.kind === 'floor' ? 0.2 : 0.28}
       />
     </mesh>
   );
