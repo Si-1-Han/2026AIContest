@@ -2,7 +2,11 @@ import { useEffect, useMemo, useRef } from 'react';
 import { useFrame } from '@react-three/fiber';
 import * as THREE from 'three';
 import { useSurfaceMaps } from './materials';
-import { FOUNTAIN_CENTER, FOUNTAIN_SIGN, FOUNTAIN_LEVEL, FOUNTAIN_RADIUS } from '../../features/tour/fountainSite';
+import { FOUNTAIN_CENTER, FOUNTAIN_SIGN, FOUNTAIN_LEVEL, FOUNTAIN_RADIUS, FOUNTAIN_PLAZA_TILT } from '../../features/tour/fountainSite';
+
+// 기울어진 광장 위에서 수조 윗면은 수평. 오르막 쪽 가장자리를 바닥에 맞추고 내리막 쪽은 받침을 아래로 늘린다.
+const RISE = Math.abs(FOUNTAIN_PLAZA_TILT) * (FOUNTAIN_RADIUS + 0.2);
+const PLINTH = 0.1 + 2 * RISE + 0.05;
 
 export { FOUNTAIN_CENTER } from '../../features/tour/fountainSite';
 export function CampusFountain() {
@@ -24,11 +28,13 @@ export function CampusFountain() {
   useEffect(() => () => { basin.dispose(); sign.dispose(); }, [basin, sign]);
   useFrame(({ clock }) => { if (ripple.current) { const t = (clock.elapsedTime * 0.15) % 1; ripple.current.scale.setScalar(0.55 + t * 0.5); (ripple.current.material as THREE.MeshBasicMaterial).opacity = (1 - t) * 0.23; } });
   return <group position={[FOUNTAIN_CENTER[0], FOUNTAIN_LEVEL, FOUNTAIN_CENTER[1]]}>
-    <mesh position-y={0.05} receiveShadow><cylinderGeometry args={[FOUNTAIN_RADIUS + 0.2, FOUNTAIN_RADIUS + 0.2, 0.1, 96]} /><meshStandardMaterial color="#b3b7ad" {...stone} roughness={0.95} /></mesh>
+    <group position-y={RISE}>
+    <mesh position-y={0.1 - PLINTH / 2} receiveShadow><cylinderGeometry args={[FOUNTAIN_RADIUS + 0.2, FOUNTAIN_RADIUS + 0.2, PLINTH, 96]} /><meshStandardMaterial color="#b3b7ad" {...stone} roughness={0.95} /></mesh>
     <mesh geometry={basin} position-y={0.1} castShadow receiveShadow><meshStandardMaterial color="#626961" {...stone} roughness={0.75} /></mesh>
     <mesh rotation-x={-Math.PI / 2} position-y={0.42} receiveShadow><circleGeometry args={[FOUNTAIN_RADIUS - 0.4, 96]} /><meshPhysicalMaterial color="#527e82" roughness={0.17} metalness={0.1} transparent opacity={0.88} clearcoat={1} /></mesh>
     <mesh ref={ripple} rotation-x={-Math.PI / 2} position-y={0.435}><ringGeometry args={[2.1, 2.14, 96]} /><meshBasicMaterial color="#b3d1cc" transparent opacity={0.18} depthWrite={false} /></mesh>
-    <group position={[FOUNTAIN_SIGN.x, 0, FOUNTAIN_SIGN.z]} rotation-y={FOUNTAIN_SIGN.rotation}>
+    </group>
+    <group position={[FOUNTAIN_SIGN.x, FOUNTAIN_PLAZA_TILT * FOUNTAIN_SIGN.z, FOUNTAIN_SIGN.z]} rotation-y={FOUNTAIN_SIGN.rotation}>
       <mesh position={[0, 1.03, 0.02]} castShadow><planeGeometry args={[6.4, 1.2]} /><meshStandardMaterial map={sign} transparent alphaTest={0.4} side={THREE.FrontSide} /></mesh>
       <mesh position={[0, 0.25, 0]} castShadow receiveShadow><boxGeometry args={[6.7, 0.5, 0.35]} /><meshStandardMaterial color="#a5afa0" {...stone} roughness={0.85} /></mesh>
       {[-2.5, 0, 2.5].map(x => <mesh key={x} position={[x, 0.57, -0.04]}><boxGeometry args={[0.055, 0.65, 0.055]} /><meshStandardMaterial color="#5e655e" metalness={0.5} roughness={0.5} /></mesh>)}

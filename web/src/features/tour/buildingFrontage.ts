@@ -1,6 +1,7 @@
 import type { CampusData } from '../../types/generated/campus';
 import { spineDistanceAtZ, spineLocal, spinePoint, spineStrip } from './campusSpine';
-import { MUSIC_FORECOURT_LEVEL } from './elevationLevels';
+import { approachTopZ } from './graduateApproach';
+import { fountainSurface } from './fountainSite';
 
 /** 대학원관부터 영비관까지 건물 쪽 보도를 외벽/주차장 경계까지 채운다. */
 const frontageStrip = spineStrip(spineDistanceAtZ(-106), spineDistanceAtZ(35), 5.3, 60);
@@ -15,9 +16,14 @@ export function inBuildingFrontage(x: number, z: number, margin = 0) {
   const p = spineLocal(x, z);
   return z >= -122 - margin && p.along <= spineDistanceAtZ(35) + margin && p.side >= 5.3 - margin && p.side <= 60 + margin;
 }
+/** 대학원관 북쪽 외벽 앞까지는 교차로에서 오르는 경사, 그 뒤는 1층 평지. */
 export function frontageGrade(_campus: CampusData, x: number, z: number) {
-  return inBuildingFrontage(x, z, 0.001) ? MUSIC_FORECOURT_LEVEL : undefined;
+  return inBuildingFrontage(x, z, 0.001) ? fountainSurface(x, z) : undefined;
 }
+/** 경사 구간을 뺀 수평 보도 부분(포장 메시를 평면으로 만들 수 있는 영역). */
+export const FRONTAGE_FLAT_CLIP: [number, number][] = [
+  [-200, approachTopZ(-200)], [-50, approachTopZ(-50)], [-30, approachTopZ(-30)], [200, approachTopZ(200)], [200, 400], [-200, 400],
+];
 
 /** 포장 경계 바깥의 땅도 같은 끝 높이에서 시작하게 해 찢어진 삼각형을 없앤다. */
 export function frontageGround(campus: CampusData, x: number, z: number, original: number) {

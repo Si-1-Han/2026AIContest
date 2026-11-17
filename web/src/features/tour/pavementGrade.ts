@@ -5,7 +5,9 @@ import { MAIN_ENTRY_BASE, mainEntryLocal } from './mainEntrance';
 import { MAIN_PARKING, MAIN_STREET, inMainStreet, mainLowerGrade } from './mainBuildingAccess';
 import { MUSIC_SITE } from './musicForecourt';
 import { MUSIC_FORECOURT_LEVEL, PARKING_LEVEL, UPPER_CAMPUS_LEVEL, SLOPE_GAIN } from './elevationLevels';
-import { frontageGrade, BUILDING_FRONTAGE } from './buildingFrontage';
+import { frontageGrade, BUILDING_FRONTAGE, FRONTAGE_FLAT_CLIP } from './buildingFrontage';
+import { inFountainSite, fountainSurface } from './fountainSite';
+import clipping from 'polygon-clipping';
 import { fieldWalkGrade } from './fieldWalk';
 
 type Point = [number, number];
@@ -37,7 +39,8 @@ export function pavementPads(campus: CampusData) {
   });
   if (campus.buildings.some(b => b.id === 'main')) parking.push({ ring: MAIN_STREET, y: MAIN_ENTRY_BASE }, { ring: MAIN_PARKING, y: MAIN_ENTRY_BASE });
   if (campus.buildings.some(b => b.id === 'music')) parking.push({ ring: MUSIC_SITE, y: MUSIC_FORECOURT_LEVEL });
-  parking.push({ ring: BUILDING_FRONTAGE, y: MUSIC_FORECOURT_LEVEL });
+  // 대학원관 앞 보도 중 교차로 오르막에 걸친 북쪽 끝은 경사면으로 따로 만든다.
+  for (const poly of clipping.intersection([BUILDING_FRONTAGE], [FRONTAGE_FLAT_CLIP])) parking.push({ ring: poly[0]! as Point[], y: MUSIC_FORECOURT_LEVEL });
   parking.push({ ring: CENTRAL_PARKING_APRON, y: PARKING_LEVEL });
   return parking;
 }
@@ -59,6 +62,8 @@ export function pavementGrade(campus: CampusData, profiles: { id: string; points
     if (pad) return pad.y;
     const frontage = frontageGrade(campus, x, z); if (frontage !== undefined) return frontage;
     const fieldWalk = fieldWalkGrade(x, z); if (fieldWalk !== undefined) return fieldWalk;
+    // 분수 삼각지를 가로지르는 연결 차도는 삼각지 경사면을 그대로 따른다.
+    if (inFountainSite(x, z)) return fountainSurface(x, z);
     // 중앙 주차장 내부 교차로는 수평이며 서측 진입 경사는 위에서 별도로 처리한다.
     if (z >= 36 && z <= 146 && x > -54 && x < 34) return PARKING_LEVEL;
     const nearest = profileSegments.map(p => sample(x, z, p.a, p.b)).reduce((a, b) => a.distance < b.distance ? a : b);

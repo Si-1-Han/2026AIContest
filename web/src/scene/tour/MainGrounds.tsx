@@ -2,7 +2,9 @@ import { useEffect, useMemo } from 'react';
 import * as THREE from 'three';
 import clipping, { type MultiPolygon } from 'polygon-clipping';
 import { MAIN_ENTRANCE, MAIN_ENTRY_BASE, mainEntryLocal } from '../../features/tour/mainEntrance';
-import { accessStrip, MAIN_FRONT_PLAZA, MAIN_GARDEN, MAIN_GARDEN_LEVEL, MAIN_FIRST_FLOOR, MAIN_STAIR_PLANTERS, mainPlanterHeight, MAIN_SITE_PATHS, MAIN_WALK_SURFACES, mainAccessWidth, isMainAccessStair, mainSitePoint } from '../../features/tour/mainBuildingAccess';
+import { useCampusStore } from '../../store/useCampusStore';
+import { tourElevation } from '../../features/tour/terrain';
+import { MAIN_UPPER_PATH, MAIN_UPPER_ROAD, accessStrip, MAIN_FRONT_PLAZA, MAIN_GARDEN, MAIN_GARDEN_LEVEL, MAIN_FIRST_FLOOR, MAIN_STAIR_PLANTERS, mainPlanterHeight, MAIN_SITE_PATHS, MAIN_WALK_SURFACES, mainAccessWidth, isMainAccessStair, mainSitePoint } from '../../features/tour/mainBuildingAccess';
 import { siteSolid } from './siteGeometry';
 import { Batch, type Part } from './Batch';
 import { Trees } from './Trees';
@@ -12,7 +14,16 @@ import { useSurfaceMaps } from './materials';
 
 const angle = -Math.atan2(MAIN_ENTRANCE.uz, MAIN_ENTRANCE.ux);
 type Node = { x: number; y: number; z: number; id: string };
-export function mainAccessDecks(roadMask: MultiPolygon = []) {
+const UPPER_TURN_U = mainEntryLocal(MAIN_UPPER_PATH[0]!.x, MAIN_UPPER_PATH[0]!.z).u, UPPER_RAMP_U = mainEntryLocal(MAIN_UPPER_PATH[1]!.x, MAIN_UPPER_PATH[1]!.z).u;
+/**
+ * 차도 → 3층 진입 경사로 시작부. 비스듬한 차도와 직각인 경사로가 만나므로 고정 높이 데크를 쓰면 보도 위에
+ * 삼각형 판이 겹쳐 뜬다. 보도·차도 바깥에서만 데크를 만들고, 실제 지면 높이에서 출발해 공원 높이까지 고르게 오른다.
+ */
+const upperFootHeight = (elevation: (x: number, z: number) => number) => (x: number, z: number) => {
+  const g = elevation(x, z), t = Math.max(0, Math.min(1, (UPPER_TURN_U - mainEntryLocal(x, z).u) / (UPPER_TURN_U - UPPER_RAMP_U)));
+  return g + (MAIN_UPPER_PATH[1]!.y - g) * t + 0.045;
+};
+export function mainAccessDecks(roadMask: MultiPolygon = [], pavementMask: MultiPolygon = roadMask, elevation?: (x: number, z: number) => number) {
   const upper = MAIN_WALK_SURFACES[1]!;
   const gardenJunction = clipping.union([MAIN_GARDEN], ...upper.slice(1).map((b, i) => [accessStrip(upper[i]!, b, mainAccessWidth(upper))]));
   return MAIN_WALK_SURFACES.flatMap(path => path.slice(1).flatMap((b, i) => {
@@ -20,9 +31,10 @@ export function mainAccessDecks(roadMask: MultiPolygon = []) {
     if (isMainAccessStair(a.id, b.id)) return [];
     const strip = accessStrip(a, b, mainAccessWidth(path));
     const gardenLink = path.some(p => p.id === 'tour_main_garden');
-    const polygons = clipping.difference([strip], roadMask, gardenLink ? gardenJunction : []);
+    const upperFoot = elevation && (a.id === MAIN_UPPER_ROAD.id || a.id === MAIN_UPPER_PATH[0]!.id);
+    const polygons = clipping.difference([strip], upperFoot ? pavementMask : roadMask, gardenLink ? gardenJunction : []);
     return polygons.map(([outer, ...holes]) => {
-      const height = (x: number, z: number) => {
+      const height = upperFoot ? upperFootHeight(elevation) : (x: number, z: number) => {
         const t = Math.max(0, Math.min(1, ((x - a.x) * dx + (z - a.z) * dz) / len2));
         return a.y + (b.y - a.y) * t + 0.045;
       };
@@ -134,13 +146,14 @@ export function mainPlazaDecks(_roadMask: MultiPolygon = []) {
 }
 
 export function MainGrounds({ roadMask, pavementMask = roadMask }: { roadMask: MultiPolygon; pavementMask?: MultiPolygon }) {
-  const parts = useMemo(makeMainGroundsParts, []), decks = useMemo(() => [...mainAccessDecks(roadMask), ...mainPlazaDecks(pavementMask)], [roadMask, pavementMask]);
+  const campus = useCampusStore(s => s.campus)!;
+  const parts = useMemo(makeMainGroundsParts, []), decks = useMemo(() => [...mainAccessDecks(roadMask, pavementMask, tourElevation(campus)), ...mainPlazaDecks(pavementMask)], [roadMask, pavementMask, campus]);
   const walls = useMemo(() => mainRetainingWalls(roadMask), [roadMask]);
   useEffect(() => () => walls.forEach(g => g.dispose()), [walls]);
   const paving = useSurfaceMaps('paving'), asphalt = useSurfaceMaps('asphalt'), grass = useSurfaceMaps('grass');
   useEffect(() => () => decks.forEach(g => g.dispose()), [decks]);
   return <group>
-    {decks.map((g, i) => <mesh key={i} geometry={g} receiveShadow><meshStandardMaterial color={g.userData.surface === 'grass' ? '#79a950' : g.userData.surface === 'asphalt' ? '#697278' : '#aaa89e'} {...(g.userData.surface === 'grass' ? grass : g.userData.surface === 'asphalt' ? asphalt : paving)} normalScale={new THREE.Vector2(0.22, 0.22)} roughness={0.95} side={THREE.DoubleSide} attach="material-0" /><meshStandardMaterial color="#b4bab2" roughness={0.94} attach="material-1" /></mesh>)}
+    {decks.map((g, i) => <mesh key={i} geometry={g} receiveShadow><meshStandardMaterial color={g.userData.surface === 'grass' ? '#79a950' : g.userData.surface === 'asphalt' ? '#81898b' : '#aaa89e'} {...(g.userData.surface === 'grass' ? grass : g.userData.surface === 'asphalt' ? asphalt : paving)} normalScale={new THREE.Vector2(0.22, 0.22)} roughness={0.95} side={THREE.DoubleSide} attach="material-0" /><meshStandardMaterial color="#b4bab2" roughness={0.94} attach="material-1" /></mesh>)}
     {walls.map((g, i) => <mesh key={`wall-${i}`} geometry={g} castShadow receiveShadow><meshStandardMaterial color="#bfc5bc" roughness={0.87} side={THREE.DoubleSide} /></mesh>)}
     <Batch parts={parts.stone} /><Batch parts={parts.metal} metal /><Batch parts={parts.wood} /><Batch parts={parts.hedges} shape="sphere" />
     <Trees trees={parts.trees} /><Shrubs shrubs={parts.shrubs} />

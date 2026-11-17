@@ -147,7 +147,7 @@ try {
   assert(walls.every(w => w.b[1] > w.a[1]), '옹벽은 정문 진입로를 따라 함께 올라감');
   assert(SLOPE_GAIN > 1 && SLOPE_GAIN < 1.5, '전체 도로 경사를 적당히 높임');
   const terrace = makeTerraceParts();
-  assert.equal(terrace.wood.length, 48, '여섯 벤치의 좌판·등받이');
+  assert.equal(terrace.wood.length, 32, '쓰레기통을 둘러싼 네 벤치의 좌판·등받이(사용자 배치도)');
   assert(terrace.metal.length > 60, '계단·쉼터 난간');
   for (const parts of Object.values(terrace)) for (const p of parts) assert([...p.p, ...p.s, p.ry ?? 0, p.rz ?? 0].every(Number.isFinite));
   const decks = terraceGeometry(), deckMaterial = new THREE.MeshBasicMaterial({ side: THREE.DoubleSide });

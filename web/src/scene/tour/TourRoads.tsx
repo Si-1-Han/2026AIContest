@@ -7,7 +7,8 @@ import { useSurfaceMaps } from './materials';
 import { tourElevation } from '../../features/tour/terrain';
 import { useCampusStore } from '../../store/useCampusStore';
 import { conformTerrain } from './terrainGeometry';
-import { spineStrip, SPINE_LENGTH, spineLocal, spinePoint, spineGrade } from '../../features/tour/campusSpine';
+import { spineStrip, SPINE_LENGTH, spineLocal, spinePoint, spineGrade, spineDistanceAtZ } from '../../features/tour/campusSpine';
+import { APPROACH_TOP_Z } from '../../features/tour/graduateApproach';
 import { MUSIC_FORECOURT_LEVEL } from '../../features/tour/elevationLevels';
 
 function geometry(polygons: MultiPolygon, height: number) {
@@ -42,7 +43,12 @@ export function roadGeometries(layout: RoadLayout, elevation: (x: number, z: num
       pieces.push(conformTerrain(source, height)); source.dispose();
     };
     // 도로와 양쪽 보도를 먼저 잘라 높은 주차장 경계의 높이가 끌려 들어오지 않게 한다.
-    const spine = [spineStrip(0, SPINE_LENGTH, -5.3, 5.3)];
+    // 교차로→대학원관 오르막 구간은 경사면으로, 그 뒤 영비관까지는 수평면으로 만든다.
+    const rampEnd = spineDistanceAtZ(APPROACH_TOP_Z);
+    const spineRamp = [spineStrip(0, rampEnd, -5.3, 5.3)];
+    append(clipping.intersection(remainder, spineRamp), (x,z)=>spineGrade(spinePoint(spineLocal(x,z).along)[1]));
+    remainder = clipping.union(snap(clipping.difference(remainder, spineRamp)));
+    const spine = [spineStrip(rampEnd, SPINE_LENGTH, -5.3, 5.3)];
     append(clipping.intersection(remainder, spine), (x,z)=>spineGrade(spinePoint(spineLocal(x,z).along)[1]), MUSIC_FORECOURT_LEVEL);
     remainder = clipping.union(snap(clipping.difference(remainder, spine)));
     // 주차장 경계를 나눠 경사 삼각형이 평지 안으로 길게 걸치지 않게 한다.

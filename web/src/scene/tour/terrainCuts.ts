@@ -6,6 +6,7 @@ import { FOUNTAIN_CLEARING } from '../../features/tour/fountainSite';
 import { MUSIC_SITE, MUSIC_ACCESS_PATH } from '../../features/tour/musicForecourt';
 import { FIELD_WALK, FIELD_WALK_WIDTH } from '../../features/tour/fieldWalk';
 import { gateWallSections } from '../../features/tour/gateWalls';
+import { SCIENCE_COURT } from '../../features/tour/scienceGarden';
 
 type P = [number, number];
 export function siteTerrainCutouts(pavement: MultiPolygon = [], buildings: MultiPolygon = []): MultiPolygon {
@@ -20,7 +21,7 @@ export function siteTerrainCutouts(pavement: MultiPolygon = [], buildings: Multi
     const nx = w.nx * 0.51, nz = w.nz * 0.51;
     return [[w.a[0]+nx,w.a[2]+nz],[w.b[0]+nx,w.b[2]+nz],[w.b[0]-nx,w.b[2]-nz],[w.a[0]-nx,w.a[2]-nz]] as P[];
   });
-  const polygons = [...MAIN_PAVED_CUTS, FOUNTAIN_CLEARING, MUSIC_SITE, ...paths, ...walls].map(p => [p]);
+  const polygons = [...MAIN_PAVED_CUTS, FOUNTAIN_CLEARING, MUSIC_SITE, SCIENCE_COURT, ...paths, ...walls].map(p => [p]);
   return clipping.union(polygons[0]!, ...polygons.slice(1), pavement, buildings);
 }
 const inside = ([x, z]: P, ring: P[]) => {

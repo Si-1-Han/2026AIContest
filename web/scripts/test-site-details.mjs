@@ -15,7 +15,7 @@ try {
   const { mainEntryLocal, MAIN_ENTRY_BASE } = await server.ssrLoadModule('/src/features/tour/mainEntrance.ts');
   const { tourElevation } = await server.ssrLoadModule('/src/features/tour/terrain.ts');
   const { makeScenery } = await server.ssrLoadModule('/src/scene/tour/scenery.ts');
-  const { FOUNTAIN_CENTER, FOUNTAIN_LEVEL, FOUNTAIN_SIGN, inFountainSite } = await server.ssrLoadModule('/src/features/tour/fountainSite.ts');
+  const { FOUNTAIN_CENTER, FOUNTAIN_SIGN, inFountainSite, fountainPlazaLevel } = await server.ssrLoadModule('/src/features/tour/fountainSite.ts');
   const { spinePoint, spineLocal, spineDistanceAtZ, SPINE_DRIVEWAY_Z, SPINE_DRIVEWAY_WIDTH, SPINE_NODES } = await server.ssrLoadModule('/src/features/tour/campusSpine.ts');
   const { VISION_GROUND_APRON } = await server.ssrLoadModule('/src/features/tour/pavedAreas.ts');
   const network = buildTourNetwork(campus, graph), layout = buildRoadLayout(campus, network.corridors), elevation = tourElevation(campus);
@@ -51,9 +51,44 @@ try {
     if(inSurface([x,z],MAIN_STAIR_PLANTERS.map(r=>[r]))) continue;
     assert(!new THREE.Raycaster(new THREE.Vector3(x,10,z),new THREE.Vector3(0,-1,0),0,20).intersectObjects(facadeSoil).length,'본관 앞 일반 대지에 잔디 면 없음');
   }
+  // 본관 교차로→대학원관: 로드뷰처럼 차도가 한 번에 고르게 오르고(혹 없음), 분수 삼각지에 잔디 둔덕 벽이 없다.
+  const { APPROACH_START_Z, APPROACH_TOP_Z } = await server.ssrLoadModule('/src/features/tour/graduateApproach.ts');
+  const spine = await server.ssrLoadModule('/src/features/tour/campusSpine.ts');
+  let approachPrev = elevation(...spine.spinePoint(spine.spineDistanceAtZ(APPROACH_START_Z))), approachSamples = 0;
+  for (let z = APPROACH_START_Z + 0.5; z <= APPROACH_TOP_Z + 0.001; z += 0.5) {
+    const y = elevation(...spine.spinePoint(spine.spineDistanceAtZ(z)));
+    assert(y >= approachPrev - 0.001 && y - approachPrev <= 0.11 * 0.5 + 0.001, `본관 교차로→대학원관 차도는 11% 이하의 고른 오르막 (z=${z})`);
+    approachPrev = y; approachSamples++;
+  }
+  for (let x = -72; x <= -38; x += 2) for (let z = -134; z <= -108; z += 2) {
+    const slope = Math.hypot(elevation(x + 0.5, z) - elevation(x - 0.5, z), elevation(x, z + 0.5) - elevation(x, z - 0.5));
+    assert(slope < 0.3, `분수 삼각지에 급한 둔덕 없음 (${x},${z}) ${slope.toFixed(2)}`); approachSamples++;
+  }
+  // 이공관 앞 사각 정원: 언덕 없는 평지, 모서리 ㄱ자 수풀 4개 + 가운데 수풀, 벤치 12개, 수풀 사이로 출입문까지 걷는 통로.
+  const garden = await server.ssrLoadModule('/src/features/tour/scienceGarden.ts');
+  const { inside } = await server.ssrLoadModule('/src/features/tour/network.ts');
+  for (let x = 27; x <= 57.5; x += 1.5) for (let z = 178; z <= 202; z += 1.5) {
+    if (campus.buildings.some(b => inside([x, z], b.footprint))) continue;
+    assert(Math.abs(elevation(x, z) - garden.SCIENCE_GARDEN_LEVEL) < 0.001, `이공관 앞 정원은 평지 (${x},${z})`);
+  }
+  assert.equal(garden.GARDEN_HEDGES.length, 9); assert.equal(garden.GARDEN_BENCHES.length, 12);
+  const walk = [garden.SCIENCE_GARDEN_ENTRY, ...garden.SCIENCE_GARDEN_WALK, garden.SCIENCE_APPROACH];
+  for (let i = 1; i < walk.length; i++) for (let t = 0; t <= 1; t += 0.05) {
+    const x = walk[i - 1][0] + (walk[i][0] - walk[i - 1][0]) * t, z = walk[i - 1][1] + (walk[i][1] - walk[i - 1][1]) * t;
+    assert(garden.GARDEN_HEDGES.every(h => x < h.x0 || x > h.x1 || z < h.z0 || z > h.z1), `정원 통로가 수풀을 관통하지 않음 (${x.toFixed(1)},${z.toFixed(1)})`);
+  }
+  // 이공관 서쪽 길(영비관 계단 위): 길·벤치 쉼터·경비실 일대는 둔덕 없는 평지.
+  const side = await server.ssrLoadModule('/src/features/tour/visionTerrace.ts');
+  for (let x = -6; x <= 14; x += 1) for (let z = 179; z <= 210; z += 1) {
+    if (campus.buildings.some(b => inside([x, z], b.footprint))) continue;
+    assert(Math.abs(elevation(x, z) - side.TERRACE_HEIGHT) < 0.001, `이공관 서쪽 길 주변은 평지 (${x},${z})`);
+  }
+  const booth = side.GUARD_BOOTH, path = side.VISION_TERRACE_PATH.slice(-4);
+  assert(path.every(p => p.x === side.VISION_TERRACE.x) && booth.x1 < side.VISION_TERRACE.x - side.VISION_TERRACE.width / 2, '경비실은 곧은 길의 서쪽');
   for (const r of [0, 2, 3.6, 6.5]) for (let i = 0; i < 32; i++) {
     const angle = i / 32 * Math.PI * 2, x = FOUNTAIN_CENTER[0] + Math.cos(angle) * r, z = FOUNTAIN_CENTER[1] + Math.sin(angle) * r;
-    assert(Math.abs(elevation(x, z) - FOUNTAIN_LEVEL) < 0.001, '둥근 분수대와 명패 주변은 평지');
+    // 본관 교차로→대학원관 오르막 위의 광장: 평면이지만 오르막 방향으로 완만하게(경사의 80%) 기운다.
+    assert(Math.abs(elevation(x, z) - fountainPlazaLevel(x, z)) < 0.001, '둥근 분수대와 명패 주변은 하나의 평면');
   }
   const mainDoor = mainSitePoint(0, 0), vx = mainDoor[0] - FOUNTAIN_CENTER[0], vz = mainDoor[1] - FOUNTAIN_CENTER[1];
   assert((vx * FOUNTAIN_SIGN.nx + vz * FOUNTAIN_SIGN.nz) / Math.hypot(vx, vz) > 0.9999, '교명 표지판 앞면은 본관을 향함');

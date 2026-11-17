@@ -1,9 +1,11 @@
 import { mainEntryPoint } from './mainEntrance';
 import { spinePoint, spineDistanceAtZ } from './campusSpine';
-import { MUSIC_FORECOURT_LEVEL } from './elevationLevels';
+import { approachLevel } from './graduateApproach';
+import { PARKING_LEVEL } from './elevationLevels';
 
 export const FOUNTAIN_CENTER = [-65, -114] as const;
-export const FOUNTAIN_LEVEL = MUSIC_FORECOURT_LEVEL;
+// 분수 수조와 교명 받침이 놓이는 원형 평지. 경사지 중간 높이에 맞춘다.
+export const FOUNTAIN_LEVEL = approachLevel(FOUNTAIN_CENTER[0], FOUNTAIN_CENTER[1]);
 export const FOUNTAIN_RADIUS = 5.2;
 export const FOUNTAIN_FLAT_RADIUS = 8.2;
 // 넓은 광장 대신 분수와 교명 받침 둘레에 필요한 원형 보행 공간만 둔다.
@@ -34,15 +36,28 @@ function distanceToRing(x: number, z: number, ring: [number, number][]) {
 const main = mainEntryPoint(0), dx = main[0] - FOUNTAIN_CENTER[0], dz = main[1] - FOUNTAIN_CENTER[1], length = Math.hypot(dx, dz);
 export const FOUNTAIN_SIGN = { x: dx / length * 6.6, z: dz / length * 6.6, rotation: Math.atan2(dx, dz), nx: dx / length, nz: dz / length };
 export function inFountainSite(x: number, z: number, margin = 0) { return distanceToRing(x, z, FOUNTAIN_GRADE_REGION) <= margin; }
+export const fountainSiteDistance = (x: number, z: number) => distanceToRing(x, z, FOUNTAIN_GRADE_REGION);
+// 분수 삼각지는 본관 앞 도로에서 대학원관·운동장 평지까지 이어지는 완만한 경사면이다(잔디 둔덕 없음).
 export function fountainGround(x: number, z: number, original: number) {
   const d = distanceToRing(x, z, FOUNTAIN_GRADE_REGION), t = Math.max(0, Math.min(1, d / 5));
-  return FOUNTAIN_LEVEL + (original - FOUNTAIN_LEVEL) * t * t * (3 - 2 * t);
+  const target = fountainSurface(x, z);
+  return target + (original - target) * t * t * (3 - 2 * t);
 }
-// 차도 높이를 보존하면서 분수와 교명 앞의 수평면은 확실하게 유지한다.
+// 분수 광장 포장은 오르막 방향으로 경사의 80%만 기울인 평면이다. 수조 수면은 수평을 유지하고
+// 낮은 쪽은 수조 받침이 드러난다. 광장 바깥은 9m에 걸쳐 주변 경사면에 이어진다.
+export const FOUNTAIN_PLAZA_TILT = 0.8 * (approachLevel(FOUNTAIN_CENTER[0], FOUNTAIN_CENTER[1] + 1) - approachLevel(FOUNTAIN_CENTER[0], FOUNTAIN_CENTER[1] - 1)) / 2;
+export const fountainPlazaLevel = (_x: number, z: number) => Math.min(PARKING_LEVEL, FOUNTAIN_LEVEL + FOUNTAIN_PLAZA_TILT * (z - FOUNTAIN_CENTER[1]));
+// 차도 높이를 보존하면서 분수와 교명 받침 둘레의 광장 평면은 확실하게 유지한다.
 export function fountainPlaza(x: number, z: number, original: number) {
   const d = Math.hypot(x - FOUNTAIN_CENTER[0], z - FOUNTAIN_CENTER[1]);
   const spine = spinePoint(spineDistanceAtZ(z));
   if (Math.abs(x - spine[0]) < 5.4) return original;
-  const t = Math.max(0, Math.min(1, (d - FOUNTAIN_FLAT_RADIUS) / 6));
-  return FOUNTAIN_LEVEL + (original - FOUNTAIN_LEVEL) * t * t * (3 - 2 * t);
+  const t = Math.max(0, Math.min(1, (d - FOUNTAIN_FLAT_RADIUS) / 9));
+  const plaza = fountainPlazaLevel(x, z);
+  return plaza + (original - plaza) * t * t * (3 - 2 * t);
+}
+
+/** 분수 삼각지의 최종 지면: 경사면 위에 분수·교명 받침 둘레만 원형 평지로 둔다. 포장·지형·보행로가 함께 쓴다. */
+export function fountainSurface(x: number, z: number) {
+  return fountainPlaza(x, z, approachLevel(x, z));
 }
