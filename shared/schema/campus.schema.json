@@ -169,12 +169,24 @@
             "type": "string"
           },
           "type": "array"
+        },
+        "kind": {
+          "default": "building",
+          "enum": [
+            "building",
+            "field",
+            "tennis",
+            "parking",
+            "gate"
+          ],
+          "type": "string"
         }
       },
       "required": [
         "id",
         "name",
-        "aliases"
+        "aliases",
+        "kind"
       ],
       "title": "BuildingIndexEntry",
       "type": "object"
@@ -332,6 +344,12 @@
             "$ref": "#/$defs/ContextBuilding"
           },
           "type": "array"
+        },
+        "outdoor_areas": {
+          "items": {
+            "$ref": "#/$defs/OutdoorArea"
+          },
+          "type": "array"
         }
       },
       "required": [
@@ -342,7 +360,8 @@
         "attribution",
         "boundary",
         "buildings",
-        "context"
+        "context",
+        "outdoor_areas"
       ],
       "title": "CampusData",
       "type": "object"
@@ -691,6 +710,100 @@
         "message"
       ],
       "title": "NavigateAction",
+      "type": "object"
+    },
+    "OutdoorArea": {
+      "additionalProperties": false,
+      "description": "건물과 구분해 바닥에 표시하는 야외시설.",
+      "properties": {
+        "id": {
+          "type": "string"
+        },
+        "name": {
+          "type": "string"
+        },
+        "kind": {
+          "enum": [
+            "field",
+            "tennis",
+            "parking",
+            "gate"
+          ],
+          "type": "string"
+        },
+        "osm_id": {
+          "anyOf": [
+            {
+              "type": "integer"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null
+        },
+        "footprint": {
+          "description": "시설 외곽선. gate는 실제 외곽이 아닌 위치 표식",
+          "items": {
+            "maxItems": 2,
+            "minItems": 2,
+            "type": "array",
+            "items": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "number"
+              }
+            ],
+            "additionalItems": false
+          },
+          "type": "array"
+        },
+        "center": {
+          "maxItems": 2,
+          "minItems": 2,
+          "type": "array",
+          "items": [
+            {
+              "type": "number"
+            },
+            {
+              "type": "number"
+            }
+          ],
+          "additionalItems": false
+        },
+        "aliases": {
+          "items": {
+            "type": "string"
+          },
+          "type": "array"
+        },
+        "entrances": {
+          "description": "보행로 접근 지점 노드 ID",
+          "items": {
+            "type": "string"
+          },
+          "type": "array"
+        },
+        "description": {
+          "default": "",
+          "type": "string"
+        }
+      },
+      "required": [
+        "id",
+        "name",
+        "kind",
+        "osm_id",
+        "footprint",
+        "center",
+        "aliases",
+        "entrances",
+        "description"
+      ],
+      "title": "OutdoorArea",
       "type": "object"
     },
     "PathEdge": {
@@ -1117,6 +1230,7 @@
       "additionalProperties": false,
       "properties": {
         "building_id": {
+          "description": "건물 또는 야외시설 장소 ID (기존 필드명 유지)",
           "type": "string"
         },
         "room_id": {

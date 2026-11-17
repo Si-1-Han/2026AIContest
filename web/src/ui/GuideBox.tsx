@@ -2,6 +2,7 @@ import { useState, type FormEvent } from 'react';
 import { sendEvent } from '../data/dataSource';
 import { askGuide } from '../features/guide/guideClient';
 import { useCampusStore } from '../store/useCampusStore';
+import { useTourStore } from '../store/useTourStore';
 import type { GuideResponse } from '../types/generated/campus';
 
 /** AI 길안내 입력창 (채팅 UI는 M3에서 확장) */
@@ -48,7 +49,8 @@ export function GuideBox() {
         if (!result.room_id || !(await focusRoom(result.room_id))) select(result.building_id);
         break;
       case 'start_tour':
-        text = '캠퍼스 투어는 곧 공개됩니다! (M4)';
+        success = useTourStore.getState().start();
+        text = success ? '정문에서 캠퍼스 거리 투어를 시작할게요.' : '캠퍼스 데이터를 불러온 뒤 다시 시도해 주세요.';
         break;
       case 'unknown':
         success = false;

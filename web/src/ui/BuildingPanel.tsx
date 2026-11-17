@@ -1,8 +1,9 @@
 import { useMemo } from 'react';
 import { findTimetable } from '../data/timetables';
+import { PLACE_LABEL, type NavigationPlace } from '../features/navigation/places';
 import { josa } from '../features/guide/fallbackMatcher';
 import { useCampusStore } from '../store/useCampusStore';
-import type { Building, InteriorFloor, Room } from '../types/generated/campus';
+import type { Building, InteriorFloor, Room, OutdoorArea } from '../types/generated/campus';
 import { RoomTimetableLoader } from './RoomTimetableLoader';
 
 /** 오른쪽 패널: 건물 → 층 → 강의실 순서로 내용이 바뀐다 */
@@ -11,7 +12,7 @@ export function BuildingPanel() {
   const floorIndex = useCampusStore((s) => s.floorIndex);
   const selectedRoomId = useCampusStore((s) => s.selectedRoomId);
   const route = useCampusStore((s) => s.route);
-  const b = useCampusStore((s) => s.building(selectedId));
+  const b = useCampusStore((s) => s.place(selectedId));
   const interior = useCampusStore((s) => (selectedId ? s.interiors[selectedId] : undefined));
   const room = useCampusStore((s) => s.room(selectedRoomId));
   const select = useCampusStore((s) => s.select);
@@ -52,7 +53,9 @@ export function BuildingPanel() {
       </header>
 
       <div className="min-h-0 flex-1 overflow-y-auto p-5 pt-4">
-        {room ? (
+        {'kind' in b ? (
+          <OutdoorDetail area={b} />
+        ) : room ? (
           <RoomDetail room={room} floor={floor} />
         ) : floor ? (
           <FloorDetail floor={floor} />
@@ -66,7 +69,7 @@ export function BuildingPanel() {
   );
 }
 
-function Breadcrumb({ building, floor, room }: { building: Building; floor?: InteriorFloor; room?: Room }) {
+function Breadcrumb({ building, floor, room }: { building: Pick<Building, 'id' | 'name'>; floor?: InteriorFloor; room?: Room }) {
   const select = useCampusStore((s) => s.select);
   const selectFloor = useCampusStore((s) => s.selectFloor);
   const parts: { label: string; onClick?: () => void }[] = [{ label: '캠퍼스', onClick: () => select(null) }];
@@ -87,6 +90,22 @@ function Breadcrumb({ building, floor, room }: { building: Building; floor?: Int
         </span>
       ))}
     </p>
+  );
+}
+
+function OutdoorDetail({ area }: { area: OutdoorArea }) {
+  return (
+    <>
+      <span className="rounded-full bg-accent/15 px-2.5 py-1 text-xs font-semibold text-accent">
+        야외시설 · {PLACE_LABEL[area.kind]}
+      </span>
+      <p className="mt-4 text-sm leading-relaxed text-slate-300">{area.description}</p>
+      <p className="mt-3 text-xs leading-relaxed text-slate-400">
+        {area.kind === 'gate'
+          ? '교내·외 보행로와 연결된 출입구예요.'
+          : '보행로 접근 지점은 추정 위치이며 실제 출입구와 다를 수 있어요.'}
+      </p>
+    </>
   );
 }
 
@@ -225,13 +244,13 @@ function RouteBox({
   route,
   roomName,
 }: {
-  building: Building;
+  building: NavigationPlace;
   route: ReturnType<typeof useCampusStore.getState>['route'];
   roomName?: string;
 }) {
   const roomId = useCampusStore((s) => s.selectedRoomId);
   const openPlanner = useCampusStore((s) => s.openPlanner);
-  const from = useCampusStore((s) => s.building(route?.fromId ?? null));
+  const from = useCampusStore((s) => s.place(route?.fromId ?? null));
   const endpoint = { buildingId: building.id, roomId: roomName ? roomId : null };
   const target = roomName ?? building.name;
 

@@ -111,7 +111,7 @@ def create_app(settings: Settings | None = None) -> FastAPI:
 
     @app.post("/api/v1/route", response_model=RouteResponse)
     def route(req: RouteRequest, request: Request) -> RouteResponse:
-        """출발·도착(건물 또는 강의실) 사이의 경로와 단계별 안내.
+        """출발·도착(건물·강의실·야외시설) 사이의 경로와 단계별 안내.
 
         출입구 조합을 자동으로 고르고, 강의실 ↔ 출입구 층 이동까지 시간에 넣는다.
         profile: recommended(최단 시간) · accessible(엘리베이터 우선) · walkway(차도 회피)

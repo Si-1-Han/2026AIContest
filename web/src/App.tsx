@@ -6,11 +6,15 @@ import { GuideBox } from './ui/GuideBox';
 import { Hud } from './ui/Hud';
 import { BackgroundMusic } from './ui/BackgroundMusic';
 import { RoutePlanner } from './ui/RoutePlanner';
+import { CampusTour, TourLauncher } from './ui/CampusTour';
+import { useTourStore } from './store/useTourStore';
+import { OutdoorMarkers } from './ui/OutdoorMarkers';
 
 export default function App() {
   const status = useCampusStore((s) => s.status);
   const error = useCampusStore((s) => s.error);
   const load = useCampusStore((s) => s.load);
+  const tourActive = useTourStore((s) => s.active);
 
   useEffect(() => {
     void load();
@@ -21,7 +25,10 @@ export default function App() {
   // Esc: 강의실 → 층 → 건물 → 캠퍼스 순서로 뒤로
   useEffect(() => {
     const onKey = (e: KeyboardEvent) => {
-      if (e.key === 'Escape' && !(e.target instanceof HTMLInputElement)) useCampusStore.getState().back();
+      if (e.key === 'Escape' && !(e.target instanceof HTMLInputElement)) {
+        if (useTourStore.getState().active) useTourStore.getState().stop();
+        else useCampusStore.getState().back();
+      }
     };
     window.addEventListener('keydown', onKey);
     return () => window.removeEventListener('keydown', onKey);
@@ -33,15 +40,18 @@ export default function App() {
       <div className="absolute inset-0 isolate z-0">
         <CampusScene />
       </div>
-      <Hud />
+      {!tourActive && <Hud />}
       <BackgroundMusic />
-      {status === 'ready' && (
+      {status === 'ready' && !tourActive && (
         <>
+          <TourLauncher />
+          <OutdoorMarkers />
           <RoutePlanner />
           <BuildingPanel />
           <GuideBox />
         </>
       )}
+      {status === 'ready' && tourActive && <CampusTour />}
       {status === 'loading' && (
         <div className="absolute inset-0 grid place-items-center text-slate-300">
           캠퍼스를 불러오는 중…

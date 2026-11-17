@@ -127,6 +127,7 @@ export interface BuildingIndexEntry {
   id: string;
   name: string;
   aliases: string[];
+  kind: 'building' | 'field' | 'tennis' | 'parking' | 'gate';
 }
 /**
  * This interface was referenced by `CampusContracts`'s JSON-Schema
@@ -221,6 +222,7 @@ export interface CampusData {
   boundary: [number, number][];
   buildings: Building[];
   context: ContextBuilding[];
+  outdoor_areas: OutdoorArea[];
 }
 /**
  * 캠퍼스 밖 주변 건물. 배경으로만 렌더링한다.
@@ -231,6 +233,33 @@ export interface CampusData {
 export interface ContextBuilding {
   footprint: [number, number][];
   height: number;
+}
+/**
+ * 건물과 구분해 바닥에 표시하는 야외시설.
+ *
+ * This interface was referenced by `CampusContracts`'s JSON-Schema
+ * via the `definition` "OutdoorArea".
+ */
+export interface OutdoorArea {
+  id: string;
+  name: string;
+  kind: 'field' | 'tennis' | 'parking' | 'gate';
+  osm_id: number | null;
+  /**
+   * 시설 외곽선. gate는 실제 외곽이 아닌 위치 표식
+   */
+  footprint: [number, number][];
+  /**
+   * @minItems 2
+   * @maxItems 2
+   */
+  center: [number, number];
+  aliases: string[];
+  /**
+   * 보행로 접근 지점 노드 ID
+   */
+  entrances: string[];
+  description: string;
 }
 /**
  * This interface was referenced by `CampusContracts`'s JSON-Schema
@@ -454,6 +483,9 @@ export interface RouteStep {
  * via the `definition` "RoutePlace".
  */
 export interface RoutePlace {
+  /**
+   * 건물 또는 야외시설 장소 ID (기존 필드명 유지)
+   */
   building_id: string;
   room_id?: string | null;
 }

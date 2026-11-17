@@ -10,6 +10,7 @@ import {
 } from '../data/dataSource';
 import { localRoute } from '../features/navigation/localRoute';
 import { Router, type RouteProfile } from '../features/navigation/router';
+import type { NavigationPlace } from '../features/navigation/places';
 import type {
   Building,
   BuildingIndex,
@@ -66,7 +67,7 @@ function toRoute(o: RouteOption, fromId: string, toId: string): Route {
   };
 }
 
-/** 출발·도착 지점: 건물 (+ 선택하면 그 안의 강의실) */
+/** 출발·도착 장소. buildingId는 기존 API와 호환되도록 야외시설 ID도 담는다. */
 export interface Endpoint {
   buildingId: string;
   roomId: string | null;
@@ -165,6 +166,7 @@ interface CampusState {
   selectRoute: (index: number) => void;
   focusStep: (step: RouteStep) => void;
   building: (id: string | null) => Building | undefined;
+  place: (id: string | null) => NavigationPlace | undefined;
   room: (id: string | null) => Room | undefined;
 }
 
@@ -346,6 +348,12 @@ export const useCampusStore = create<CampusState>()((set, get) => ({
     set((s) => ({ focusPoint: { point: step.point as Vec3, nonce: (s.focusPoint?.nonce ?? 0) + 1 } })),
 
   building: (id) => (id ? get().campus?.buildings.find((b) => b.id === id) : undefined),
+  place: (id) => {
+    if (!id) return undefined;
+    const campus = get().campus;
+    return campus?.buildings.find((b) => b.id === id)
+      ?? campus?.outdoor_areas?.find((a) => a.id === id);
+  },
 
   room: (id) => {
     const parsed = id ? parseRoomId(id) : null;
@@ -370,7 +378,7 @@ let requestId = 0;
 function afterEndpointsChanged(get: Get, set: Set) {
   window.clearTimeout(roomTimer);
   const id = ++requestId;
-  const { planner, router, building, rooms } = get();
+  const { planner, router, place, rooms } = get();
   const { from, to, profile } = planner;
 
   if (!from || !to) {
@@ -378,11 +386,11 @@ function afterEndpointsChanged(get: Get, set: Set) {
     return;
   }
 
-  const a = building(from.buildingId);
-  const b = building(to.buildingId);
+  const a = place(from.buildingId);
+  const b = place(to.buildingId);
   const fail = (error: string) =>
     set({ ...NO_ROUTE, planner: { ...get().planner, active: null, error, busy: false } });
-  if (!router || !a || !b) return fail('건물 정보를 찾지 못했어요.');
+  if (!router || !a || !b) return fail('장소 정보를 찾지 못했어요.');
 
   set({ planner: { ...planner, active: null, error: null, busy: true } });
 
@@ -422,7 +430,7 @@ function afterEndpointsChanged(get: Get, set: Set) {
     if (id !== requestId) return;
     if (a.id === b.id) {
       if (to.roomId) void get().focusRoom(to.roomId);
-      return fail('같은 건물 안이에요. 도착 위치를 표시했어요.');
+      return fail('같은 장소예요. 도착 위치를 표시했어요.');
     }
     const room = to.roomId ? rooms?.rooms.find((r) => r.id === to.roomId) : undefined;
     const res = localRoute(
@@ -432,7 +440,7 @@ function afterEndpointsChanged(get: Get, set: Set) {
       profile,
       room ? { name: room.name, floorLabel: room.floor_label } : undefined,
     );
-    if (!res) return fail('두 건물을 잇는 보행로를 찾지 못했어요.');
+    if (!res) return fail('두 장소를 잇는 보행로를 찾지 못했어요.');
     apply(res);
   };
 

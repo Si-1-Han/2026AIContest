@@ -19,6 +19,8 @@ def build_query(bbox: tuple[float, float, float, float] = BBOX) -> str:
         "[out:json][timeout:90];("
         f'way["building"]{b};'
         f'way["highway"]{b};'
+        f'way["leisure"="pitch"]{b};'
+        f'way["amenity"="parking"]{b};'
         f"way({CAMPUS_BOUNDARY_WAY_ID});"
         ");out tags geom;"
     )

@@ -26,20 +26,22 @@ const MAX_QUERY = 200;
 
 const SYSTEM = `너는 한세대학교 캠퍼스 길안내원이다. 사용자의 말에서 의도를 파악해 반드시 도구 하나를 호출한다.
 - 길을 묻거나 어딘가로 가고 싶어하면 navigate. 출발지를 말하지 않았으면 from_id는 생략한다.
-- 특정 건물을 보여 달라거나 정보를 물으면 focus_building.
+- 특정 건물이나 야외시설(운동장·테니스장·주차장·학교 입구)을 보여 달라거나 정보를 물으면 focus_building.
+- 정문·당정역 방향 입구·당정초 방향 입구는 학교 출입구다. 당정역이나 당정초 자체를 학교 입구와 혼동하지 않는다.
+- 주차장을 특정하지 않으면 unknown으로 중앙·북측·남측 중 어느 주차장인지 묻는다.
 - 캠퍼스를 둘러보고 싶어하면 start_tour.
 - 아래 목록에 없는 장소이거나 캠퍼스와 무관하면 unknown.
 - 건물 안의 강의실·시설(예: 301호, 보건실, 화장실)을 언급하면 room_query에 그 이름을 그대로 넣는다.
   사용자 메시지 끝의 [검색 참고]가 있으면 그 건물 ID를 사용한다.
 message는 한국어 존댓말 1~2문장으로 친근하게 쓴다.
 
-건물 목록 (id: 이름 / 별칭):
+장소 목록 (id: 이름 / 별칭, 건물과 야외시설 포함):
 ${buildings.map((b) => `- ${b.id}: ${b.name} / ${b.aliases.join(', ')}`).join('\n')}`;
 
 const TOOLS = [
   {
     name: 'navigate',
-    description: '출발 건물에서 도착 건물까지 경로를 안내한다.',
+    description: '출발 장소에서 도착 장소까지 경로를 안내한다. 건물과 야외시설을 모두 지원한다.',
     input_schema: {
       type: 'object',
       properties: {
@@ -53,7 +55,7 @@ const TOOLS = [
   },
   {
     name: 'focus_building',
-    description: '건물 하나를 화면에 보여준다.',
+    description: '건물 또는 야외시설 하나를 화면에 보여준다.',
     input_schema: {
       type: 'object',
       properties: {

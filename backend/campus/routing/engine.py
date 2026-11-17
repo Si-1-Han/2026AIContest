@@ -18,6 +18,7 @@ from campus.models import (
     Building,
     BuildingInterior,
     CampusData,
+    OutdoorArea,
     PathGraph,
     PathNode,
     Room,
@@ -54,7 +55,7 @@ class RouteError(Exception):
 
 @dataclass
 class Place:
-    building: Building
+    building: Building | OutdoorArea
     room: Room | None
     floor_index: int | None
 
@@ -93,8 +94,8 @@ class RoutingEngine:
         interior: Callable[[str], BuildingInterior | None],
     ) -> None:
         self.campus = campus
-        self.buildings = {b.id: b for b in campus.buildings}
-        self.footprints = {b.id: Polygon(b.footprint) for b in campus.buildings}
+        self.places = {b.id: b for b in [*campus.buildings, *campus.outdoor_areas]}
+        self.footprints = {b.id: Polygon(b.footprint) for b in self.places.values()}
         self.nodes: dict[str, PathNode] = {n.id: n for n in graph.nodes}
         self.interior = interior
         self.g = nx.Graph()
@@ -106,9 +107,9 @@ class RoutingEngine:
     # ── 장소·실내 ────────────────────────────────────────────────────────────
 
     def place(self, building_id: str, room_id: str | None) -> Place:
-        b = self.buildings.get(building_id)
+        b = self.places.get(building_id)
         if b is None:
-            raise RouteError(404, f"건물 '{building_id}'를 찾을 수 없습니다.")
+            raise RouteError(404, f"장소 '{building_id}'를 찾을 수 없습니다.")
         if not room_id:
             return Place(b, None, None)
         parts = room_id.split(":")
@@ -122,13 +123,17 @@ class RoutingEngine:
             raise RouteError(404, f"강의실 '{room_id}'를 찾을 수 없습니다.")
         return Place(b, room, fi)
 
-    def floor_label(self, b: Building, index: int | None) -> str:
+    def floor_label(self, b: Building | OutdoorArea, index: int | None) -> str:
+        if isinstance(b, OutdoorArea):
+            return "교문" if b.kind == "gate" else "야외"
         if index is not None and 0 <= index < len(b.floors):
             return b.floors[index].label
         return "1F"
 
-    def door_floor(self, b: Building, door: PathNode) -> int:
+    def door_floor(self, b: Building | OutdoorArea, door: PathNode) -> int:
         # 추정 입구는 지상 1층으로 본다 (지하층 수 = 1F의 index)
+        if isinstance(b, OutdoorArea):
+            return 0
         return door.floor_index if door.floor_index is not None else b.basements
 
     def has_elevator(self, b: Building, floors: tuple[int, int]) -> bool:
@@ -175,7 +180,7 @@ class RoutingEngine:
             return Indoor(horizontal + elevator, "elevator", floors, room_label, door_label)
         return Indoor(horizontal + stairs, "stairs", floors, room_label, door_label)
 
-    def doors(self, b: Building) -> list[PathNode]:
+    def doors(self, b: Building | OutdoorArea) -> list[PathNode]:
         return [self.nodes[i] for i in b.entrances if i in self.nodes]
 
     # ── 탐색 ────────────────────────────────────────────────────────────────
@@ -196,7 +201,7 @@ class RoutingEngine:
 
         o_doors, d_doors = self.doors(origin.building), self.doors(dest.building)
         if not o_doors or not d_doors:
-            raise RouteError(422, "출입구가 보행로에 연결되지 않은 건물이에요.")
+            raise RouteError(422, "보행로에 연결되지 않은 장소예요.")
 
         h = nx.Graph()
         for a, b, d in self.g.edges(data=True):
@@ -214,7 +219,7 @@ class RoutingEngine:
             candidates = nx.shortest_simple_paths(h, SOURCE, TARGET, weight="w")
             best = next(candidates)
         except (nx.NetworkXNoPath, nx.NodeNotFound, StopIteration) as err:
-            raise RouteError(422, "두 건물을 잇는 경로를 찾지 못했어요.") from err
+            raise RouteError(422, "두 장소를 잇는 경로를 찾지 못했어요.") from err
 
         chosen = [best]
         if req.alternatives:

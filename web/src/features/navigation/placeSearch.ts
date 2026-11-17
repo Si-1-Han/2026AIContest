@@ -1,4 +1,5 @@
 import type { BuildingIndexEntry, RoomIndexEntry } from '../../types/generated/campus';
+import { PLACE_LABEL } from './places';
 
 export interface Place {
   buildingId: string;
@@ -21,13 +22,13 @@ export function searchPlaces(
   const q = norm(query);
   const names = new Map(buildings.map((b) => [b.id, b.name]));
   if (!q) {
-    return buildings.map((b) => ({ buildingId: b.id, roomId: null, title: b.name, subtitle: '건물' }));
+    return buildings.map((b) => ({ buildingId: b.id, roomId: null, title: b.name, subtitle: PLACE_LABEL[b.kind ?? 'building'] }));
   }
 
   const out: Place[] = [];
   for (const b of buildings) {
     if ([b.name, ...b.aliases].some((t) => norm(t).includes(q))) {
-      out.push({ buildingId: b.id, roomId: null, title: b.name, subtitle: '건물' });
+      out.push({ buildingId: b.id, roomId: null, title: b.name, subtitle: PLACE_LABEL[b.kind ?? 'building'] });
     }
   }
   // "이공관 301" 처럼 건물 + 강의실로 입력한 경우: 건물 이름을 떼고 그 건물 안에서 찾는다

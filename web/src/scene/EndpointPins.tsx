@@ -22,12 +22,12 @@ export function EndpointPins() {
 
 function Pin({ slot }: { slot: EndpointSlot }) {
   const endpoint = useCampusStore((s) => s.planner[slot]);
-  const building = useCampusStore((s) => (endpoint ? s.building(endpoint.buildingId) : undefined));
+  const building = useCampusStore((s) => (endpoint ? s.place(endpoint.buildingId) : undefined));
   const exploded = useCampusStore((s) => s.selectedId === building?.id);
   if (!building || exploded) return null;
   return (
     <Html
-      position={[building.center[0], totalHeight(building) + 4, building.center[1]]}
+      position={[building.center[0], ('kind' in building ? 0 : totalHeight(building)) + 4, building.center[1]]}
       center
       zIndexRange={[25, 15]}
       style={{ pointerEvents: 'none', transform: 'translateY(-50%)' }}
