@@ -1,0 +1,32 @@
+{
+  "revision": "b04619079d23a244",
+  "generator": "Blender",
+  "sources": [
+    "web/public/data/campus.json",
+    "web/public/data/paths.json",
+    "web/src/features/tour/pavementGrade.ts",
+    "web/src/features/tour/terrain.ts",
+    "web/src/features/tour/mainEntrance.ts",
+    "web/src/features/tour/mainBuildingAccess.ts",
+    "web/src/features/tour/musicForecourt.ts",
+    "web/src/features/tour/elevationLevels.ts",
+    "web/src/features/tour/network.ts",
+    "web/src/features/tour/fieldWalk.ts",
+    "web/src/features/tour/gateWalls.ts",
+    "web/src/scene/tour/MainGrounds.tsx",
+    "web/src/scene/tour/roadLayout.ts",
+    "web/src/scene/tour/TourRoads.tsx",
+    "web/src/scene/tour/terrainGeometry.ts",
+    "tools/blender/build_road_details.py",
+    "web/scripts/build-road-details.mjs",
+    "web/src/features/tour/campusSpine.ts",
+    "web/src/features/tour/fountainSite.ts",
+    "web/src/scene/tour/siteGeometry.ts",
+    "web/src/features/tour/buildingFrontage.ts",
+    "web/src/scene/tour/terrainCuts.ts"
+  ],
+  "grate": {
+    "file": "drain-grate.glb",
+    "sha256": "7c159d2dccdf227ceaa380eb0fac184a5ff7941ac514ce09f55795b0497cec89"
+  }
+}

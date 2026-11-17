@@ -55,6 +55,7 @@ const FACILITY_WORDS: [string, string][] = [
 interface Hit {
   building: BuildingIndexEntry;
   pos: number;
+  length: number;
 }
 
 function findBuildings(query: string, buildings: BuildingIndexEntry[]): Hit[] {
@@ -72,9 +73,13 @@ function findBuildings(query: string, buildings: BuildingIndexEntry[]): Hit[] {
         bestLen = t.length;
       }
     }
-    if (best >= 0) hits.push({ building: b, pos: best });
+    if (best >= 0) hits.push({ building: b, pos: best, length: bestLen });
   }
-  return hits.sort((a, b) => a.pos - b.pos);
+  // '본관 옆 주차장' 안의 '본관'을 별도 출발지로 중복 인식하지 않는다.
+  return hits.filter((hit) => !hits.some((other) =>
+    other !== hit && other.length > hit.length && other.pos <= hit.pos
+    && other.pos + other.length >= hit.pos + hit.length,
+  )).sort((a, b) => a.pos - b.pos);
 }
 
 export interface RoomMatch {
@@ -157,6 +162,14 @@ export function fallbackMatch(query: string, index: GuideIndex): GuideAction {
   const q = normalize(query);
   const hits = findBuildings(query, index.buildings);
   const wantsRoute = ROUTE_WORDS.some((w) => q.includes(w));
+
+  if (q.includes('주차장') && !hits.some((h) => h.building.kind === 'parking')) {
+    const parking = index.buildings.filter((b) => b.kind === 'parking');
+    if (parking.length) return {
+      action: 'unknown',
+      message: `어느 주차장을 찾으시나요? ${parking.map((b) => b.name).join('·')} 중에서 알려주세요.`,
+    };
+  }
 
   if (hits.length >= 2) {
     const from = hits[0]!.building;

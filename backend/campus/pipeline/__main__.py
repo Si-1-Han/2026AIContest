@@ -22,7 +22,9 @@ from campus.config import (
 from campus.models import BuildingIndex, BuildingIndexEntry, CampusData, RoomIndex
 from campus.pipeline import interior, osm
 from campus.pipeline.buildings import campus_boundary, classify, exterior, load_meta
+from campus.pipeline.gates import build_gates
 from campus.pipeline.graph import build_graph
+from campus.pipeline.outdoor import build_outdoor_areas, link_outdoor_areas
 from campus.pipeline.project import Projector
 
 
@@ -54,6 +56,9 @@ def build(
     graph, g_report = build_graph(
         elements, proj, boundary, buildings, doors=interior.doors(interiors)
     )
+    outdoor_areas = build_outdoor_areas(elements, proj, boundary)
+    link_outdoor_areas(graph, outdoor_areas, buildings)
+    outdoor_areas.extend(build_gates(graph, proj, buildings))
 
     campus = CampusData(
         source_timestamp=source_timestamp,
@@ -63,9 +68,15 @@ def build(
         boundary=exterior(boundary),
         buildings=buildings,
         context=context,
+        outdoor_areas=outdoor_areas,
     )
     index = BuildingIndex(
+        # 호환성을 위해 기존 파일명·buildings 키를 유지하며 모든 검색 장소를 포함한다.
         buildings=[BuildingIndexEntry(id=b.id, name=b.name, aliases=b.aliases) for b in buildings]
+        + [
+            BuildingIndexEntry(id=a.id, name=a.name, aliases=a.aliases, kind=a.kind)
+            for a in outdoor_areas
+        ]
     )
     write_json(out_dir / "campus.json", campus)
     write_json(out_dir / "paths.json", graph)
@@ -84,6 +95,7 @@ def build(
         return
 
     print("── 파이프라인 리포트 ──")
+    print(f"야외시설 {len(campus.outdoor_areas)}개")
     print(
         f"캠퍼스 건물 {len(buildings)}개 · 주변 건물 {b_report.context}개 "
         f"· 제외 {b_report.skipped}개"
@@ -98,7 +110,7 @@ def build(
         print(f"  ⚠ {w}")
     if i_report.unmatched_sources:
         print(f"  ⚠ 연결 안 된 층 데이터: {', '.join(i_report.unmatched_sources)}")
-    print(f"보행로 노드 {g_report.nodes}개 · 간선 {g_report.edges}개")
+    print(f"보행로 노드 {len(graph.nodes)}개 · 간선 {len(graph.edges)}개")
     print(
         f"원본 연결 요소 {g_report.components_before}개 "
         f"(가장 큰 요소 외 노드 {g_report.dropped_nodes}개 제외)"

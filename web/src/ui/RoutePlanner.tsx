@@ -58,9 +58,9 @@ export function RoutePlanner() {
 
   const hint =
     planner.active === 'from'
-      ? '지도에서 출발할 건물을 클릭하거나 검색하세요'
+      ? '지도에서 출발할 장소을 클릭하거나 검색하세요'
       : planner.active === 'to'
-        ? '지도에서 도착할 건물을 클릭하거나 검색하세요'
+        ? '지도에서 도착할 장소을 클릭하거나 검색하세요'
         : null;
 
   return (
@@ -203,7 +203,7 @@ function RouteResult({
 }
 
 function useEndpointName(endpoint: Endpoint | null): { title: string; subtitle?: string } | null {
-  const building = useCampusStore((s) => (endpoint ? s.building(endpoint.buildingId) : undefined));
+  const building = useCampusStore((s) => (endpoint ? s.place(endpoint.buildingId) : undefined));
   const room = useCampusStore((s) =>
     endpoint?.roomId ? s.rooms?.rooms.find((r) => r.id === endpoint.roomId) : undefined,
   );
@@ -263,7 +263,7 @@ function EndpointField({ slot }: { slot: EndpointSlot }) {
             if (e.key === 'Escape') input.current?.blur();
           }}
           placeholder={
-            name && !focused ? '' : focused ? '건물·강의실 검색' : '지도에서 선택 또는 검색'
+            name && !focused ? '' : focused ? '건물·강의실·야외시설 검색' : '지도에서 선택 또는 검색'
           }
           className="min-w-0 flex-1 bg-transparent text-sm text-white placeholder:text-slate-500 focus:outline-none"
         />

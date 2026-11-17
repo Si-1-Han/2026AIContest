@@ -27,7 +27,7 @@ export function CameraDirector() {
   const route = useCampusStore((s) => s.route);
   const viewNonce = useCampusStore((s) => s.viewNonce);
   const focusPoint = useCampusStore((s) => s.focusPoint);
-  const building = useCampusStore((s) => s.building);
+  const building = useCampusStore((s) => s.place);
 
   // 인트로: 데이터 준비 후 하강
   useEffect(() => {
@@ -56,6 +56,14 @@ export function CameraDirector() {
     }
     hadSelection.current = true;
 
+    if ('kind' in b) {
+      const { cx, cz, size } = bounds(b.footprint);
+      const d = Math.max(size * 1.5, 55);
+      void c.setLookAt(cx - d * 0.6, d, cz + d * 0.8, cx, 0, cz, true);
+      void c.setFocalOffset(d * PANEL_SHIFT, 0, 0, true);
+      return;
+    }
+
     if (floorIndex !== null && b.floors[floorIndex]) {
       const f = b.floors[floorIndex]!;
       const { cx, cz, size } = bounds(f.outline);
@@ -76,7 +84,7 @@ export function CameraDirector() {
   // 경로 → 경로 전체가 보이도록 비스듬한 상공에서 내려다본다
   useEffect(() => {
     const c = controls.current;
-    if (!c || !route) return;
+    if (!c || !route?.points.length) return;
     const sphere = new THREE.Box3()
       .setFromPoints(route.points.map((p) => new THREE.Vector3(...p)))
       .getBoundingSphere(new THREE.Sphere());

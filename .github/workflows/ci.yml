@@ -40,4 +40,10 @@ jobs:
           cache-dependency-path: web/package-lock.json
       - run: npm ci
       - run: npm run gen:types:check
+      - run: npm run test:navigation
+      - run: npm run test:tour
+      - run: npm run test:main-site
+      - run: npm run test:pavement
+      - run: npm run test:site-details
+      - run: npm run test:tour-art
       - run: npm run build

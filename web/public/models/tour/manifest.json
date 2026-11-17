@@ -1,0 +1,141 @@
+{
+  "version": 1,
+  "revision": "2ed139acae527b38",
+  "generator": "Blender 4.5.16 LTS",
+  "attribution": "© OpenStreetMap contributors (ODbL 1.0)",
+  "accuracy": "photo-guided approximate exterior; no surveyed dimensions or interiors",
+  "models": {
+    "gemi": {
+      "file": "gemi.glb",
+      "name": "GEMI관",
+      "center": [
+        -32.16,
+        -14.02
+      ],
+      "height": 21.6,
+      "vertices": 49004,
+      "bytes": 1657080,
+      "sha256": "12fad63af1a50973ccdf7c2dabb89e7ab2e48eef31e94450694e25802977be79"
+    },
+    "graduate": {
+      "file": "graduate.glb",
+      "name": "대학원관",
+      "center": [
+        -42.5,
+        -80.71
+      ],
+      "height": 25.2,
+      "vertices": 65064,
+      "bytes": 2214580,
+      "sha256": "483b2db538bc01ae579bebef2ee201cc5050e12c4b36a14c9fd7bf6342f15aee"
+    },
+    "design": {
+      "file": "design.glb",
+      "name": "디자인관",
+      "center": [
+        -38.77,
+        -49.1
+      ],
+      "height": 25.2,
+      "vertices": 51068,
+      "bytes": 1756084,
+      "sha256": "a899435e075edff3757e8f4132c97a8fcb87a9b51e451a224eb16abfecff40e9"
+    },
+    "rodem": {
+      "file": "rodem.glb",
+      "name": "로뎀관",
+      "center": [
+        45.22,
+        121.19
+      ],
+      "height": 7.2,
+      "vertices": 24006,
+      "bytes": 862968,
+      "sha256": "7396d53341a12892f78f196a77c276be37b1dbf56ba67b3782c40fa579636f16"
+    },
+    "main": {
+      "file": "main.glb",
+      "name": "본관",
+      "center": [
+        -40.04,
+        -193.79
+      ],
+      "height": 28.8,
+      "vertices": 117394,
+      "bytes": 3924064,
+      "sha256": "ef3af628a6e6adbcbf35bc157c2ba7e017fdedb37c20fc5ce6f69452027f45a1"
+    },
+    "vision": {
+      "file": "vision.glb",
+      "name": "비전관",
+      "center": [
+        13.34,
+        258.76
+      ],
+      "height": 21.6,
+      "vertices": 55408,
+      "bytes": 1893412,
+      "sha256": "0ed3c91123e27d13f1599a22063fa43cfc31ace062a5092149695c109cea5e57"
+    },
+    "theology": {
+      "file": "theology.glb",
+      "name": "신학관",
+      "center": [
+        52.93,
+        232.73
+      ],
+      "height": 18,
+      "vertices": 41376,
+      "bytes": 1296848,
+      "sha256": "5f9419c22f261f2afd33ca04a2f9a14316cfecf10eabc8ed52f696f1efb7d1c2"
+    },
+    "vision_center": {
+      "file": "vision_center.glb",
+      "name": "영산비전센터",
+      "center": [
+        -6.22,
+        152.49
+      ],
+      "height": 36,
+      "vertices": 77592,
+      "bytes": 2277812,
+      "sha256": "1baa96ff1a36e1140f16d7a85cd6c50bcb52690028b5728b00404bed06de9392"
+    },
+    "music": {
+      "file": "music.glb",
+      "name": "음악관",
+      "center": [
+        10.88,
+        19.78
+      ],
+      "height": 18,
+      "vertices": 53775,
+      "bytes": 1639900,
+      "sha256": "6cba6dcdc7f47a034b616233e574074295f4c0c8e8351abfe102d171d9915ae4"
+    },
+    "science": {
+      "file": "science.glb",
+      "name": "이공관",
+      "center": [
+        32.19,
+        178.33
+      ],
+      "height": 14.4,
+      "vertices": 37560,
+      "bytes": 1224424,
+      "sha256": "5682476ec7896c7d77b8aeeb8a5f748743504b02939af00c2c127a65e2ba9efa"
+    },
+    "student_union": {
+      "file": "student_union.glb",
+      "name": "학생회관",
+      "center": [
+        93.73,
+        185.23
+      ],
+      "height": 10.8,
+      "vertices": 23752,
+      "bytes": 867120,
+      "sha256": "a32567b47ff64fea9790fa90ce586524c58d250270bc3e35d97ac70e68c880b8"
+    }
+  }
+}

@@ -103,6 +103,38 @@ def test_unknown_places(engine: RoutingEngine) -> None:
         engine.route(req("music", "science", d_room="science:99:0"))
 
 
+@pytest.mark.parametrize("profile", ["recommended", "accessible", "walkway"])
+def test_outdoor_places_route_to_buildings_and_each_other(engine: RoutingEngine, profile) -> None:
+    """추가한 모든 시설을 출발·도착지로 사용하며 기존 강의실 안내도 유지한다."""
+    for area in engine.campus.outdoor_areas:
+        for other in engine.places.values():
+            if area.id == other.id:
+                continue
+            for origin, dest in [(area.id, other.id), (other.id, area.id)]:
+                request = req(origin, dest, profile)
+                request.alternatives = False
+                option = engine.route(request).routes[0]
+                assert option.distance_m > 0, (origin, dest)
+                assert option.points and option.duration_s > 0
+                assert any(area.name in s.instruction for s in option.steps)
+                if dest == area.id:
+                    assert option.steps[-1].floor_label == (
+                        "교문" if area.kind == "gate" else "야외"
+                    )
+                    assert "1층" not in option.steps[-1].instruction
+        room_route = engine.route(req(area.id, "science", profile, d_room="science:2:4"))
+        assert room_route.routes[0].steps[-1].maneuver == "indoor"
+        assert "301호" in room_route.routes[0].steps[-1].instruction
+
+
+def test_same_outdoor_place_and_invalid_room(engine: RoutingEngine) -> None:
+    area = engine.campus.outdoor_areas[0]
+    option = engine.route(req(area.id, area.id)).routes[0]
+    assert option.steps[0].maneuver == "arrive" and option.distance_m == 0
+    with pytest.raises(RouteError):
+        engine.route(req("music", area.id, d_room=f"{area.id}:0:0"))
+
+
 def test_route_api(tmp_path) -> None:
     app = create_app(Settings(database_url=f"sqlite:///{tmp_path / 'r.db'}"))
     client = TestClient(app)
@@ -113,6 +145,12 @@ def test_route_api(tmp_path) -> None:
     }
     r = client.post("/api/v1/route", json=body)
     assert r.status_code == 200 and r.json()["routes"][0]["steps"]
+    for area in app.state.store.campus.outdoor_areas:
+        outdoor = {**body, "destination": {"building_id": area.id}}
+        result = client.post("/api/v1/route", json=outdoor)
+        assert result.status_code == 200
+        label = "교문" if area.kind == "gate" else "야외"
+        assert result.json()["routes"][0]["steps"][-1]["floor_label"] == label
     assert client.post("/api/v1/route", json={**body, "profile": "fly"}).status_code == 422
     bad = {**body, "origin": {"building_id": "nope"}}
     assert client.post("/api/v1/route", json=bad).status_code == 404

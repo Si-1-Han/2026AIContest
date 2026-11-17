@@ -5,7 +5,7 @@ from typing import TYPE_CHECKING
 
 from shapely.geometry import Point
 
-from campus.models import Maneuver, RouteDoor, RouteOption, RouteProfile, RouteStep
+from campus.models import Maneuver, OutdoorArea, RouteDoor, RouteOption, RouteProfile, RouteStep
 from campus.routing.engine import (
     ELEVATOR_PER_FLOOR_S,
     ELEVATOR_WAIT_S,
@@ -116,7 +116,7 @@ def landmark(engine: "RoutingEngine", p: tuple[float, float], exclude: set[str])
             continue
         d = poly.exterior.distance(Point(p))
         if d < best_d:
-            best, best_d = engine.buildings[bid].name, d
+            best, best_d = engine.places[bid].name, d
     return best
 
 
@@ -183,11 +183,17 @@ def _door(engine: "RoutingEngine", place: Place, node_id: str) -> RouteDoor:
         node_id=node_id,
         building_id=b.id,
         floor_label=engine.floor_label(b, engine.door_floor(b, node)),
-        estimated=node.floor_index is None,
+        estimated=(
+            node.floor_index is None and not (isinstance(b, OutdoorArea) and b.kind == "gate")
+        ),
     )
 
 
 def _door_phrase(door: RouteDoor, building_name: str) -> str:
+    if door.floor_label == "교문":
+        return building_name
+    if door.floor_label == "야외":
+        return f"{building_name} 접근 지점(추정)"
     if door.estimated:
         return f"{building_name} 출입구(추정)"
     return f"{building_name} {floor_text(door.floor_label)} 출입구"
@@ -313,8 +319,14 @@ def build_option(
         )
 
     warnings = [w for w in (o_io.warning, d_io.warning) if w]
-    if o_door.estimated or d_door.estimated:
+    if any(d.estimated and d.floor_label != "야외" for d in (o_door, d_door)):
         warnings.append("출입구 데이터가 없는 건물은 입구 위치를 추정했어요.")
+    if any(
+        isinstance(p.building, OutdoorArea) and p.building.kind != "gate" for p in (origin, dest)
+    ):
+        warnings.append(
+            "야외시설은 가까운 보행로 접근 지점까지 안내해요. 실제 출입구와 다를 수 있어요."
+        )
     if profile == "walkway" and road_m > line.length * 0.5:
         warnings.append("보행로 데이터가 부족한 구간은 차도를 따라 안내해요.")
     elif road_m > line.length * 0.3:
@@ -368,7 +380,7 @@ def indoor_only_option(
         text = f"{how} {_josa(floor, '으로', '로')} 이동해 {_josa(name, '으로', '로')} 가세요."
     steps.append(
         RouteStep(
-            maneuver="indoor",
+            maneuver="arrive" if isinstance(b, OutdoorArea) else "indoor",
             instruction=text,
             distance_m=0,
             duration_s=round(seconds),
@@ -378,7 +390,7 @@ def indoor_only_option(
     )
     return RouteOption(
         id="route-0",
-        label="건물 안",
+        label="같은 장소" if isinstance(b, OutdoorArea) else "건물 안",
         distance_m=0,
         duration_s=round(seconds),
         indoor_s=round(seconds),

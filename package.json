@@ -7,6 +7,6 @@
     "dev": "npm --prefix web run dev",
     "dev:web": "npm --prefix web run dev:web",
     "dev:api": "npm --prefix web run dev:api",
-    "test": "uv --directory backend run pytest -q && npm --prefix web run build"
+    "test": "uv --directory backend run pytest -q && npm --prefix web run test:navigation && npm --prefix web run test:tour && npm --prefix web run test:main-site && npm --prefix web run test:pavement && npm --prefix web run test:site-details && npm --prefix web run test:tour-art && npm --prefix web run build"
   }
 }

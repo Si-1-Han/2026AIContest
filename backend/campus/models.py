@@ -77,6 +77,20 @@ class ContextBuilding(Contract):
     height: float
 
 
+class OutdoorArea(Contract):
+    """건물과 구분해 바닥에 표시하는 야외시설."""
+
+    id: str
+    name: str
+    kind: Literal["field", "tennis", "parking", "gate"]
+    osm_id: int | None = None
+    footprint: list[Point2] = Field(description="시설 외곽선. gate는 실제 외곽이 아닌 위치 표식")
+    center: Point2
+    aliases: list[str] = Field(default_factory=list)
+    entrances: list[str] = Field(default_factory=list, description="보행로 접근 지점 노드 ID")
+    description: str = ""
+
+
 class CampusData(Contract):
     schema_version: Literal[1] = 1
     # 생성 시각 대신 원본 기준 시각을 써서, 같은 원본이면 산출물이 항상 같게 한다.
@@ -87,6 +101,7 @@ class CampusData(Contract):
     boundary: list[Point2] = Field(description="캠퍼스 경계")
     buildings: list[Building]
     context: list[ContextBuilding]
+    outdoor_areas: list[OutdoorArea] = Field(default_factory=list)
 
 
 # ── 건물 내부 (floors/<building_id>.json) ───────────────────────────────────────
@@ -167,13 +182,14 @@ class PathGraph(Contract):
     edges: list[PathEdge]
 
 
-# ── 건물 색인 (buildings-index.json): AI 안내 함수·폴백 검색용 경량 목록 ──────────
+# ── 장소 색인 (buildings-index.json): 건물·야외시설 검색·AI 안내용 경량 목록 ──────
 
 
 class BuildingIndexEntry(Contract):
     id: str
     name: str
     aliases: list[str]
+    kind: Literal["building", "field", "tennis", "parking", "gate"] = "building"
 
 
 class BuildingIndex(Contract):
@@ -244,7 +260,7 @@ Maneuver = Literal[
 
 
 class RoutePlace(Contract):
-    building_id: str
+    building_id: str = Field(description="건물 또는 야외시설 장소 ID (기존 필드명 유지)")
     room_id: str | None = None
 
 
