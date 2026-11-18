@@ -14,6 +14,8 @@ class Settings(BaseSettings):
     data_dir: Path = WEB_DATA_DIR
     database_url: str = f"sqlite:///{BACKEND_DIR / 'data' / 'app.db'}"
     admin_token: str = ""  # 비어 있으면 편집 API 비활성화
+    admin_accounts_file: Path = BACKEND_DIR / "data" / "private" / "admins.json"
+    source_dir: Path = BACKEND_DIR / "data"
     dev_reload: bool = False
     cors_origins: list[str] = ["http://localhost:5173"]
 

@@ -14,6 +14,7 @@ export function campusDataPlugin(): Plugin {
   ));
   return {
     name: 'campus-data-on-save',
+    enforce: 'pre',
     apply: 'serve',
     configureServer(server) {
       let timer: ReturnType<typeof setTimeout>;
@@ -37,12 +38,14 @@ export function campusDataPlugin(): Plugin {
           if (pending) { pending = false; build(); return; }
           if (code === 0) {
             server.config.logger.info('[campus] 데이터 반영 완료');
-            server.ws.send({ type: 'full-reload', path: '*' });
+            if (server.config.mode === 'static') server.ws.send({ type: 'full-reload', path: '*' });
+            else server.ws.send({ type: 'custom', event: 'campus:data-updated', data: {} });
           } else server.config.logger.error('[campus] 변환 실패: JSON 오류를 수정하고 다시 저장하세요.');
         });
       };
       const changed = (file: string) => {
         const path = normalizePath(file);
+        if (path.startsWith(`${source}private/`)) return;
         if (!path.startsWith(source) || !/\.(json|geojson)$/.test(path)) return;
         clearTimeout(timer);
         timer = setTimeout(build, 400);
@@ -59,6 +62,7 @@ export function campusDataPlugin(): Plugin {
     handleHotUpdate(context) {
       // Public JSON writes otherwise trigger reloads halfway through a build.
       if (normalizePath(context.file).startsWith(output)) return [];
+      if (normalizePath(context.file).startsWith(source) && context.server.config.mode !== 'static') return [];
     },
   };
 }

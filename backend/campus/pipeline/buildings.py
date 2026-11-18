@@ -104,6 +104,8 @@ def classify(
         # building=roof(캐노피·지붕 구조물)는 클릭 대상이 아니므로 배경으로 둔다.
         if inside.contains(rep) and tags.get("building") != "roof":
             m = meta.get(str(el["id"]), {})
+            if m.get("disabled"):
+                continue
             bid = m.get("id") or f"osm_{el['id']}"
             name = m.get("name") or tags.get("name") or "이름 미확인 건물"
             if not (m.get("name") or tags.get("name")):

@@ -1,6 +1,8 @@
 import { useCampusStore } from '../store/useCampusStore';
+import { useRef } from 'react';
 
-export function Hud() {
+export function Hud({ onAdminOpen, adminUser }: { onAdminOpen: () => void; adminUser: string | null }) {
+  const clicks = useRef({ count: 0, last: 0 });
   const source = useCampusStore((s) => s.source);
   const count = useCampusStore((s) => s.campus?.buildings.length ?? 0);
   const attribution = useCampusStore((s) => s.campus?.attribution);
@@ -11,14 +13,26 @@ export function Hud() {
       <header className="pointer-events-none absolute left-5 top-5 z-40 select-none">
         <p className="text-xs font-semibold tracking-[0.35em] text-accent/80">HANSEI UNIVERSITY</p>
         <div className="mt-1 flex items-center gap-3">
+          <button type="button" aria-label="한세대학교 마크" className="pointer-events-auto shrink-0 rounded-full focus-visible:outline-2 focus-visible:outline-accent" onClick={() => {
+            const now = Date.now();
+            clicks.current.count = now - clicks.current.last < 1000 ? clicks.current.count + 1 : 1;
+            clicks.current.last = now;
+            if (clicks.current.count === 3) { clicks.current.count = 0; onAdminOpen(); }
+          }}>
           <img
             src={`${import.meta.env.BASE_URL}images/hansei.png`}
             alt="한세대학교 마크"
             className="h-10 w-10 shrink-0 object-contain"
           />
+          </button>
           <h1 className="text-3xl font-extrabold tracking-tight text-white drop-shadow-[0_0_18px_rgba(79,209,255,0.35)]">
             한세 3D 캠퍼스
           </h1>
+          {adminUser && (
+            <span aria-label="관리자 로그인 중" className="shrink-0 rounded-md border border-accent/25 bg-accent/10 px-2 py-0.5 text-[10px] font-semibold tracking-wide text-accent">
+              admin
+            </span>
+          )}
         </div>
         <p className="mt-1 text-sm text-slate-300/80">건물을 클릭하거나, 아래에 가고 싶은 곳을 물어보세요.</p>
         {source && (

@@ -13,6 +13,7 @@ from fastapi.middleware.cors import CORSMiddleware
 from sqlalchemy import func
 from sqlmodel import Session, select
 
+from campus.api.admin import admin_router
 from campus.api.db import BuildingOverride, Event, make_engine, session_scope
 from campus.api.settings import Settings, get_settings
 from campus.api.store import CampusStore
@@ -36,6 +37,12 @@ def create_app(settings: Settings | None = None) -> FastAPI:
     settings = settings or get_settings()
     app = FastAPI(title="Hansei 3D Campus API", version="0.1.0")
     app.state.settings = settings
+    app.include_router(
+        admin_router(settings.admin_accounts_file, settings.source_dir, settings.data_dir)
+    )
+    from campus.api.admin_data import public_timetable_router
+
+    app.include_router(public_timetable_router(settings.source_dir))
     app.state.store = CampusStore(settings.data_dir)
     store_ = app.state.store
     app.state.router = RoutingEngine(store_.campus, store_.graph, store_.interior)
@@ -62,7 +69,7 @@ def create_app(settings: Settings | None = None) -> FastAPI:
     app.add_middleware(
         CORSMiddleware,
         allow_origins=settings.cors_origins,
-        allow_methods=["GET", "POST", "PUT"],
+        allow_methods=["GET", "POST", "PUT", "DELETE"],
         allow_headers=["*"],
     )
 
