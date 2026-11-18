@@ -8,6 +8,7 @@ import { FOUNTAIN_FIELD_LINK, onFountainWalk } from '../../features/tour/fountai
 import { SPINE_PARKING_RAMPS, CENTRAL_PARKING_APRON } from '../../features/tour/campusSpine';
 import { CAMPUS_SPINE, SPINE_LENGTH, SPINE_RESERVED, SPINE_DRIVEWAY_OPENINGS, SPINE_DRIVEWAY_Z, SPINE_DRIVEWAY_WIDTH, spineDistanceAtZ, spinePoint, spineStrip, onCampusSpine } from '../../features/tour/campusSpine';
 import { MAIN_ROAD_FORECOURT, VISION_GROUND_APRON, MUSIC_TO_VISION_ASPHALT } from '../../features/tour/pavedAreas';
+import { inScienceCourt } from '../../features/tour/scienceGarden';
 import clipping, { type MultiPolygon, type Polygon } from 'polygon-clipping';
 import { inside, segmentDistance, type Point, type TourCorridor } from '../../features/tour/network';
 import type { CampusData, ContextBuilding } from '../../types/generated/campus';
@@ -48,7 +49,9 @@ export function buildRoadLayout(campus: CampusData, corridors: TourCorridor[]): 
   if (campus.buildings.some(b => b.id === 'music')) parking.push([CENTRAL_PARKING_APRON]);
   parking = clipping.difference(parking, [SPINE_RESERVED]);
   const clearance = (p: Point) => Math.min(...campus.buildings.flatMap(b => b.footprint.map((v, i) => segmentDistance(p, v, b.footprint[(i + 1) % b.footprint.length]!))));
-  const roads = corridors.filter(c => Math.hypot(c.b[0] - c.a[0], c.b[1] - c.a[1]) > 0.01).map(c => ({ ...c,
+  // 이공관 앞 정원 안의 보행 통로는 정원 벽돌 포장이 대신한다(차도·보도 띠를 만들지 않는다).
+  const gardenWalk = (c: TourCorridor) => c.kind === 'walk' && inScienceCourt(...c.a, 3) && inScienceCourt(...c.b, 3);
+  const roads = corridors.filter(c => Math.hypot(c.b[0] - c.a[0], c.b[1] - c.a[1]) > 0.01 && !gardenWalk(c)).map(c => ({ ...c,
     width: c.kind !== 'road' ? !c.structure && (inFieldWalk(...c.a, 0.05) && inFieldWalk(...c.b, 0.05) || onFountainWalk(c.a, c.b)) ? FIELD_WALK_WIDTH : c.kind === 'stairs' || c.structure ? 3.2 : 2.6 : onCampusSpine(c.a, c.b) ? CAMPUS_SPINE.roadWidth : Math.max(3, Math.min(c.a[1] < -140 ? 9 : 7, clearance(c.a) * 2 - 1, clearance(c.b) * 2 - 1)),
   }));
   // 높이가 있는 보행 데크와 계단은 전용 지오메트리로 그린다.

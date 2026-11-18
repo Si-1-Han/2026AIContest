@@ -4,9 +4,10 @@ import clipping from 'polygon-clipping';
 import type { Building } from '../../types/generated/campus';
 import { MIDDLE_LEVEL, PARKING_LEVEL } from './elevationLevels';
 import { VISION_PASSAGE_CUT, VISION_TERRACE_PATH } from './visionTerrace';
+import { SCIENCE_APPROACH } from './scienceGarden';
 
-/** 이공관의 확인된 출입구는 신학관 쪽 남향 안뜰에만 둔다. */
-export const SCIENCE_APPROACH: [number, number] = [42, 184];
+/** 이공관의 확인된 출입구는 신학관 쪽 남향 안뜰(사각 정원)에만 둔다. 도착점은 출입문 앞마당. */
+export { SCIENCE_APPROACH };
 export function tourPlaceGoal(place: { id: string; center: [number, number] }): [number, number] {
   const entry = VISION_TERRACE_PATH[0]!;
   if (place.id === 'music') { const p = MUSIC_ACCESS_PATH.at(-1)!; return [p.x, p.z]; }

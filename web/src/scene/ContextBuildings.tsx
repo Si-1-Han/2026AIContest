@@ -17,7 +17,7 @@ export function ContextBuildings() {
         color={COLORS.context}
         roughness={0.85}
         transparent
-        opacity={0.42}
+        opacity={0.3}
         depthWrite={false}
       />
     </mesh>

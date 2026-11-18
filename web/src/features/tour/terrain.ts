@@ -1,15 +1,18 @@
 import { musicForecourtGround } from './musicForecourt';
 import { mainEntryGround } from './mainEntrance';
-import { mainSiteGround, MAIN_UPPER_ROAD } from './mainBuildingAccess';
+import { mainSiteGround } from './mainBuildingAccess';
 import { MAIN_ENTRY_BASE } from './mainEntrance';
 import { pavementGrade } from './pavementGrade';
-import { fountainGround, fountainPlaza } from './fountainSite';
-import { spineDistanceAtZ, spinePoint } from './campusSpine';
+import { fountainGround, fountainPlaza, fountainSurface, fountainSiteDistance } from './fountainSite';
+import { spineDistanceAtZ, spinePoint, spineLocal } from './campusSpine';
 import { frontageGround } from './buildingFrontage';
 import { fieldWalkGround } from './fieldWalk';
 import type { CampusData } from '../../types/generated/campus';
 import { buildingElevation, PARKING_LEVEL, UPPER_CAMPUS_LEVEL, SLOPE_GAIN } from './elevationLevels';
 import { VISION_TERRACE_PATH, VISION_TERRACE, TERRACE_PATHS, isTerraceStair } from './visionTerrace';
+import { scienceCourtGround } from './scienceGarden';
+import { scienceSideGround } from './visionTerrace';
+import { MAIN_FRONT_PROFILE, APPROACH_START_Z, APPROACH_TOP_Z, APPROACH_ROAD_END_Z, approachRoadPoint, spineApproachLevel } from './graduateApproach';
 
 type Point = [number, number];
 type Anchor = [number, number, number];
@@ -17,8 +20,14 @@ const eastSlopeHeight = (t: number) => 6.2 * SLOPE_GAIN + (UPPER_CAMPUS_LEVEL - 
 /** 빨간 표시를 기존 보행 그래프의 교차점에 대조한 경사 구간. [x,z,상대높이] */
 export const SLOPE_PROFILES: { id: string; points: Anchor[] }[] = [
   { id: 'main-west', points: [[-122.13, -217.57, 0], [-110, -197.64, MAIN_ENTRY_BASE], [-88.15, -160.65, MAIN_ENTRY_BASE]] },
-  { id: 'main-front', points: [[-86.38, -156.4, MAIN_ENTRY_BASE], [-61.46, -146.22, MAIN_ENTRY_BASE], [-30.7, -133.65, 3.27], [MAIN_UPPER_ROAD.x, MAIN_UPPER_ROAD.z, MAIN_UPPER_ROAD.y], [24.17, -130.26, 4 * SLOPE_GAIN]] },
-  { id: 'music-west', points: [[-81.8, -131.85, PARKING_LEVEL], [...spinePoint(spineDistanceAtZ(-4)), PARKING_LEVEL], [...spinePoint(spineDistanceAtZ(35)), PARKING_LEVEL], [...spinePoint(spineDistanceAtZ(145.26)), PARKING_LEVEL]] },
+  { id: 'main-front', points: MAIN_FRONT_PROFILE },
+  // 본관 교차로 → 대학원관 북쪽 외벽: 로드뷰처럼 한 번에 고르게 오르는 차도(혹 없음).
+  { id: 'graduate-approach', points: [[-86.38, -156.4, MAIN_ENTRY_BASE], ...[-153, -150, -147, -144, -141, -138.2, -135, APPROACH_ROAD_END_Z].map((z): Anchor => [...approachRoadPoint(z), spineApproachLevel(z)]),
+    ...Array.from({ length: 6 }, (_, i): Anchor => {
+      const z = APPROACH_ROAD_END_Z + (APPROACH_TOP_Z - APPROACH_ROAD_END_Z) * (i + 1) / 6;
+      return [...spinePoint(spineDistanceAtZ(z)), spineApproachLevel(z)];
+    })] },
+  { id: 'music-west', points: [[...spinePoint(spineDistanceAtZ(APPROACH_TOP_Z)), PARKING_LEVEL], [...spinePoint(spineDistanceAtZ(-4)), PARKING_LEVEL], [...spinePoint(spineDistanceAtZ(35)), PARKING_LEVEL], [...spinePoint(spineDistanceAtZ(145.26)), PARKING_LEVEL]] },
   { id: 'music-east-link', points: [[27.38, 62.85, PARKING_LEVEL], [68.14, 59.6, 6.2 * SLOPE_GAIN]] },
   { id: 'rodem-east', points: [[68.14, 59.6, 6.2 * SLOPE_GAIN], [75.26, 77.35, eastSlopeHeight(0.15)], [80, 101.97, eastSlopeHeight(0.43)], [77.85, 129.66, eastSlopeHeight(0.68)], [67.86, 146.22, eastSlopeHeight(0.86)], [61.43, 160.18, UPPER_CAMPUS_LEVEL]] },
 ];
@@ -86,7 +95,20 @@ export function tourElevation(campus: CampusData) {
     if(field)return 4*SLOPE_GAIN;
     // 조경 보정이 이미 정리된 차도 높이를 다시 끌어올리지 않게 포장 고도를 마지막에 적용한다.
     const detail = fountainPlaza(x, z, fieldWalkGround(x,z,frontageGround(campus, x, z, grade(x, z, ground))));
-    return z < -100 && x < 0 ? grade(x, z, detail) : detail;
+    let result = z < -100 && x < 0 ? grade(x, z, detail) : detail;
+    // 본관 교차로 → 대학원관 오르막: 분수 삼각지는 하나의 경사면이 최종 높이다. 도로 단면만 그 위에 유지한다.
+    const site = fountainSiteDistance(x, z);
+    if (site < 5) { const surface = grade(x, z, fountainSurface(x, z)); result = surface + (result - surface) * smooth(0, 5, site); }
+    // 서측 직선 차도 바깥(주택가 쪽) 지면도 로드뷰처럼 차도 오르막과 나란히 오른다.
+    const west = spineLocal(x, z);
+    if (-west.side > 5.3 && -west.side < 32 && z > APPROACH_START_Z - 12 && z < APPROACH_TOP_Z + 8) {
+      const along = (1 - smooth(APPROACH_START_Z - 12, APPROACH_START_Z, z)) + smooth(APPROACH_TOP_Z, APPROACH_TOP_Z + 8, z);
+      const w = (1 - smooth(18, 32, -west.side)) * (1 - Math.min(1, along));
+      result += (grade(x, z, spineApproachLevel(z)) - result) * w;
+    }
+    // 이공관 앞 사각 정원은 주변 도로·건물과 같은 평지다(언덕 없음).
+    // 이공관 서쪽 길(영비관 계단 위)·쉼터·경비실 일대도 같은 평지다.
+    return scienceSideGround(x, z, scienceCourtGround(x, z, result));
   };
   const samples = new Map<string, number>();
   const memoized = (x: number, z: number) => {

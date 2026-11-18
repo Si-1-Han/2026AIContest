@@ -4,7 +4,8 @@ type Point = [number, number];
 export interface MainAccessNode { id: string; x: number; z: number; y: number; stop?: boolean }
 export const MAIN_FIRST_FLOOR = MAIN_ENTRY_FLOOR - 3.6;
 export const MAIN_THIRD_FLOOR = MAIN_ENTRY_FLOOR + 3.6;
-export const MAIN_GARDEN_LEVEL = 5.4;
+// 3층 진입 경사로가 실제 차도 높이(약 4.45m)에서 6% 미만으로 오르도록 공원·경사로 상단을 맞춘다.
+export const MAIN_GARDEN_LEVEL = 5.1;
 export const MAIN_PARKING_LEVEL = MAIN_ENTRY_BASE;
 export const mainSitePoint = (u: number, v: number): Point => mainEntryPoint(v, u);
 const node = (id: string, u: number, v: number, y: number): MainAccessNode => {
@@ -23,7 +24,8 @@ export const MAIN_LOWER_PATH = [
   node('first_floor_door', 19, 1.65, MAIN_FIRST_FLOOR),
 ];
 export const MAIN_UPPER_PATH = [
-  node('upper_turn', 77.5, -19, 4.9),
+  // 경사로 시작점은 차도 옆 보도와 같은 높이다. 더 높으면 진입 데크가 보도 위에 떠 옆벽이 드러난다.
+  node('upper_turn', 77.5, -19, 4.45),
   node('upper_ramp', 66, -19, MAIN_GARDEN_LEVEL),
   node('upper_stairs', 48, -19, MAIN_THIRD_FLOOR - 0.6),
   node('upper_landing', 46, -19, MAIN_THIRD_FLOOR),

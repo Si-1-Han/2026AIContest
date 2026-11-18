@@ -1,4 +1,5 @@
 import { MUSIC_FORECOURT_LEVEL } from './elevationLevels';
+import { spineApproachLevel } from './graduateApproach';
 type Point = [number, number];
 
 /** GEMI관 서측에서 영비관 앞으로 이어지는 하나의 직선 차도와 양쪽 보도. */
@@ -31,9 +32,9 @@ export const SPINE_DRIVEWAY_OPENINGS = SPINE_DRIVEWAY_Z.map(z => {
   const u = spineDistanceAtZ(z); return spineStrip(u - SPINE_DRIVEWAY_WIDTH / 2, u + SPINE_DRIVEWAY_WIDTH / 2, CAMPUS_SPINE.roadWidth / 2, 14);
 });
 
-/** 대학원관·GEMI·음악관·중앙 주차장과 영비관 앞을 동일한 1층 높이로 유지한다. */
-export function spineGrade(_z: number) {
-  return MUSIC_FORECOURT_LEVEL;
+/** 본관 교차로에서 대학원관 북쪽 외벽까지 오르고, 그 뒤 대학원관·GEMI·음악관·중앙 주차장·영비관 앞은 같은 1층 높이다. */
+export function spineGrade(z: number) {
+  return spineApproachLevel(z);
 }
 export const SPINE_PARKING_RAMPS = SPINE_DRIVEWAY_Z.map(z => {
   const u = spineDistanceAtZ(z); return spineStrip(u - 3.5, u + 3.5, 3.5, 17);

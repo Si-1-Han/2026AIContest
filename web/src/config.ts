@@ -18,16 +18,20 @@ export const API_HEALTH_INTERVAL_MS = 5000;
 /** API 응답을 기다리는 최대 시간. 넘기면 정적 JSON으로 전환한다. */
 export const API_TIMEOUT_MS = 2000;
 
+/**
+ * 한세대 마크(흰 바탕 + 파란 문자)에서 가져온 색감.
+ * 배경은 아이보리, 캠퍼스 건물은 하늘색, 선·강조는 한세 블루(#184c80) 계열.
+ */
 export const COLORS = {
-  background: '#0b1222',
-  ground: '#111a2e',
-  campus: '#17223d',
-  building: '#dde6f6',
-  buildingHover: '#ffffff',
-  buildingSelected: '#8fe1ff',
-  edge: '#4fd1ff',
-  context: '#202b45',
-  path: '#2f4a78',
-  route: '#7cf7d4',
-  origin: '#ffd166',
+  background: '#fbf7ec', // 아이보리 하늘·안개
+  ground: '#fdf9ef', // 캠퍼스 바깥 지면
+  campus: '#f5ecd8', // 캠퍼스 부지 (지면보다 한 톤 짙게)
+  building: '#86cbff', // 하늘색 건물
+  buildingHover: '#d2eeff',
+  buildingSelected: '#5aaef0',
+  edge: '#2f74b5', // 한세 블루: 건물 모서리·캠퍼스 경계
+  context: '#efe7d4', // 캠퍼스 밖 주변 건물 (배경에 묻히게)
+  path: '#d4c39c', // 보행로
+  route: '#0fa37f', // 길찾기 경로 (밝은 배경에서도 보이게 진하게)
+  origin: '#f08c00', // 출발지
 } as const;

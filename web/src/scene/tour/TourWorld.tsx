@@ -18,6 +18,9 @@ import { FountainCourt } from './FountainCourt';
 import { CampusFountain } from './CampusFountain';
 import { MainGrounds } from './MainGrounds';
 import { RoadDrains } from './RoadDrains';
+import { BuildingPads } from './BuildingPads';
+import { ScienceGarden } from './ScienceGarden';
+import { GuardBooth } from './GuardBooth';
 import { tourElevation } from '../../features/tour/terrain';
 import { campusTerrain } from './terrainGeometry';
 
@@ -58,7 +61,9 @@ export function TourWorld() {
     {context && <mesh geometry={context} castShadow receiveShadow><meshStandardMaterial color="#d1d7cc" roughness={0.95} /></mesh>}
     <TourRoads layout={layout} />
     <FountainCourt campus={campus} pavement={groundMask} />
-    <VisionTerrace />
+    <BuildingPads campus={campus} />
+    <ScienceGarden campus={campus} pavement={groundMask} />
+    <VisionTerrace /><GuardBooth />
     <MainGrounds roadMask={layout.asphalt} pavementMask={groundMask} />
     <Batch parts={clouds} shape="sphere" unlit />
     <Batch parts={scenery.paving} shadow={false} /><Batch parts={scenery.paint} shadow={false} />

@@ -30,7 +30,8 @@ def build_gates(
     path: Path = BACKEND_DIR / "data" / "gates.json",
 ) -> list[OutdoorArea]:
     """도로 위 입구는 기존 간선을 나누고, 빠진 통로는 지정한 교내·외 도로에 잇는다."""
-    sources = [GateSource.model_validate(item) for item in json.loads(path.read_text())]
+    raw = json.loads(path.read_text(encoding="utf-8"))  # Windows 기본 인코딩(cp949) 대신 UTF-8
+    sources = [GateSource.model_validate(item) for item in raw]
     gates = []
     obstacles = [Polygon(b.footprint).buffer(-0.1) for b in buildings]
     for source in sources:

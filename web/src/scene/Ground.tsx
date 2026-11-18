@@ -23,10 +23,10 @@ export function Ground() {
         args={[2000, 2000]}
         cellSize={10}
         cellThickness={0.4}
-        cellColor="#1c2a48"
+        cellColor="#eee5d0"
         sectionSize={100}
         sectionThickness={0.8}
-        sectionColor="#24365c"
+        sectionColor="#e2d5b4"
         fadeDistance={1100}
         fadeStrength={1.5}
         infiniteGrid
@@ -37,7 +37,7 @@ export function Ground() {
         </mesh>
       )}
       {outline && (
-        <Line points={outline} color={COLORS.edge} lineWidth={1.5} transparent opacity={0.45} />
+        <Line points={outline} color={COLORS.edge} lineWidth={1.5} transparent opacity={0.55} />
       )}
     </group>
   );

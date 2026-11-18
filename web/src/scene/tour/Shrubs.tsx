@@ -10,7 +10,7 @@ export function shrubGeometry() {
   }
   geometry.computeVertexNormals(); geometry.computeBoundingSphere(); return geometry;
 }
-function shrubMaps() {
+export function shrubMaps() {
   const canvas = document.createElement('canvas'); canvas.width = canvas.height = 512;
   const c = canvas.getContext('2d')!; c.fillStyle = '#234c25'; c.fillRect(0, 0, 512, 512);
   let seed = 9371; const random = () => { seed = seed * 16807 % 2147483647; return seed / 2147483647; };

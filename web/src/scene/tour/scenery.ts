@@ -10,6 +10,7 @@ import { inSurface, type RoadLayout } from './roadLayout';
 import { inVisionTerrace } from '../../features/tour/visionTerrace';
 import { tourElevation } from '../../features/tour/terrain';
 import { inFountainSite } from '../../features/tour/fountainSite';
+import { inScienceCourt, GARDEN_TREES } from '../../features/tour/scienceGarden';
 import { onBuildingSide } from '../../features/tour/buildingFrontage';
 
 export interface TreePlacement { x: number; y?: number; z: number; seed: number; species: 'pine' | 'broadleaf' | 'flowering' | 'ginkgo'; scale: number; shrub?: boolean }
@@ -20,7 +21,7 @@ export function makeScenery(campus: CampusData, layout: RoadLayout): Scenery {
   const polygons = [...campus.buildings.map(b => b.footprint), ...(campus.outdoor_areas ?? []).filter(a => a.kind !== 'gate').map(a => a.footprint)];
   const free = (p: Point, margin = 2.4) => inside(p, campus.boundary) && !inSurface(p, layout.asphalt) && !inSurface(p, layout.sidewalks) && !polygons.some(poly => inside(p, poly) || poly.some((v, i) => segmentDistance(p, v, poly[(i + 1) % poly.length]!) < margin)) && layout.corridors.every(c => segmentDistance(p, c.a, c.b) > c.width / 2 + 3.2);
   const tree = (x: number, z: number, seed: number, shrub = false) => {
-    if (onBuildingSide(x, z) || inGateApproach(x, z) || inMusicForecourt(x, z, 2) || inFountainSite(x, z, 7) || inFieldWalk(x, z, 2) || inMainEntrance(x, z, shrub ? 7 : 9) || inMainSite(x, z, 2) || inGateWall(x, z, shrub ? 1 : 2.4) || inVisionTerrace(x, z, shrub ? 1 : 2.4) || !free([x, z], shrub ? 1 : 2.4) || s.trees.some(t => Math.hypot(t.x - x, t.z - z) < (shrub ? 2 : 5.8))) return;
+    if (onBuildingSide(x, z) || inGateApproach(x, z) || inMusicForecourt(x, z, 2) || inFountainSite(x, z, 7) || inScienceCourt(x, z, shrub ? 1 : 2.4) || inFieldWalk(x, z, 2) || inMainEntrance(x, z, shrub ? 7 : 9) || inMainSite(x, z, 2) || inGateWall(x, z, shrub ? 1 : 2.4) || inVisionTerrace(x, z, shrub ? 1 : 2.4) || !free([x, z], shrub ? 1 : 2.4) || s.trees.some(t => Math.hypot(t.x - x, t.z - z) < (shrub ? 2 : 5.8))) return;
     s.trees.push({ x, z, seed, species: shrub ? 'broadleaf' : seed > 0.63 ? 'pine' : seed < 0.07 ? 'flowering' : seed > 0.32 && seed < 0.48 ? 'ginkgo' : 'broadleaf', scale: 0.7 + seed * 0.65, shrub });
   };
   const lamps: Point[] = [];
@@ -105,6 +106,8 @@ export function makeScenery(campus: CampusData, layout: RoadLayout): Scenery {
     const dy = elevation(p.p[0] + Math.cos(ry) * half, p.p[2] - Math.sin(ry) * half) - elevation(p.p[0] - Math.cos(ry) * half, p.p[2] + Math.sin(ry) * half);
     p.rz = Math.atan2(dy, p.s[0]); p.s[0] = Math.hypot(p.s[0], dy);
   }
+  // 이공관 앞 정원의 수풀 속 나무(소나무·활엽수)는 배치도대로 고정 위치에 둔다.
+  s.trees.push(...GARDEN_TREES.map(t => ({ ...t })));
   for (const t of s.trees) t.y = elevation(t.x, t.z);
   return s;
 }

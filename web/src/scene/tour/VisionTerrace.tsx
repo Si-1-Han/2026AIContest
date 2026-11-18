@@ -70,13 +70,13 @@ export function makeTerraceParts() {
       box(stone, place(x, 0.63, -0.26), [0.065, 0.60, 0.065], '#4a5557', angle);
     }
   };
-  // 네 변이 안쪽을 향하고 북·남측 중앙은 통행을 위해 비운다.
-  for (const x of [-2.7, 2.7]) {
-    bench(r.x + x, r.z - 4.7, 3.2, 0);
-    bench(r.x + x, r.z + 4.7, 3.2, Math.PI);
-  }
-  bench(r.x - 4.3, r.z, 6.2, Math.PI / 2);
-  bench(r.x + 4.3, r.z, 6.2, -Math.PI / 2);
+  // 사용자 배치도: 가운데 쓰레기통을 네 벤치가 안쪽을 보고 둘러싼다.
+  bench(r.x, r.z - 2.45, 2.9, 0);
+  bench(r.x, r.z + 2.55, 2.9, Math.PI);
+  bench(r.x - 2.0, r.z, 2.6, Math.PI / 2);
+  bench(r.x + 2.0, r.z, 2.6, -Math.PI / 2);
+  box(stone, [r.x, floor + 0.43, r.z], [0.56, 0.86, 0.56], '#3f5048');
+  box(stone, [r.x, floor + 0.89, r.z], [0.64, 0.07, 0.64], '#2f3b36');
   // 쉼터와 이공관은 같은 지면이므로 별도의 내려가는 계단/경사교를 만들지 않는다.
   return { stone, wood, metal };
 }
