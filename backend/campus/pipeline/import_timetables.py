@@ -112,14 +112,18 @@ def parse_source(path: Path) -> tuple[dict, list[dict]]:
 def resolve_location(location: str, buildings: dict, interiors: dict) -> dict:
     building_id = PREFIXES.get(location[:1])
     number = location[1:] if building_id else location
-    candidates = []
+    named_candidates = []
+    alias_candidates = []
+    room_label = re.compile(re.escape(number) + r"\s*호?", re.I)
     for floor in interiors.get(building_id, {}).get("floors", []):
         for room in floor["rooms"]:
             if room["category"] != "공간":
                 continue
-            labels = [room["name"], room["description"], *room["tags"]]
-            if any(re.fullmatch(re.escape(number) + r"\s*호?", v.strip(), re.I) for v in labels):
-                candidates.append(room)
+            if room_label.fullmatch(room["name"].strip()):
+                named_candidates.append(room)
+            elif any(room_label.fullmatch(v.strip()) for v in [room["description"], *room["tags"]]):
+                alias_candidates.append(room)
+    candidates = named_candidates or alias_candidates
     name = f"{buildings[building_id]} {number}호" if building_id else location
     return {
         "name": name,

@@ -104,6 +104,9 @@ def test_imported_dataset_is_complete_and_excluded_courses_absent():
     assert actual == expected
     assert len(tables) == 93
     assert sum(t["room_id"] is not None for t in tables) == 83
+    science_102 = [table for table in tables if table["source_location"] == "이102"]
+    assert len(science_102) == 1
+    assert science_102[0]["room_id"] == "science:0:2"
     for table in tables:
         if table["room_id"]:
             interior = json.loads(

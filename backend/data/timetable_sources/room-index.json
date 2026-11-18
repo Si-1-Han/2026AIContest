@@ -720,34 +720,24 @@
     "courses": 5
   },
   {
-    "file": "science_0_2.json",
+    "file": "science_102.json",
     "name": "이공관 102호",
     "building_id": "science",
     "room_id": "science:0:2",
     "room_name": "102호",
-    "source_location": "science:0:2",
+    "source_location": "이102",
     "mapping_status": "linked",
-    "courses": 2
+    "courses": 5
   },
   {
-    "file": "science_0_3.json",
-    "name": "이공관 1F 104호",
+    "file": "science_104.json",
+    "name": "이공관 104호",
     "building_id": "science",
     "room_id": "science:0:3",
     "room_name": "104호",
-    "source_location": "science:0:3",
+    "source_location": "이104",
     "mapping_status": "linked",
     "courses": 8
-  },
-  {
-    "file": "science_102.json",
-    "name": "이공관 102호",
-    "building_id": "science",
-    "room_id": "science:0:0",
-    "room_name": "102호",
-    "source_location": "이102",
-    "mapping_status": "linked",
-    "courses": 3
   },
   {
     "file": "science_201.json",
