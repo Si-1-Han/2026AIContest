@@ -1,5 +1,6 @@
 import { tourPlaceGoal, tourPlaceLookAt } from '../features/tour/buildingAccess';
 import { create } from 'zustand';
+import { playTourMoveSound } from '../features/tour/moveSound';
 import { buildTourNetwork, nearestTourNode, planTourMove, tourPath, TOUR_STEP_METERS, type TourNetwork } from '../features/tour/network';
 import { useCampusStore } from './useCampusStore';
 
@@ -55,7 +56,10 @@ export const useTourStore = create<TourState>((set, get) => ({
     const goal = [...(campus?.buildings ?? []), ...(campus?.outdoor_areas ?? [])].find(p => p.id === s.destination);
     const guide = goal ? tourPath(s.network, s.nodeId, tourPlaceGoal(goal)) : undefined;
     const move = planTourMove(s.network, s.nodeId, id, TOUR_STEP_METERS, guide);
-    if (move.path.length > 1) set({ network: move.network, targetId: move.path.at(-1)!, travel: move.path });
+    if (move.path.length > 1) {
+      set({ network: move.network, targetId: move.path.at(-1)!, travel: move.path });
+      playTourMoveSound();
+    }
   },
   jumpToBuilding: (id) => {
     const s = get(), building = useCampusStore.getState().campus?.buildings.find(b => b.id === id);
@@ -65,6 +69,7 @@ export const useTourStore = create<TourState>((set, get) => ({
       yaw: Math.atan2(-(lookAt[0] - target.x), -(lookAt[1] - target.z)),
       visited: s.visited.includes(target.id) ? s.visited : [...s.visited, target.id],
     });
+    if (target.id !== s.nodeId) playTourMoveSound();
   },
   arrive: () => {
     const s = get();
