@@ -3,7 +3,7 @@ import { spinePoint, spineDistanceAtZ } from './campusSpine';
 import { approachLevel } from './graduateApproach';
 import { PARKING_LEVEL } from './elevationLevels';
 
-export const FOUNTAIN_CENTER = [-65, -114] as const;
+export const FOUNTAIN_CENTER = [-62.3, -132.3] as const;
 // 분수 수조와 교명 받침이 놓이는 원형 평지. 경사지 중간 높이에 맞춘다.
 export const FOUNTAIN_LEVEL = approachLevel(FOUNTAIN_CENTER[0], FOUNTAIN_CENTER[1]);
 export const FOUNTAIN_RADIUS = 5.2;
@@ -13,7 +13,14 @@ export const FOUNTAIN_CLEARING: [number, number][] = Array.from({ length: 96 }, 
   const a = i / 96 * Math.PI * 2;
   return [FOUNTAIN_CENTER[0] + Math.cos(a) * FOUNTAIN_FLAT_RADIUS, FOUNTAIN_CENTER[1] + Math.sin(a) * FOUNTAIN_FLAT_RADIUS];
 });
-export const FOUNTAIN_FIELD_LINK: [number, number][] = [[-57, -114], [-51, -116], [-43, -120], [-34, -122], [-26.8, -122]];
+export const FOUNTAIN_FIELD_LINK: [number, number][] = [[-54.8, -132.3], [-47, -130.8], [-40, -128.4], [-34, -126], [-26.8, -122]];
+// 표시된 분수 뒤 곡선과 사잇길의 분수 쪽 경계 사이를 잔디와 작은 나무로 채운다.
+export const FOUNTAIN_PLANTING: [number, number][] = [
+  [-70, -123], [-66, -117], [-60, -110], [-54, -105], [-49.6, -102.2],
+  [-45, -103.5], [-42.5, -111], [-40.6, -121.7], [-34, -115], [-25, -100], [-22, -97],
+  [-23.5, -106], [-26, -114], [-28.4, -126.9], [-38, -129], [-49, -128],
+  [-57, -126], [-64, -124.5], [-70, -126],
+];
 // 포장 면적과 지형 보정 범위는 다르다. 접근 방향에 분수를 가리는 잔디 언덕을 만들지 않는다.
 const FOUNTAIN_GRADE_REGION: [number, number][] = [[-79,-144],[-61,-145],[-31,-133],[24,-131],[36,-124],[38,-104],[-72,-104]];
 export const FOUNTAIN_WALK: [number, number][] = [spinePoint(spineDistanceAtZ(-114)), ...Array.from({ length: 7 }, (_, i): [number, number] => {
