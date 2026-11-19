@@ -5,6 +5,12 @@ import type { TreePlacement } from './scenery';
 import { useSurfaceMaps } from './materials';
 
 type Species = TreePlacement['species'];
+const foliageColors: Record<Species, string[]> = {
+  pine: ['#356e46', '#4d874b', '#649653'],
+  broadleaf: ['#4b883d', '#6d9f43', '#39733b', '#85ac54'],
+  flowering: ['#ffbdd8', '#ef9cb9', '#ffe0e8', '#f8c9dd'],
+  ginkgo: ['#7fa237', '#a0bd4d', '#8db044'],
+};
 function random(seed: number) {
   let state = seed;
   return () => { state = state * 16807 % 2147483647; return state / 2147483647; };
@@ -21,6 +27,7 @@ export function treeGeometry(species: Species, variant: number) {
   };
   const pine = species === 'pine';
   const height = pine ? 7.8 : species === 'flowering' ? 5.8 : species === 'ginkgo' ? 9.0 : 7.1;
+  const palette = foliageColors[species];
   const trunk = [new THREE.Vector3(0, 0, 0), new THREE.Vector3(0.16, 2.4, 0.08), new THREE.Vector3(-0.12, 4.2, 0.12), new THREE.Vector3(0.18, height - 0.5, -0.08)];
   for (let i = 0; i < trunk.length - 1; i++) branch(trunk[i]!, trunk[i + 1]!, 0.2 - i * 0.045, 0.15 - i * 0.045);
   const color = new THREE.Color();
@@ -38,7 +45,7 @@ export function treeGeometry(species: Species, variant: number) {
       const rotation = new THREE.Quaternion().setFromEuler(new THREE.Euler(rand() * Math.PI, rand() * Math.PI * 2, rand() * Math.PI));
       const vertices = [[-0.5, -0.5], [0.5, -0.5], [0.5, 0.5], [-0.5, 0.5]].map(([x, y]) => new THREE.Vector3(x! * size, y! * size, 0).applyQuaternion(rotation).add(center));
       const n = new THREE.Vector3(0, 0, 1).applyQuaternion(rotation);
-      color.set(species === 'flowering' && rand() < 0.17 ? '#e69db7' : pine ? ['#356e46', '#4d874b', '#649653'][Math.floor(rand() * 3)]! : species === 'ginkgo' ? ['#7fa237', '#a0bd4d', '#8db044'][Math.floor(rand() * 3)]! : ['#4b883d', '#6d9f43', '#39733b', '#85ac54'][Math.floor(rand() * 4)]!);
+      color.set(palette[Math.floor(rand() * palette.length)]!);
       const coords = [[0, 0], [1, 0], [1, 1], [0, 1]];
       for (const i of [0, 1, 2, 0, 2, 3]) { const v = vertices[i]!; pos.push(v.x, v.y, v.z); normal.push(n.x, n.y, n.z); uv.push(...coords[i]!); colors.push(color.r, color.g, color.b); }
     }
@@ -59,6 +66,31 @@ function useLeafTexture(species: Species) {
       ctx.strokeStyle = '#ffffff'; ctx.lineWidth = 2.8;
       for (let y = 35; y < 230; y += 10) for (const side of [-1, 1]) for (let j = 0; j < 3; j++) {
         ctx.beginPath(); ctx.moveTo(128, y + 30); ctx.quadraticCurveTo(128 + side * (35 + j * 10), y + 20, 128 + side * (45 + j * 14), y - 30 + j * 12); ctx.stroke();
+      }
+    } else if (species === 'flowering') {
+      // 가지 위에 꽃잎과 연둣빛 잎을 같이 그려 가까이에서도 꽃송이가 보인다.
+      for (const [x, y, size] of [[71, 85, 24], [139, 53, 19], [187, 96, 23], [122, 133, 25], [177, 170, 18], [74, 179, 23], [131, 205, 16]] as const) {
+        ctx.strokeStyle = '#98a363';
+        ctx.lineWidth = 3;
+        ctx.beginPath();
+        ctx.moveTo(128, 235);
+        ctx.quadraticCurveTo(123, y + 35, x, y);
+        ctx.stroke();
+        ctx.fillStyle = '#8fa65e';
+        ctx.beginPath();
+        ctx.ellipse(x - size * 0.85, y + size * 0.8, size * 0.7, size * 0.29, -0.65, 0, Math.PI * 2);
+        ctx.fill();
+        ctx.fillStyle = '#fff2f7';
+        for (let petal = 0; petal < 5; petal++) {
+          const angle = petal * Math.PI * 2 / 5 + x * 0.08;
+          ctx.beginPath();
+          ctx.ellipse(x + Math.cos(angle) * size * 0.48, y + Math.sin(angle) * size * 0.48, size * 0.57, size * 0.39, angle, 0, Math.PI * 2);
+          ctx.fill();
+        }
+        ctx.fillStyle = '#f5ce8c';
+        ctx.beginPath();
+        ctx.arc(x, y, size * 0.2, 0, Math.PI * 2);
+        ctx.fill();
       }
     } else if (species === 'ginkgo') {
       ctx.fillStyle = '#ffffff';
