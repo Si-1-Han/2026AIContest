@@ -19,6 +19,26 @@ export function TourLauncher() {
   </div>;
 }
 
+function FlightControls() {
+  const surface = useRef<HTMLDivElement>(null);
+  const [mouseLocked, setMouseLocked] = useState(false);
+  useEffect(() => {
+    surface.current?.focus({ preventScroll: true });
+    const update = () => setMouseLocked(document.pointerLockElement === surface.current);
+    document.addEventListener('pointerlockchange', update);
+    return () => document.removeEventListener('pointerlockchange', update);
+  }, []);
+
+  return <>
+    <div id="flight-look-surface" ref={surface} tabIndex={0} role="region" aria-label="공중 시점 조작 영역" aria-describedby="flight-controls-help" className="absolute inset-0 cursor-crosshair focus:outline-none" />
+    <footer id="flight-controls-help" data-tour-ui className="pointer-events-none absolute bottom-5 left-3 right-3 mx-auto max-w-lg rounded-2xl bg-white/95 p-3 text-center text-xs leading-relaxed shadow-xl backdrop-blur sm:bottom-7">
+      <p className="font-semibold"><kbd>W</kbd> 전진 · <kbd>S</kbd> 후진 · <kbd>A</kbd>/<kbd>D</kbd> 좌우 이동</p>
+      <p className="mt-1 text-slate-600">하늘이나 땅을 보고 W를 누르면 올라가거나 내려갑니다.</p>
+      <p className="mt-1 text-slate-600" aria-live="polite">{mouseLocked ? '마우스 이동으로 시야 조절 · Esc로 마우스 놓기' : '화면을 클릭한 뒤 마우스를 움직이거나, 화면을 드래그하세요.'}</p>
+    </footer>
+  </>;
+}
+
 export function CampusTour() {
   const campus = useCampusStore(s => s.campus)!;
   const network = useTourStore(s => s.network)!;
@@ -27,6 +47,7 @@ export function CampusTour() {
   const visited = useTourStore(s => s.visited);
   const destination = useTourStore(s => s.destination);
   const yaw = useTourStore(s => s.yaw);
+  const flying = useTourStore(s => s.view === 'flight');
   const [mapOpen, setMapOpen] = useState(true);
   const [course, setCourse] = useState('free');
   const [courseIndex, setCourseIndex] = useState(0);
@@ -58,11 +79,17 @@ export function CampusTour() {
     const text = kind === 'stairs' ? (next.y ?? 0) > (n.y ?? 0) ? '계단 올라가기' : '계단 내려가기' : Math.abs(degrees) > 135 ? '뒤로' : degrees > 35 ? '왼쪽' : degrees < -35 ? '오른쪽' : '앞으로';
     return { text, angle: -degrees, distance: Math.round(moves[id]!.distance) };
   };
-  return <div id="tour-look-surface" className="absolute inset-0 z-20 touch-none cursor-grab select-none text-slate-800" role="region" aria-label="캠퍼스 거리뷰. 드래그 또는 방향키로 둘러보고 이동 지점 버튼을 선택하세요.">
+  return <div id="tour-look-surface" className="absolute inset-0 z-20 touch-none cursor-grab select-none text-slate-800" role="region" aria-label={flying ? '캠퍼스 공중 자유 시점' : '캠퍼스 거리뷰. 드래그 또는 방향키로 둘러보고 이동 지점 버튼을 선택하세요.'}>
+    {flying && <FlightControls />}
     <header data-tour-ui className="absolute left-3 right-3 top-3 flex flex-wrap items-center justify-between gap-2 rounded-2xl bg-white/90 p-3 shadow-lg backdrop-blur sm:left-5 sm:right-5 sm:top-5 sm:px-5">
-      <div><p className="text-[10px] font-bold tracking-[0.22em] text-emerald-700">HANSEI CAMPUS WALK</p><h1 className="text-base font-extrabold sm:text-xl">캠퍼스 거리 투어</h1><p className="text-xs text-slate-500">{tourBuildingName(nearest)} 주변 · 이동 지점 {visited.length}곳 탐색</p></div>
-      <div className="flex gap-2"><button className={button} onClick={() => useTourStore.getState().look(yaw + Math.PI)} aria-label="뒤돌아보기">↶ 뒤돌기</button><button ref={exit} className={button} onClick={() => useTourStore.getState().stop()}>투어 종료 <span className="hidden sm:inline">· Esc</span></button></div>
+      <div><p className="text-[10px] font-bold tracking-[0.22em] text-emerald-700">HANSEI CAMPUS WALK</p><h1 className="text-base font-extrabold sm:text-xl">캠퍼스 거리 투어</h1><p className="text-xs text-slate-500">{flying ? '공중 자유 시점' : `${tourBuildingName(nearest)} 주변 · 이동 지점 ${visited.length}곳 탐색`}</p></div>
+      <div className="flex flex-wrap gap-2">
+        {!flying && <button className={button} onClick={() => useTourStore.getState().look(yaw + Math.PI)} aria-label="뒤돌아보기">↶ 뒤돌기</button>}
+        <button className={`${button} !border-emerald-300 !bg-emerald-50 !text-emerald-800`} disabled={!!targetId} onClick={() => useTourStore.getState().setView(flying ? 'street' : 'flight')}>{flying ? '거리뷰로 돌아가기' : '공중 자유 시점'}</button>
+        <button ref={exit} className={button} onClick={() => useTourStore.getState().stop()}>투어 종료 {!flying && <span className="hidden sm:inline">· Esc</span>}</button>
+      </div>
     </header>
+    {!flying && <>
     <div data-tour-ui className="absolute left-3 top-36 max-w-[calc(100%-24px)] rounded-2xl bg-white/90 p-3 shadow-md backdrop-blur sm:left-5 sm:top-32">
       <div className="flex flex-wrap gap-2">
         <label className="text-xs text-slate-500">둘러보기 방식<select aria-label="투어 코스" value={course} onChange={e => { setCourse(e.target.value); setCourseIndex(0); useTourStore.getState().setDestination(null); }} className="mt-1 block rounded-lg border border-slate-200 bg-white p-2 text-sm text-slate-800"><option value="free">자유 둘러보기</option><option value="full">정문부터 캠퍼스 한 바퀴</option><option value="highlights">주요 장소 둘러보기</option></select></label>
@@ -87,6 +114,7 @@ export function CampusTour() {
       <p className="mb-2 text-xs text-slate-500" aria-live="polite">{targetId ? '도로를 따라 이동 중…' : '기본 이동 30m · 갈림길·도착 지점에서는 정지 · 드래그로 둘러보기'}</p>
       <div className="flex flex-wrap justify-center gap-2">{n.neighbors.map(id => { const dir = direction(id); return <button key={id} className={`${button} ${route[1] === id ? '!border-emerald-500 !bg-emerald-50 !text-emerald-800' : ''}`} disabled={!!targetId} onClick={() => useTourStore.getState().move(id)}><span aria-hidden style={{ display: 'inline-block', transform: `rotate(${dir.angle}deg)` }}>↑</span> {dir.text} {dir.distance}m</button>; })}<button className={`${button} hidden sm:block`} aria-pressed={mapOpen} onClick={() => setMapOpen(v => !v)}>지도 {mapOpen ? '접기' : '펴기'}</button></div>
     </footer>
+    </>}
     <p className="pointer-events-none absolute bottom-1 left-3 rounded bg-white/70 px-1 text-[9px] text-slate-600">{campus.attribution}</p>
   </div>;
 }
