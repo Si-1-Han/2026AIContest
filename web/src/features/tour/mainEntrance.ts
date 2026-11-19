@@ -36,6 +36,7 @@ export function inMainEntrance(x: number, z: number, margin = 0) {
 /** 본관 앞과 주차장은 같은 평지. 낮은 지면은 1층 진입로의 좁은 구역에만 만든다. */
 export function mainEntryGround(x: number, z: number, original: number) {
   const { u, v } = mainEntryLocal(x, z);
-  const weight = Math.max(0, Math.min(1, (u + 44) / 4, (46 - u) / 4, (v + 52) / 4, (32 - v) / 4));
+  // 북쪽(u)은 본관 북측 외벽에서 바로 풀어 3층 입구 쪽 지면을 1층 높이로 끌어내리지 않는다.
+  const weight = Math.max(0, Math.min(1, (u + 44) / 4, (45.7 - u) / 4, (v + 52) / 4, (32 - v) / 4));
   return original + (MAIN_ENTRY_BASE - original) * weight;
 }

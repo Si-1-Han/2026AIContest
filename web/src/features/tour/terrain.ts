@@ -1,12 +1,13 @@
 import { musicForecourtGround } from './musicForecourt';
 import { mainEntryGround } from './mainEntrance';
-import { mainSiteGround } from './mainBuildingAccess';
+import { mainSiteGround, mainUpperFootGround } from './mainBuildingAccess';
 import { MAIN_ENTRY_BASE } from './mainEntrance';
 import { pavementGrade } from './pavementGrade';
+import { baseTerrain } from './baseTerrain';
 import { FOUNTAIN_CENTER, FOUNTAIN_RADIUS, fountainGround, fountainPlaza, fountainPlazaLevel, fountainSurface, fountainSiteDistance } from './fountainSite';
 import { spineDistanceAtZ, spinePoint, spineLocal } from './campusSpine';
 import { frontageGround } from './buildingFrontage';
-import { fieldWalkGround } from './fieldWalk';
+import { fieldWalkGround, fieldEntryGround } from './fieldWalk';
 import type { CampusData } from '../../types/generated/campus';
 import { buildingElevation, PARKING_LEVEL, UPPER_CAMPUS_LEVEL, SLOPE_GAIN } from './elevationLevels';
 import { VISION_TERRACE_PATH, VISION_TERRACE, TERRACE_PATHS, isTerraceStair } from './visionTerrace';
@@ -15,6 +16,7 @@ import { scienceSideGround } from './visionTerrace';
 import { MAIN_FRONT_PROFILE, APPROACH_START_Z, APPROACH_TOP_Z, APPROACH_ROAD_END_Z, approachRoadPoint, spineApproachLevel } from './graduateApproach';
 
 type Point = [number, number];
+const CAMPUS_SPINE_WALK_EDGE = 5.3;
 type Anchor = [number, number, number];
 const eastSlopeHeight = (t: number) => 6.2 * SLOPE_GAIN + (UPPER_CAMPUS_LEVEL - 6.2 * SLOPE_GAIN) * t;
 /** 빨간 표시를 기존 보행 그래프의 교차점에 대조한 경사 구간. [x,z,상대높이] */
@@ -57,12 +59,8 @@ export function tourElevation(campus: CampusData) {
   pads.push({ polygon: [[rest.x - rest.width / 2, rest.z - rest.depth / 2], [rest.x + rest.width / 2, rest.z - rest.depth / 2], [rest.x + rest.width / 2, rest.z + rest.depth / 2], [rest.x - rest.width / 2, rest.z + rest.depth / 2]], y: UPPER_CAMPUS_LEVEL });
   const paths = [...TERRACE_PATHS.slice(1), [...VISION_TERRACE_PATH, { id: 'n99', x: 14.59, y: UPPER_CAMPUS_LEVEL, z: 207.48 }]];
   const grade = pavementGrade(campus, SLOPE_PROFILES);
-  const height = (x: number, z: number) => {
-    const north = 2.4 * SLOPE_GAIN * smooth(-217.57, -160.65, z);
-    const cross = 1.6 * SLOPE_GAIN * smooth(-86.38, 24.17, x) * smooth(-176, -130, z);
-    let y = north + blend(cross, 1.6 * SLOPE_GAIN, smooth(-136, -110, z));
-    y += 1.5 * SLOPE_GAIN * smooth(-2, 35, z);
-    y += (UPPER_CAMPUS_LEVEL - PARKING_LEVEL) * Math.max(smooth(60, 170, z) * smooth(20, 60, x), smooth(165, 181, z));
+  const height = (x: number, z: number): number => {
+    let y = baseTerrain(x, z);
     let nearest = { distance: Infinity, y, gate: false };
     for (const profile of SLOPE_PROFILES) for (let i = 1; i < profile.points.length; i++) {
       const sample = along(x, z, profile.points[i - 1]!, profile.points[i]!);
@@ -113,7 +111,18 @@ export function tourElevation(campus: CampusData) {
     }
     // 이공관 앞 사각 정원은 주변 도로·건물과 같은 평지다(언덕 없음).
     // 이공관 서쪽 길(영비관 계단 위)·쉼터·경비실 일대도 같은 평지다.
-    return scienceSideGround(x, z, scienceCourtGround(x, z, result));
+    // 서측 직선 차도 동쪽 보도 → 분수 광장: 도로 단면 보정(중심 6.8m)과 3m 혼합 때문에 보도 바로 옆 3m 안에서
+    // 1m 넘게 꺼지는 잔디 단이 생긴다. 보도 끝 높이에서 6m에 걸쳐 고르게 분수 광장 높이로 내려가게 다시 깎는다.
+    const east = spineLocal(x, z), bank = 6;
+    if (east.side > CAMPUS_SPINE_WALK_EDGE && east.side < CAMPUS_SPINE_WALK_EDGE + bank && east.along > spineDistanceAtZ(-140) && east.along < spineDistanceAtZ(-112)) {
+      const edge = spineApproachLevel(spinePoint(east.along)[1]);
+      const far: number = height(...spinePoint(east.along, CAMPUS_SPINE_WALK_EDGE + bank + 0.05));
+      // 직선·완화 곡선을 반씩 섞어 최대 경사를 낮추고(높이 차의 1.25/6) 양 끝도 부드럽게 잇는다.
+      const t = (east.side - CAMPUS_SPINE_WALK_EDGE) / bank, w = 0.5 * t + 0.5 * t * t * (3 - 2 * t);
+      return fieldEntryGround(x, z, edge + (far - edge) * w);
+    }
+    // 본관 3층 진입로 시작부는 도로 단면 보정보다 나중에 적용해 경사로 옆면이 드러나지 않게 한다.
+    return fieldEntryGround(x, z, mainUpperFootGround(x, z, scienceSideGround(x, z, scienceCourtGround(x, z, result))));
   };
   const samples = new Map<string, number>();
   const memoized = (x: number, z: number) => {

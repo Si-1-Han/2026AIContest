@@ -81,6 +81,15 @@ try {
   assert(clipping.intersection(layout.parkingLines, [MUSIC_PARKING]).length > 0, '음악관 앞은 주차선이 있는 주차장');
   assert(!network.nodes.tour_music_corner, '주차장에서 운동장 뒤로 뚫었던 지름길 제거');
   assert(!network.segments.some(([a, b]) => [a, b].includes('n79') && [a, b].includes('n64')), '원본의 잘못된 음악관 북쪽 연결도 제외');
+  // GEMI관 앞 막다른 차도 끝 → GEMI관·음악관 사이 틈 → 음악관 앞 주차장은 거리뷰로 이어진다(포장 띠는 새로 그리지 않음).
+  const gapRoute = tourPath(network, 'n79', [network.nodes.tour_music_parking.x, network.nodes.tour_music_parking.z]);
+  assert(gapRoute.includes('tour_gemi_gap_0') && gapRoute.includes('tour_gemi_gap_1') && gapRoute.length < 12, 'GEMI관–음악관 틈 보행 연결');
+  // 3층 입구·진입 경사로 옆 지면은 비탈로 이어진다(입구 옆 5m 잔디 절벽·외벽 쪽 1층 높이 띠 없음).
+  for (let u = 42.3; u <= 76; u += 0.5) for (let v = -40; v <= -2; v += 0.5) {
+    const [x, z] = mainSitePoint(u, v);
+    const slope = Math.hypot(elevation(x + 0.25, z) - elevation(x - 0.25, z), elevation(x, z + 0.25) - elevation(x, z - 0.25)) / 0.5;
+    assert(slope < 1, `3층 입구 주변 지면에 단층 없음 (${u},${v}) ${slope.toFixed(2)}`);
+  }
   const missingParking = clipping.difference([MUSIC_SITE], clipping.union(layout.asphalt, layout.sidewalks));
   const area = polygons => polygons.reduce((sum, poly) => sum + poly.reduce((sum, r, i) => sum + (i ? -1 : 1) * Math.abs(r.reduce((sum, a, j) => { const b = r[(j + 1) % r.length]; return sum + a[0] * b[1] - b[0] * a[1]; }, 0) / 2), 0), 0);
   assert(area([[MUSIC_PARKING]]) > 700, '음악관 지도 네모 전체 크기로 확장');

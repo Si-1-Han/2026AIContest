@@ -1,6 +1,6 @@
 import { gateRoadPoints, gateWallSections, GATE_ROAD_WIDTH } from '../../features/tour/gateWalls';
 import { MAIN_PARKING, MAIN_ROAD_OPENINGS, MAIN_FRONT_PLAZA, MAIN_STREET, MAIN_LOWER_CUT, MAIN_STAIR_SITE, MAIN_STAIR_PLANTERS } from '../../features/tour/mainBuildingAccess';
-import { MUSIC_PARKING, MUSIC_SITE } from '../../features/tour/musicForecourt';
+import { MUSIC_PARKING, MUSIC_SITE, onGemiMusicGap } from '../../features/tour/musicForecourt';
 import { FIELD_ENTRY_WIDTH, FIELD_WALK_ENTRY, FIELD_WALK_WIDTH, inFieldWalk } from '../../features/tour/fieldWalk';
 import { pavementPads } from '../../features/tour/pavementGrade';
 import { BUILDING_FRONTAGE } from '../../features/tour/buildingFrontage';
@@ -54,7 +54,9 @@ export function buildRoadLayout(campus: CampusData, corridors: TourCorridor[]): 
   // 이공관 앞 정원 안의 보행 통로는 정원 벽돌 포장이 대신한다(차도·보도 띠를 만들지 않는다).
   const gardenWalk = (c: TourCorridor) => c.kind === 'walk' && inScienceCourt(...c.a, 3) && inScienceCourt(...c.b, 3);
   const followsFieldEntry = (c: TourCorridor) => [c.a, c.b].every(p => FIELD_WALK_ENTRY.some(q => p[0] === q[0] && p[1] === q[1]));
-  const roads = corridors.filter(c => Math.hypot(c.b[0] - c.a[0], c.b[1] - c.a[1]) > 0.01 && !gardenWalk(c)).map(c => ({ ...c,
+  // GEMI관–음악관 틈은 이미 보도·주차장 포장이 덮고 있어 이동선만 쓰고 띠를 다시 그리지 않는다.
+  const gapWalk = (c: TourCorridor) => c.kind === 'walk' && onGemiMusicGap(c.a, c.b);
+  const roads = corridors.filter(c => Math.hypot(c.b[0] - c.a[0], c.b[1] - c.a[1]) > 0.01 && !gardenWalk(c) && !gapWalk(c)).map(c => ({ ...c,
     width: c.kind !== 'road' ? !c.structure && (inFieldWalk(...c.a, 0.05) && inFieldWalk(...c.b, 0.05) || onFountainWalk(c.a, c.b)) ? FIELD_WALK_WIDTH : c.kind === 'stairs' || c.structure ? 3.2 : 2.6 : onCampusSpine(c.a, c.b) ? CAMPUS_SPINE.roadWidth : Math.max(3, Math.min(c.a[1] < -140 ? 9 : 7, clearance(c.a) * 2 - 1, clearance(c.b) * 2 - 1)),
   }));
   const isSiteWalk = (c: typeof roads[number]) => c.kind === 'walk' && !c.structure && (c.width === FIELD_WALK_WIDTH || followsFieldEntry(c));

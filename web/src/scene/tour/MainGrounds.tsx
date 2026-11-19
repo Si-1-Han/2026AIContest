@@ -14,15 +14,12 @@ import { useSurfaceMaps } from './materials';
 
 const angle = -Math.atan2(MAIN_ENTRANCE.uz, MAIN_ENTRANCE.ux);
 type Node = { x: number; y: number; z: number; id: string };
-const UPPER_TURN_U = mainEntryLocal(MAIN_UPPER_PATH[0]!.x, MAIN_UPPER_PATH[0]!.z).u, UPPER_RAMP_U = mainEntryLocal(MAIN_UPPER_PATH[1]!.x, MAIN_UPPER_PATH[1]!.z).u;
 /**
  * 차도 → 3층 진입 경사로 시작부. 비스듬한 차도와 직각인 경사로가 만나므로 고정 높이 데크를 쓰면 보도 위에
- * 삼각형 판이 겹쳐 뜬다. 보도·차도 바깥에서만 데크를 만들고, 실제 지면 높이에서 출발해 공원 높이까지 고르게 오른다.
+ * 삼각형 판이 겹쳐 뜬다. 보도·차도 바깥에서만 데크를 만들고, 지면(mainUpperFootGround가 경사로 단면으로 깎은 면)에 붙인다.
+ * 지면 위에 경사를 한 번 더 더하면 차도 쪽에서 데크가 잔디보다 높아져 옆면이 쐐기처럼 드러난다.
  */
-const upperFootHeight = (elevation: (x: number, z: number) => number) => (x: number, z: number) => {
-  const g = elevation(x, z), t = Math.max(0, Math.min(1, (UPPER_TURN_U - mainEntryLocal(x, z).u) / (UPPER_TURN_U - UPPER_RAMP_U)));
-  return g + (MAIN_UPPER_PATH[1]!.y - g) * t + 0.045;
-};
+const upperFootHeight = (elevation: (x: number, z: number) => number) => (x: number, z: number) => elevation(x, z) + 0.045;
 export function mainAccessDecks(roadMask: MultiPolygon = [], pavementMask: MultiPolygon = roadMask, elevation?: (x: number, z: number) => number) {
   const upper = MAIN_WALK_SURFACES[1]!;
   const gardenJunction = clipping.union([MAIN_GARDEN], ...upper.slice(1).map((b, i) => [accessStrip(upper[i]!, b, mainAccessWidth(upper))]));
@@ -93,7 +90,7 @@ export function makeMainGroundsParts() {
   return { stone, metal, wood, hedges, trees, shrubs };
 }
 
-export function mainRetainingWalls(roadMask: MultiPolygon = []) {
+export function mainRetainingWalls(roadMask: MultiPolygon = [], elevation?: (x: number, z: number) => number) {
   const geometries: THREE.BufferGeometry[] = [];
   const point = (u: number, v: number, y: number) => { const [x, z] = mainSitePoint(u, v); return [x, y, z]; };
   for (const u of [16.65, 21.35]) for (const [v0, v1, y0, y1] of [[-.1, 8, MAIN_ENTRY_BASE+.12, MAIN_ENTRY_BASE+.12], [8, 14.5, MAIN_ENTRY_BASE+.12, MAIN_ENTRY_BASE+.12], [14.5, 16.2, MAIN_ENTRY_BASE+.12, MAIN_ENTRY_BASE+.04]]) {
@@ -122,9 +119,12 @@ export function mainRetainingWalls(roadMask: MultiPolygon = []) {
       const pa={...a,x:a.x-dz/len*offset,z:a.z+dx/len*offset}, pb={...b,x:b.x-dz/len*offset,z:b.z+dx/len*offset};
       const branch = MAIN_WALK_SURFACES[2]!;
       const openings = branch.slice(1).map((end,i) => [accessStrip(branch[i]!,end,mainAccessWidth(branch))]);
+      // 경사로 시작부의 옆벽은 노면 높이에서 솟아오르게 해, 차도 옆에 각진 콘크리트 토막이 서지 않게 한다.
+      const rise = i === 1 ? 2.2 : 0;
       for (const poly of clipping.difference([accessStrip(pa,pb,.16)], ...openings, roadMask)) geometries.push(siteSolid(poly,(x,z)=>{
         const t=Math.max(0,Math.min(1,((x-a.x)*dx+(z-a.z)*dz)/(len*len)));
-        return a.y+(b.y-a.y)*t+.24;
+        const deck = i === 1 && elevation ? upperFootHeight(elevation)(x, z) - .045 : a.y+(b.y-a.y)*t;
+        return deck+.24*(rise ? Math.min(1, t*len/rise) : 1);
       }, Math.min(a.y,b.y)-.25));
     }
   }
@@ -148,7 +148,7 @@ export function mainPlazaDecks(_roadMask: MultiPolygon = []) {
 export function MainGrounds({ roadMask, pavementMask = roadMask }: { roadMask: MultiPolygon; pavementMask?: MultiPolygon }) {
   const campus = useCampusStore(s => s.campus)!;
   const parts = useMemo(makeMainGroundsParts, []), decks = useMemo(() => [...mainAccessDecks(roadMask, pavementMask, tourElevation(campus)), ...mainPlazaDecks(pavementMask)], [roadMask, pavementMask, campus]);
-  const walls = useMemo(() => mainRetainingWalls(roadMask), [roadMask]);
+  const walls = useMemo(() => mainRetainingWalls(roadMask, tourElevation(campus)), [roadMask, campus]);
   useEffect(() => () => walls.forEach(g => g.dispose()), [walls]);
   const paving = useSurfaceMaps('paving'), asphalt = useSurfaceMaps('asphalt'), grass = useSurfaceMaps('grass');
   useEffect(() => () => decks.forEach(g => g.dispose()), [decks]);
