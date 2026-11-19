@@ -1,5 +1,5 @@
 import { MUSIC_ACCESS_PATH } from './musicForecourt';
-import { FIELD_WALK } from './fieldWalk';
+import { FIELD_WALK, FIELD_WALK_ENTRY } from './fieldWalk';
 import { FOUNTAIN_WALK } from './fountainSite';
 import { straightenSpineNodes, spinePoint, spineDistanceAtZ } from './campusSpine';
 import { MAIN_ENTRANCE_PATH, MAIN_ENTRY_FOOTPRINT, mainEntryLocal, isMainEntryStair } from './mainEntrance';
@@ -26,14 +26,17 @@ function withConfirmedRoad(graph: PathGraph): PathGraph {
     // 이공관 앞 정원: 남쪽 도로에서 가운데 수풀을 돌아 출입문 앞까지 걷는 벽돌 통로.
     ...SCIENCE_GARDEN_WALK.map(([x, z], i) => ({ id: `tour_science_garden_${i}`, x, y: 0, z, type: 'junction' as const, building_id: null, floor_index: null }))];
   nodes.push(...FIELD_WALK.map(([x, z], i) => ({ id: `tour_field_walk_${i}`, x, z, y: 0, type: 'junction' as const, building_id: null, floor_index: null })));
+  const [entryX, entryZ] = FIELD_WALK_ENTRY[1]!;
+  nodes.push({ id: 'tour_field_entry', x: entryX, z: entryZ, y: 0, type: 'junction', building_id: null, floor_index: null });
   const [mx, mz] = spinePoint(spineDistanceAtZ(35));
   nodes.push({ id: 'tour_music_road', x: mx, z: mz, y: 0, type: 'junction', building_id: null, floor_index: null });
   nodes.push(...FOUNTAIN_WALK.slice(0, -1).map(([x, z], i) => ({ id: `tour_fountain_${i}`, x, z, y: 0, type: 'junction' as const, building_id: null, floor_index: null })));
   const chains = [['n30', 'tour_fountain_0', 'tour_music_road', 'n56'], ['n133', ...nodes.slice(0, 3).map(n => n.id), 'n99'], ['tour_south_1', 'tour_science_0', ...SCIENCE_GARDEN_WALK.map((_, i) => `tour_science_garden_${i}`), 'tour_science_1'], [...FOUNTAIN_WALK.slice(0, -1).map((_, i) => `tour_fountain_${i}`), ...FIELD_WALK.map((_, i) => `tour_field_walk_${i}`), 'n79']];
+  if (graph.nodes.some(n => n.id === 'n74')) chains.push(['n74', 'tour_field_entry', 'tour_field_walk_0']);
   const all = new Map([...graph.nodes, ...nodes].map(n => [n.id, n]));
   return { ...graph, nodes: [...graph.nodes, ...nodes], edges: [...graph.edges.filter(e => !([e.a, e.b].includes('n30') && [e.a, e.b].includes('n56')) && !([e.a, e.b].includes('n58') && [e.a, e.b].includes('n66')) && !([e.a, e.b].includes('n79') && [e.a, e.b].includes('n64'))), ...chains.flatMap(ids => ids.slice(1).map((b, i) => {
     const a = ids[i]!, p = all.get(a)!, q = all.get(b)!;
-    return { a, b, kind: a.startsWith('tour_science_garden_') || b.startsWith('tour_science_garden_') || a.startsWith('tour_field_walk_') || b.startsWith('tour_field_walk_') || a.startsWith('tour_fountain_') && b !== 'tour_music_road' || b.startsWith('tour_fountain_') && a !== 'n30' ? 'walk' as const : 'road' as const, length: Math.hypot(q.x - p.x, q.z - p.z) };
+    return { a, b, kind: a.startsWith('tour_science_garden_') || b.startsWith('tour_science_garden_') || a.startsWith('tour_field_') || b.startsWith('tour_field_') || a.startsWith('tour_fountain_') && b !== 'tour_music_road' || b.startsWith('tour_fountain_') && a !== 'n30' ? 'walk' as const : 'road' as const, length: Math.hypot(q.x - p.x, q.z - p.z) };
   }))] };
 }
 
