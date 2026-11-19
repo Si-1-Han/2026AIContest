@@ -8,7 +8,7 @@ import { MUSIC_FORECOURT_LEVEL, PARKING_LEVEL, UPPER_CAMPUS_LEVEL, SLOPE_GAIN } 
 import { frontageGrade, BUILDING_FRONTAGE, FRONTAGE_FLAT_CLIP } from './buildingFrontage';
 import { inFountainSite, fountainSurface } from './fountainSite';
 import clipping from 'polygon-clipping';
-import { fieldWalkGrade } from './fieldWalk';
+import { FIELD_ENTRY_FLAT_Z, FIELD_ENTRY_GRADE_REGION, fieldWalkGrade } from './fieldWalk';
 
 type Point = [number, number];
 type Anchor = [number, number, number];
@@ -40,7 +40,8 @@ export function pavementPads(campus: CampusData) {
   if (campus.buildings.some(b => b.id === 'main')) parking.push({ ring: MAIN_STREET, y: MAIN_ENTRY_BASE }, { ring: MAIN_PARKING, y: MAIN_ENTRY_BASE });
   if (campus.buildings.some(b => b.id === 'music')) parking.push({ ring: MUSIC_SITE, y: MUSIC_FORECOURT_LEVEL });
   // 대학원관 앞 보도 중 교차로 오르막에 걸친 북쪽 끝은 경사면으로 따로 만든다.
-  for (const poly of clipping.intersection([BUILDING_FRONTAGE], [FRONTAGE_FLAT_CLIP])) parking.push({ ring: poly[0]! as Point[], y: MUSIC_FORECOURT_LEVEL });
+  const flatFrontage = clipping.intersection([BUILDING_FRONTAGE], [FRONTAGE_FLAT_CLIP]);
+  for (const poly of clipping.difference(flatFrontage, [FIELD_ENTRY_GRADE_REGION])) parking.push({ ring: poly[0]! as Point[], y: MUSIC_FORECOURT_LEVEL });
   parking.push({ ring: CENTRAL_PARKING_APRON, y: PARKING_LEVEL });
   return parking;
 }
@@ -58,6 +59,8 @@ export function pavementGrade(campus: CampusData, profiles: { id: string; points
     const spine = spineLocal(x, z);
     if (spine.along >= -0.002 && spine.along <= SPINE_LENGTH + 0.002 && Math.abs(spine.side) <= 5.302) return spineGrade((spinePoint(spine.along))[1]);
     const ramp = spineRampGrade(x, z); if (ramp !== undefined) return ramp;
+    const fieldEntry = z < FIELD_ENTRY_FLAT_Z ? fieldWalkGrade(x, z) : undefined;
+    if (fieldEntry !== undefined) return fieldEntry;
     const pad = parking.find(p => inPolygon(x, z, p.ring));
     if (pad) return pad.y;
     const frontage = frontageGrade(campus, x, z); if (frontage !== undefined) return frontage;
@@ -99,6 +102,8 @@ export function pavementGrade(campus: CampusData, profiles: { id: string; points
     const spine = spineLocal(x, z);
     if (spine.along >= -0.002 && spine.along <= SPINE_LENGTH + 0.002 && Math.abs(spine.side) <= 5.302) return spineGrade((spinePoint(spine.along))[1]);
     const ramp = spineRampGrade(x, z); if (ramp !== undefined) return ramp;
+    const fieldEntry = z < FIELD_ENTRY_FLAT_Z ? fieldWalkGrade(x, z) : undefined;
+    if (fieldEntry !== undefined) return fieldEntry;
     const pad = parking.find(p => inPolygon(x, z, p.ring));
     if (pad) return pad.y;
     const { u, v } = mainEntryLocal(x, z);
