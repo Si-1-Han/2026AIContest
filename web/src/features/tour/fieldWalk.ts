@@ -4,34 +4,55 @@ import { MUSIC_FORECOURT_LEVEL } from './elevationLevels';
 
 /** 사진·지도에서 확인한 대학원관/디자인관과 운동장 사이의 음악관 방향 보행로. */
 export const FIELD_WALK = [
-  [-26.8, -122], [-24.4, -111], [-19.8, -99], [-17.5, -87], [-13.3, -62], [-9.2, -37], [-6.8, -22], [-10.1, -14],
+  FOUNTAIN_FIELD_LINK.at(-1)!, [-24.4, -111], [-19.8, -99], [-17.5, -87], [-13.3, -62], [-9.2, -37], [-6.8, -22], [-10.1, -14],
 ] as [number, number][];
+/** 차도 중심에서 시작해 보도 메시가 실제 차도 가장자리까지 이어지게 한다. */
+export const FIELD_WALK_ENTRY: [number, number][] = [[-23.19, -131.78], [-25.5, -126], FIELD_WALK[0]!];
+export const FIELD_ENTRY_WIDTH = 3.3;
+export const FIELD_ENTRY_FLAT_Z = -116;
+export const FIELD_ENTRY_GRADE_REGION: [number, number][] = [[-30, -129], [-22, -129], [-21, FIELD_ENTRY_FLAT_Z], [-29, FIELD_ENTRY_FLAT_Z]];
 export const FIELD_WALK_WIDTH = 1.7;
 export const FIELD_GATE_OPENINGS = [0.045, 0.97];
-/** 운동장 옆 사잇길은 운동장과 같은 평지. 분수→사잇길 연결부는 분수 삼각지 경사면을 그대로 따른다. */
+const clamp = (t: number) => Math.max(0, Math.min(1, t));
+function entryLevel(x: number, z: number) {
+  const start = -128.4;
+  if (z <= start) return fountainSurface(x, z);
+  if (z >= FIELD_ENTRY_FLAT_Z) return MUSIC_FORECOURT_LEVEL;
+  const road = fountainSurface(x, start);
+  return road + (MUSIC_FORECOURT_LEVEL - road) * (z - start) / (FIELD_ENTRY_FLAT_Z - start);
+}
+/** 차도 높이에서 출발해 사잇길 초입을 지나면서 운동장 높이에 이른다. */
 function nearestFieldGrade(x: number, z: number) {
-  let nearest = { distance: Infinity, y: 0 };
-  const lengths = FOUNTAIN_FIELD_LINK.slice(1).map((p, i) => Math.hypot(p[0] - FOUNTAIN_FIELD_LINK[i]![0], p[1] - FOUNTAIN_FIELD_LINK[i]![1]));
-  FOUNTAIN_FIELD_LINK.slice(1).forEach((b, i) => {
-    const a = FOUNTAIN_FIELD_LINK[i]!, dx = b[0] - a[0], dz = b[1] - a[1], len = lengths[i]!;
-    const t = Math.max(0, Math.min(1, ((x - a[0]) * dx + (z - a[1]) * dz) / (len * len)));
-    const distance = Math.hypot(x - a[0] - dx * t, z - a[1] - dz * t);
-    if (distance < nearest.distance) nearest = { distance, y: fountainSurface(x, z) };
-  });
-  FIELD_WALK.slice(1).forEach((b,i)=>{
-    const a=FIELD_WALK[i]!,dx=b[0]-a[0],dz=b[1]-a[1],t=Math.max(0,Math.min(1,((x-a[0])*dx+(z-a[1])*dz)/(dx*dx+dz*dz)));
-    const distance=Math.hypot(x-a[0]-dx*t,z-a[1]-dz*t);
-    if(distance<nearest.distance)nearest={distance,y:MUSIC_FORECOURT_LEVEL};
-  });
+  let nearest = { distance: Infinity, fountainLink: false };
+  for (const [path, fountainLink] of [[FOUNTAIN_FIELD_LINK, true], [FIELD_WALK_ENTRY, false], [FIELD_WALK, false]] as const) {
+    for (let i = 1; i < path.length; i++) {
+      const a = path[i - 1]!, b = path[i]!, dx = b[0] - a[0], dz = b[1] - a[1];
+      const t = clamp(((x - a[0]) * dx + (z - a[1]) * dz) / (dx * dx + dz * dz));
+      const distance = Math.hypot(x - a[0] - dx * t, z - a[1] - dz * t);
+      if (distance < nearest.distance) nearest = { distance, fountainLink };
+    }
+  }
   return nearest;
 }
-export function fieldWalkGrade(x: number, z: number) {
-  const nearest=nearestFieldGrade(x,z);
-  return nearest.distance<1.5?nearest.y:undefined;
+function fieldGradeLevel(x: number, z: number, fountainLink: boolean) {
+  const grade = entryLevel(x, z);
+  if (!fountainLink) return grade;
+  const entrance = FIELD_WALK[0]!;
+  const blend = clamp(1 - Math.hypot(x - entrance[0], z - entrance[1]) / 8);
+  const plaza = fountainSurface(x, z);
+  return plaza + (grade - plaza) * blend * blend * (3 - 2 * blend);
 }
-export function fieldWalkGround(x: number,z:number,original:number){
-  const nearest=nearestFieldGrade(x,z),t=Math.max(0,Math.min(1,(nearest.distance-1.5)/7));
-  return nearest.y+(original-nearest.y)*t*t*(3-2*t);
+export function fieldWalkGrade(x: number, z: number) {
+  const nearest = nearestFieldGrade(x, z);
+  if (nearest.distance >= (z < FIELD_ENTRY_FLAT_Z ? FIELD_ENTRY_WIDTH / 2 + 0.15 : 1.5)) return undefined;
+  return fieldGradeLevel(x, z, nearest.fountainLink);
+}
+export function fieldWalkGround(x: number, z: number, original: number) {
+  const nearest = nearestFieldGrade(x, z);
+  const t = clamp((nearest.distance - 1.5) / 7);
+  if (t === 1) return original;
+  const grade = fieldGradeLevel(x, z, nearest.fountainLink);
+  return grade + (original - grade) * t * t * (3 - 2 * t);
 }
 /** 원본 외곽에는 보행 공간까지 포함돼 있어, 투어에서만 펜스를 안쪽으로 물린다. */
 export function tourFieldFootprint(area: OutdoorArea): [number, number][] {
