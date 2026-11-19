@@ -14,11 +14,13 @@ import { RoomLayer } from './RoomLayer';
 import { RouteLine } from './RouteLine';
 import { useTourStore } from '../store/useTourStore';
 import { StreetViewCamera } from '../camera/StreetViewCamera';
+import { FlightCamera } from '../camera/FlightCamera';
 import { OutdoorMarkerProjector } from '../ui/OutdoorMarkers';
 const TourWorld = lazy(() => import('./tour/TourWorld').then(module => ({ default: module.TourWorld })));
 
 export function CampusScene() {
   const tourActive = useTourStore(s => s.active);
+  const tourView = useTourStore(s => s.view);
   // 빈 곳 클릭: 강의실 선택 해제 → (층 분해 보기에서만) 건물 선택 해제. 층 보기는 뒤로 버튼으로 나간다.
   const onMissed = () => {
     if (useTourStore.getState().active) return;
@@ -37,7 +39,7 @@ export function CampusScene() {
       {tourActive ? (
         <Suspense fallback={null}>
           <TourWorld />
-          <StreetViewCamera />
+          {tourView === 'flight' ? <FlightCamera /> : <StreetViewCamera />}
         </Suspense>
       ) : (
         <>
