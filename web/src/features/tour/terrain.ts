@@ -3,7 +3,7 @@ import { mainEntryGround } from './mainEntrance';
 import { mainSiteGround } from './mainBuildingAccess';
 import { MAIN_ENTRY_BASE } from './mainEntrance';
 import { pavementGrade } from './pavementGrade';
-import { fountainGround, fountainPlaza, fountainSurface, fountainSiteDistance } from './fountainSite';
+import { FOUNTAIN_CENTER, FOUNTAIN_RADIUS, fountainGround, fountainPlaza, fountainPlazaLevel, fountainSurface, fountainSiteDistance } from './fountainSite';
 import { spineDistanceAtZ, spinePoint, spineLocal } from './campusSpine';
 import { frontageGround } from './buildingFrontage';
 import { fieldWalkGround } from './fieldWalk';
@@ -99,6 +99,11 @@ export function tourElevation(campus: CampusData) {
     // 본관 교차로 → 대학원관 오르막: 분수 삼각지는 하나의 경사면이 최종 높이다. 도로 단면만 그 위에 유지한다.
     const site = fountainSiteDistance(x, z);
     if (site < 5) { const surface = grade(x, z, fountainSurface(x, z)); result = surface + (result - surface) * smooth(0, 5, site); }
+    const basinDistance = Math.hypot(x - FOUNTAIN_CENTER[0], z - FOUNTAIN_CENTER[1]);
+    const basinRim = FOUNTAIN_RADIUS + 0.2;
+    if (basinDistance < basinRim + 0.8) {
+      result = blend(fountainPlazaLevel(x, z), result, smooth(basinRim, basinRim + 0.8, basinDistance));
+    }
     // 서측 직선 차도 바깥(주택가 쪽) 지면도 로드뷰처럼 차도 오르막과 나란히 오른다.
     const west = spineLocal(x, z);
     if (-west.side > 5.3 && -west.side < 32 && z > APPROACH_START_Z - 12 && z < APPROACH_TOP_Z + 8) {
