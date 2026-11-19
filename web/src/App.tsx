@@ -50,8 +50,12 @@ export default function App() {
   useEffect(() => {
     const onKey = (e: KeyboardEvent) => {
       if (e.key === 'Escape' && !(e.target instanceof HTMLInputElement)) {
-        if (useTourStore.getState().active) useTourStore.getState().stop();
-        else useCampusStore.getState().back();
+        const tour = useTourStore.getState();
+        if (!tour.active) useCampusStore.getState().back();
+        else if (!e.repeat) {
+          if (tour.view === 'street') tour.stop();
+          else if (!document.pointerLockElement) tour.setView('street');
+        }
       }
     };
     window.addEventListener('keydown', onKey);
