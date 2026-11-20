@@ -70,6 +70,9 @@ export function BackgroundMusic() {
         preload="none"
         onError={() => setError(true)}
       />
+      <span className="whitespace-nowrap rounded-full border border-white/15 bg-slate-950/80 px-2.5 py-1 text-xs text-slate-200 shadow-lg backdrop-blur-md">
+        AI 생성 음악 · Suno
+      </span>
       <button
         type="button"
         onClick={() => {
