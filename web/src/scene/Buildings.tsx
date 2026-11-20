@@ -3,9 +3,9 @@ import { useFrame, type ThreeEvent } from '@react-three/fiber';
 import { useEffect, useMemo, useRef } from 'react';
 import * as THREE from 'three';
 import { COLORS } from '../config';
-import { extrudeFootprint } from '../lib/geometry';
 import { useCampusStore } from '../store/useCampusStore';
 import type { Building, FloorInfo } from '../types/generated/campus';
+import { makeBuildingFacade, makeBuildingShell } from './buildingAppearance';
 import { bounds, explodedBase, floorPose, totalHeight, type ViewMode } from './layout';
 
 /** 건물이 땅에서 솟아오르는 등장 연출 (인트로 1차 버전) */
@@ -136,11 +136,17 @@ function FloorSlab({
     (s) => s.interiors[building.id]?.floors.find((f) => f.index === floor.index)?.outline,
   );
   const outline = interiorOutline ?? floor.outline;
+  const topFloor = floor.index === building.floors.length - 1;
   const geometry = useMemo(
-    () => extrudeFootprint(outline, building.floor_height),
-    [outline, building.floor_height],
+    () => makeBuildingShell(outline, building.floor_height, building.id, floor.index),
+    [outline, building.floor_height, building.id, floor.index],
+  );
+  const facade = useMemo(
+    () => makeBuildingFacade(outline, building.floor_height, building.id, floor.index, topFloor),
+    [outline, building.floor_height, building.id, floor.index, topFloor],
   );
   useEffect(() => () => geometry.dispose(), [geometry]);
+  useEffect(() => () => facade?.dispose(), [facade]);
 
   const target = floorPose(building, floor, mode, dimmed);
   const isPlate = mode.kind === 'floor' && mode.index === floor.index;
@@ -148,6 +154,7 @@ function FloorSlab({
 
   const mesh = useRef<THREE.Mesh>(null);
   const mat = useRef<THREE.MeshStandardMaterial>(null);
+  const facadeMat = useRef<THREE.MeshStandardMaterial>(null);
 
   useFrame((_, delta) => {
     const m = mesh.current;
@@ -156,18 +163,11 @@ function FloorSlab({
     m.position.y += (target.y - m.position.y) * k;
     m.scale.y += (target.scaleY - m.scale.y) * k;
     mat.current.opacity += (target.opacity - mat.current.opacity) * k;
+    if (facadeMat.current) facadeMat.current.opacity = mat.current.opacity;
     m.visible = mat.current.opacity > 0.02;
     // 숨겨진 위층이 클릭을 가로채지 않게
     m.raycast = target.opacity < 0.05 ? NO_RAYCAST : THREE.Mesh.prototype.raycast;
   });
-
-  const color = isPlate
-    ? '#1d3f66'
-    : hovered && mode.kind !== 'floor'
-      ? COLORS.buildingHover
-      : mode.kind === 'building'
-        ? '#c0e6ff'
-        : COLORS.building;
 
   return (
     <mesh
@@ -180,7 +180,8 @@ function FloorSlab({
     >
       <meshStandardMaterial
         ref={mat}
-        color={color}
+        vertexColors={!isPlate}
+        color={isPlate ? '#1d3f66' : '#ffffff'}
         roughness={0.55}
         metalness={0.05}
         transparent
@@ -188,11 +189,22 @@ function FloorSlab({
         emissive={COLORS.edge}
         emissiveIntensity={hovered && mode.kind === 'campus' ? 0.18 : 0}
       />
+      {facade && !isPlate && (
+        <mesh geometry={facade} receiveShadow raycast={NO_RAYCAST}>
+          <meshStandardMaterial
+            ref={facadeMat}
+            vertexColors
+            roughness={0.6}
+            transparent
+            depthWrite={target.opacity > 0.5}
+          />
+        </mesh>
+      )}
       <Edges
         threshold={20}
         color={COLORS.edge}
         transparent
-        opacity={dimmed ? 0.06 : isPlate ? 1 : mode.kind === 'floor' ? 0.2 : 0.28}
+        opacity={dimmed ? 0.06 : isPlate ? 1 : mode.kind === 'floor' ? 0.2 : hovered ? 0.75 : 0.28}
       />
     </mesh>
   );
@@ -211,7 +223,7 @@ function SimpleBlock({
   selected: boolean;
 }) {
   const geometry = useMemo(
-    () => extrudeFootprint(building.footprint, totalHeight(building)),
+    () => makeBuildingShell(building.footprint, totalHeight(building), building.id),
     [building],
   );
   useEffect(() => () => geometry.dispose(), [geometry]);
@@ -219,7 +231,7 @@ function SimpleBlock({
   return (
     <mesh geometry={geometry} castShadow receiveShadow {...pointer}>
       <meshStandardMaterial
-        color={selected ? COLORS.buildingSelected : hovered ? COLORS.buildingHover : COLORS.building}
+        vertexColors
         transparent
         opacity={dimmed ? 0.16 : 1}
         emissive={COLORS.edge}
