@@ -57,13 +57,16 @@ export function accessStrip(a: MainAccessNode, b: MainAccessNode, width: number)
 }
 export const MAIN_FRONT_PLAZA = mainSitePolygon([[-7, 8.2], [7, 8.2], [7, 10.2], [-7, 10.2]]);
 // 아스팔트 대지는 외벽까지 붙고, 오른쪽 1층 진입부만 별도의 낮은 길로 판다.
-export const MAIN_STREET = mainSitePolygon([[-40, -48], [42, -48], [42, 28], [-40, 28]]);
+// 북쪽 끝은 본관 북측 외벽(u≈41.8) 안쪽에서 멈춘다. 42까지 두면 3층 입구 옆 외벽을 따라 1층 높이의 아스팔트 띠가 남아
+// 3층 진입 데크와 겹치고, 그 띠와 입구 지면 사이에 5m 넘는 잔디 절벽이 생긴다.
+export const MAIN_STREET_NORTH_U = 41.7;
+export const MAIN_STREET = mainSitePolygon([[-40, -48], [MAIN_STREET_NORTH_U, -48], [MAIN_STREET_NORTH_U, 28], [-40, 28]]);
 export const MAIN_LOWER_CUT = mainSitePolygon([[16.4, -.15], [21.6, -.15], [21.6, 16.25], [16.4, 16.25]]);
 export const MAIN_STAIR_SITE = mainSitePolygon([[-7.05, -.1], [7.05, -.1], [7.05, 8.35], [-7.05, 8.35]]);
 export const MAIN_STAIR_PLANTERS = [-1, 1].map(side => mainSitePolygon([[side * 7.05, .6], [side * 14.8, .6], [side * 16.2, 2], [side * 16.2, 8.4], [side * 14.8, 10.2], [side * 7.05, 8.35]]));
 export const mainPlanterHeight = (v: number) => MAIN_ENTRY_FLOOR - .15 + (MAIN_ENTRY_BASE + .12 - MAIN_ENTRY_FLOOR + .15) * (v - .6) / 9.6;
 export function inMainStreet(x: number, z: number, margin = 0) {
-  const {u,v}=mainEntryLocal(x,z); return u >= -40-margin && u <= 42+margin && v >= -48-margin && v <= 28+margin;
+  const {u,v}=mainEntryLocal(x,z); return u >= -40-margin && u <= MAIN_STREET_NORTH_U+margin && v >= -48-margin && v <= 28+margin;
 }
 export function mainLowerGrade(x: number, z: number) {
   const {u,v}=mainEntryLocal(x,z);
@@ -98,11 +101,37 @@ export function mainSiteGround(x: number, z: number, original: number) {
   let y = original;
   const mix = (target: number, w: number) => { y += (target - y) * Math.max(0, Math.min(1, w)); };
   if (u < -18 && u > -44 && v > -49 && v < 16) mix(MAIN_PARKING_LEVEL, Math.min((u + 44) / 4, (-18 - u) / 3, (v + 49) / 4, (16 - v) / 4));
-  if (u > 42.2) {
-    const p = samplePath(x, z, [MAIN_UPPER_ROAD, ...MAIN_UPPER_PATH]); mix(p.y, Math.min((7 - p.distance) / 3.5, (87 - u) / 8));
+  if (u > MAIN_STREET_NORTH_U - 0.1) {
+    // 3층 진입로 양옆은 데크 높이에서 시작해 높이 차에 비례한 폭(약 1:3)으로 원지형까지 내려가는 비탈이다.
+    // 고정 폭(3.5m)으로 섞으면 입구 옆에 5m 높이 잔디 벽이 서고, 외벽 쪽 경계(u=42.2)에서는 지면이 끊긴다.
+    const p = samplePath(x, z, [MAIN_UPPER_ROAD, ...MAIN_UPPER_PATH]);
+    const half = mainAccessWidth(MAIN_UPPER_PATH) / 2 + 0.35, reach = Math.max(3.5, Math.abs(p.y - y) * 3.2);
+    const t = Math.max(0, Math.min(1, (p.distance - half) / reach));
+    mix(p.y, Math.min(1 - t * t * (3 - 2 * t), (87 - u) / 8));
   }
   if (u > 51 && u < 82 && v > -44 && v < -21) mix(MAIN_GARDEN_LEVEL - 0.05, Math.min((u - 51) / 6, (82 - u) / 5, (v + 44) / 5, (-21 - v) / 3));
   return y;
+}
+/**
+ * 차도 → 3층 진입 경사로 시작부(upper_turn→upper_ramp)의 노면과 양옆 지면.
+ * 경사로 노면은 지면 위에 따로 얹지 않고 지면 자체가 이 단면을 따른다. 그래서 차도 근처에서 도로 높이로 눌린 잔디 옆으로
+ * 데크 옆면(콘크리트 쐐기)이 드러나지 않는다. 경사로 양옆은 높이 차에 비례한 폭으로 원지형까지 내려간다.
+ */
+const UPPER_TURN = mainEntryLocal(MAIN_UPPER_PATH[0]!.x, MAIN_UPPER_PATH[0]!.z), UPPER_RAMP = mainEntryLocal(MAIN_UPPER_PATH[1]!.x, MAIN_UPPER_PATH[1]!.z);
+export function mainUpperFootLevel(u: number) {
+  const t = Math.max(0, Math.min(1, (UPPER_TURN.u - u) / (UPPER_TURN.u - UPPER_RAMP.u)));
+  return MAIN_UPPER_PATH[0]!.y + (MAIN_UPPER_PATH[1]!.y - MAIN_UPPER_PATH[0]!.y) * t;
+}
+export function mainUpperFootGround(x: number, z: number, original: number) {
+  const { u, v } = mainEntryLocal(x, z);
+  if (u < UPPER_RAMP.u - 2 || u > UPPER_TURN.u) return original;
+  const smooth = (t: number) => { const c = Math.max(0, Math.min(1, t)); return c * c * (3 - 2 * c); };
+  const target = mainUpperFootLevel(u);
+  const side = Math.abs(v - UPPER_TURN.v) - (mainAccessWidth(MAIN_UPPER_PATH) / 2 + 0.35);
+  const reach = Math.max(2.5, Math.abs(target - original) * 3.2);
+  // 차도 가장자리(u=turn)에서는 도로 노면 높이를 그대로 두고 1.7m 안쪽부터 경사로 단면을 따른다.
+  const w = (side <= 0 ? 1 : 1 - smooth(side / reach)) * smooth((UPPER_TURN.u - u) / 1.7) * smooth((u - UPPER_RAMP.u + 2) / 2);
+  return original + (target - original) * w;
 }
 export function inMainSite(x: number, z: number, margin = 0) {
   const { u, v } = mainEntryLocal(x, z);

@@ -9,6 +9,8 @@ import { frontageGrade, BUILDING_FRONTAGE, FRONTAGE_FLAT_CLIP } from './building
 import { inFountainSite, fountainSurface } from './fountainSite';
 import clipping from 'polygon-clipping';
 import { FIELD_ENTRY_FLAT_Z, FIELD_ENTRY_GRADE_REGION, fieldWalkGrade } from './fieldWalk';
+import { SOUTH_LINK } from './southLink';
+import { baseTerrain } from './baseTerrain';
 
 type Point = [number, number];
 type Anchor = [number, number, number];
@@ -68,9 +70,12 @@ export function pavementGrade(campus: CampusData, profiles: { id: string; points
     // 분수 삼각지를 가로지르는 연결 차도는 삼각지 경사면을 그대로 따른다.
     if (inFountainSite(x, z)) return fountainSurface(x, z);
     // 중앙 주차장 내부 교차로는 수평이며 서측 진입 경사는 위에서 별도로 처리한다.
-    if (z >= 36 && z <= 146 && x > -54 && x < 34) return PARKING_LEVEL;
+    // 동쪽 경계(x≈27.4)를 지난 로뎀관 방향 교차점은 오르막 단면을 따른다. 33m까지 평지로 두면 1.8m 구간에 0.5m 턱이 생긴다.
+    if (z >= 36 && z <= 146 && x > -54 && x < 33) return PARKING_LEVEL;
     const nearest = profileSegments.map(p => sample(x, z, p.a, p.b)).reduce((a, b) => a.distance < b.distance ? a : b);
     if (nearest.distance < 25) return nearest.y;
+    // 교외(경계 밖) 교차점은 원지형 높이를 쓴다. 교내 기본값(4단)을 쓰면 정문 밖 도로가 5m 둑 위로 올라간다.
+    if (!inPolygon(x, z, campus.boundary as Point[])) return baseTerrain(x, z);
     if (z >= 170) return UPPER_CAMPUS_LEVEL;
     if (z >= 35) return PARKING_LEVEL;
     // GEMI관 옆 서측 직선 도로는 본관 교차로부터 음악관까지 일정한 오르막.
@@ -78,24 +83,47 @@ export function pavementGrade(campus: CampusData, profiles: { id: string; points
     return 4 * SLOPE_GAIN + (PARKING_LEVEL - 4 * SLOPE_GAIN) * clamp(z / 36);
   };
   const nodes = new Map(straightenSpineNodes(graph.nodes).map(n => [n.id, [n.x, n.z, level(n.x, n.z)] as Anchor]));
+  // 투어에 그려지지 않는 교외 도로까지 포장 고도로 올리면 본관 남쪽 등에 5m 높이의 잔디 둑이 생긴다.
+  // 투어 보행망과 같은 기준(교내 또는 경계 8m 이내)의 도로만 노면 고도를 만든다.
+  const boundary = campus.boundary as Point[];
+  const nearCampus = (x: number, z: number) => inPolygon(x, z, boundary) || boundary.some((v, i) => sample(x, z, [v[0], v[1], 0], [boundary[(i + 1) % boundary.length]![0], boundary[(i + 1) % boundary.length]![1], 0]).distance < 8);
+  const nearEdge = (e: { a: string; b: string }) => {
+    const a = nodes.get(e.a), b = nodes.get(e.b);
+    if (!a || !b) return false;
+    const count = Math.max(1, Math.ceil(Math.hypot(b[0] - a[0], b[1] - a[1]) / 10));
+    return Array.from({ length: count + 1 }, (_, i) => i / count).every(t => nearCampus(a[0] + (b[0] - a[0]) * t, a[1] + (b[1] - a[1]) * t));
+  };
+  // 정문에서 이어지지 않는 경계 밖 도로 조각(원본의 분리된 연결 요소)도 제외한다.
+  const links = new Map<string, string[]>();
+  for (const e of graph.edges) if (e.kind !== 'stairs' && nearEdge(e)) { links.set(e.a, [...links.get(e.a) ?? [], e.b]); links.set(e.b, [...links.get(e.b) ?? [], e.a]); }
+  const [gx, gz] = campus.outdoor_areas?.find(v => v.id === 'gate_main')?.center ?? [-122.13, -217.57];
+  const startNode = [...links.keys()].reduce((best, id) => { const p = nodes.get(id)!, q = nodes.get(best)!; return Math.hypot(p[0] - gx!, p[1] - gz!) < Math.hypot(q[0] - gx!, q[1] - gz!) ? id : best; });
+  const reached = new Set([startNode]), queue = [startNode];
+  for (let i = 0; i < queue.length; i++) for (const id of links.get(queue[i]!) ?? []) if (!reached.has(id)) { reached.add(id); queue.push(id); }
   const roads = graph.edges.filter(e => e.kind === 'road' && !([e.a, e.b].includes('n58') && [e.a, e.b].includes('n66'))).flatMap(e => {
     const a = nodes.get(e.a)!, b = nodes.get(e.b)!;
-    if (!a || !b) return [];
+    if (!a || !b || !nearEdge(e) || !reached.has(e.a) || !reached.has(e.b)) return [];
     const dx = b[0] - a[0], dz = b[1] - a[1], length2 = dx * dx + dz * dz;
     const stops = [{ p: a, t: 0 }, { p: b, t: 1 }];
     for (const profile of profiles) for (const p of profile.points) {
       const t = ((p[0] - a[0]) * dx + (p[1] - a[1]) * dz) / length2;
       if (t > 0.001 && t < 0.999 && sample(p[0], p[1], a, b).distance < 0.01) stops.push({ p, t });
     }
-    for (let i=0;i<MAIN_STREET.length;i++) {
-      const c=MAIN_STREET[i]!,d=MAIN_STREET[(i+1)%MAIN_STREET.length]!,ex=d[0]-c[0],ez=d[1]-c[1],det=dx*ez-dz*ex;
+    // 수평 대지(본관 앞 거리·주차장 등)의 경계에서는 도로도 대지 높이에서 출발한다.
+    // 경계 바깥 구간만 다음 교차점까지 기울여, 대지 안팎에서 높이가 튀는 턱을 없앤다.
+    for (const { ring, y } of [{ ring: MAIN_STREET, y: MAIN_ENTRY_BASE }, ...parking]) for (let i=0;i<ring.length;i++) {
+      const c=ring[i]!,d=ring[(i+1)%ring.length]!,ex=d[0]-c[0],ez=d[1]-c[1],det=dx*ez-dz*ex;
       if(Math.abs(det)<1e-9) continue;
       const px=c[0]-a[0],pz=c[1]-a[1],t=(px*ez-pz*ex)/det,q=(px*dz-pz*dx)/det;
-      if(t>0.00001&&t<.99999&&q>=0&&q<=1) stops.push({p:[a[0]+dx*t,a[1]+dz*t,MAIN_ENTRY_BASE],t});
+      if(t>0.00001&&t<.99999&&q>=0&&q<=1) stops.push({p:[a[0]+dx*t,a[1]+dz*t,y],t});
     }
     const ordered = stops.sort((a, b) => a.t - b.t).filter((p, i, all) => !i || p.t - all[i - 1]!.t > 0.00001);
     return ordered.slice(1).map((b, i) => ({ a: ordered[i]!.p, b: b.p }));
   });
+  // 투어가 원본 그래프에 더한 학생회관 서측 → 이공관 앞 연결 차도도 같은 노면 고도를 쓴다.
+  // 빠지면 차도 남쪽 절반이 원지형으로 끌려 올라가 연석·보도가 비틀린다.
+  const southLink = SOUTH_LINK.map(([x, z]): Anchor => [x, z, level(x, z)]);
+  roads.push(...southLink.slice(1).map((b, i) => ({ a: southLink[i]!, b })));
   return (x: number, z: number, original: number) => {
     const lower = mainLowerGrade(x,z); if (lower !== undefined) return lower;
     if (inMainStreet(x,z)) return MAIN_ENTRY_BASE;

@@ -1,4 +1,4 @@
-import { MUSIC_ACCESS_PATH } from './musicForecourt';
+import { MUSIC_ACCESS_PATH, GEMI_MUSIC_GAP_PATH, GEMI_MUSIC_GAP_CHAIN } from './musicForecourt';
 import { FIELD_WALK, FIELD_WALK_ENTRY } from './fieldWalk';
 import { FOUNTAIN_WALK } from './fountainSite';
 import { straightenSpineNodes, spinePoint, spineDistanceAtZ } from './campusSpine';
@@ -16,8 +16,8 @@ export interface TourCorridor { a: Point; b: Point; ay?: number; by?: number; st
 export interface TourNetwork { nodes: Record<string, TourNode>; start: string; segments: [string, string][]; kinds: Record<string, TourCorridor['kind']>; corridors: TourCorridor[] }
 export const TOUR_STEP_METERS = 30;
 
-/** 사용자 제공 지도에서 확인한 학생회관 서측 → 이공관 앞 연결길. */
-export const SOUTH_LINK: Point[] = [[63.08, 203.01], [64, 213], [34, 214], [24, 214]];
+import { SOUTH_LINK } from './southLink';
+export { SOUTH_LINK };
 
 function withConfirmedRoad(graph: PathGraph): PathGraph {
   graph = { ...graph, nodes: straightenSpineNodes(graph.nodes) };
@@ -55,7 +55,7 @@ function withVisionStairs(campus: CampusData, graph: PathGraph): PathGraph {
 
 function withMainEntrance(campus: CampusData, graph: PathGraph): PathGraph {
   if (!campus.buildings.some(b => b.id === 'main') || !graph.nodes.some(n => n.id === 'n25')) return graph;
-  const nodes = [...new Map([...MAIN_ENTRANCE_PATH, ...MAIN_ACCESS_NODES, ...MUSIC_ACCESS_PATH].map(p => [p.id, p])).values()].map(p => ({ ...p, type: 'junction' as const, building_id: null, floor_index: null }));
+  const nodes = [...new Map([...MAIN_ENTRANCE_PATH, ...MAIN_ACCESS_NODES, ...MUSIC_ACCESS_PATH, ...GEMI_MUSIC_GAP_PATH].map(p => [p.id, p])).values()].map(p => ({ ...p, type: 'junction' as const, building_id: null, floor_index: null }));
   const all = new Map([...graph.nodes, ...nodes].map(n => [n.id, n]));
   // 기존 잔디 언덕으로 들어가던 접근선을 새 계단 진입로로 대체한다.
   const edges = graph.edges.filter(e => {
@@ -82,6 +82,8 @@ function withMainEntrance(campus: CampusData, graph: PathGraph): PathGraph {
     [MAIN_UPPER_ROAD.id, ...MAIN_UPPER_PATH.map(p => p.id)],
     MAIN_GARDEN_PATH.map(p => p.id),
     ['tour_music_road', ...MUSIC_ACCESS_PATH.map(p => p.id)],
+    // GEMI관 앞 막다른 차도 끝 → GEMI관·음악관 사이 틈 → 음악관 앞 주차장.
+    GEMI_MUSIC_GAP_CHAIN,
   ];
   return { ...graph, nodes: [...graph.nodes, ...nodes], edges: [...edges, ...chains.flatMap(ids => ids.slice(1).flatMap((b, i) => {
     const a = ids[i]!, p = all.get(a), q = all.get(b);
