@@ -38,6 +38,9 @@ jobs:
           node-version: 22
           cache: npm
           cache-dependency-path: web/package-lock.json
+      - uses: astral-sh/setup-uv@v6
+      - run: uv sync --frozen
+        working-directory: backend
       - run: npm ci
       - run: npm run gen:types:check
       - run: npm run test:navigation
