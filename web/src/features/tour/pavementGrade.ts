@@ -156,12 +156,14 @@ export function pavementGrade(campus: CampusData, profiles: { id: string; points
         // 같은 직선의 경사→평지 연결은 단면 전체가 동시에 전환된다.
         if (Math.abs(ax * bz - az * bx) < 0.1 * Math.hypot(ax, az) * Math.hypot(bx, bz)) continue;
       }
-      const weight = Math.max(0, 1 - (p.distance - nearest.distance) / 1.5) ** 2;
+      // 교차로에서 경사가 다른 차도의 높이를 2.2m 폭으로 섞어 차도 가장자리에 능선이 서지 않게 한다.
+      const weight = Math.max(0, 1 - (p.distance - nearest.distance) / 2.2) ** 2;
       total += weight; y += p.y * weight;
     }
     if (total) nearest.y = y / total;
     // 같은 횡단면에서 차도와 양쪽 1.8m 보도가 같은 높이를 공유한다.
-    const t = clamp((nearest.distance - 6.8) / 3);
+    // 지면과 높이 차가 크면 그만큼 넓게 이어 차도 끝에 잔디 턱이 서지 않게 한다(높이 차 1m당 2.5m, 3~10m).
+    const t = clamp((nearest.distance - 6.8) / Math.min(10, Math.max(3, 2.5 * Math.abs(original - nearest.y))));
     let result = nearest.y + (original - nearest.y) * t * t * (3 - 2 * t);
     // 가까이 나란히 달리는 본관 안쪽 길이 정문 보도를 끌어올리지 않게 한다.
     const gateSample = gate.slice(1).map((b, i) => sample(x, z, gate[i]!, b)).reduce((a, b) => a.distance < b.distance ? a : b);

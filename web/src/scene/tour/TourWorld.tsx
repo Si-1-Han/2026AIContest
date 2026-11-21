@@ -21,6 +21,7 @@ import { RoadDrains } from './RoadDrains';
 import { BuildingPads } from './BuildingPads';
 import { ScienceGarden } from './ScienceGarden';
 import { GuardBooth } from './GuardBooth';
+import { ParkedCars } from './ParkedCars';
 import { tourElevation } from '../../features/tour/terrain';
 import { campusTerrain } from './terrainGeometry';
 
@@ -60,6 +61,7 @@ export function TourWorld() {
     <mesh geometry={ground} receiveShadow><meshStandardMaterial color="#79a950" map={grass} roughness={1} /></mesh>
     {context && <mesh geometry={context} castShadow receiveShadow><meshStandardMaterial color="#d1d7cc" roughness={0.95} /></mesh>}
     <TourRoads layout={layout} />
+    <ParkedCars bays={layout.bays} elevation={elevation} />
     <FountainCourt campus={campus} pavement={groundMask} />
     <BuildingPads campus={campus} />
     <ScienceGarden campus={campus} pavement={groundMask} />

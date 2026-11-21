@@ -9,7 +9,7 @@ import { spineDistanceAtZ, spinePoint, spineLocal } from './campusSpine';
 import { frontageGround } from './buildingFrontage';
 import { fieldWalkGround, fieldEntryGround } from './fieldWalk';
 import type { CampusData } from '../../types/generated/campus';
-import { buildingElevation, PARKING_LEVEL, UPPER_CAMPUS_LEVEL, SLOPE_GAIN } from './elevationLevels';
+import { buildingElevation, PARKING_LEVEL, MIDDLE_LEVEL, UPPER_CAMPUS_LEVEL, SLOPE_GAIN } from './elevationLevels';
 import { VISION_TERRACE_PATH, VISION_TERRACE, TERRACE_PATHS, isTerraceStair } from './visionTerrace';
 import { scienceCourtGround } from './scienceGarden';
 import { scienceSideGround } from './visionTerrace';
@@ -34,6 +34,13 @@ export const SLOPE_PROFILES: { id: string; points: Anchor[] }[] = [
   { id: 'rodem-east', points: [[68.14, 59.6, 6.2 * SLOPE_GAIN], [75.26, 77.35, eastSlopeHeight(0.15)], [80, 101.97, eastSlopeHeight(0.43)], [77.85, 129.66, eastSlopeHeight(0.68)], [67.86, 146.22, eastSlopeHeight(0.86)], [61.43, 160.18, UPPER_CAMPUS_LEVEL]] },
 ];
 const clamp = (x: number) => Math.max(0, Math.min(1, x));
+/** 대지 높이 차 1m당 잇는 거리(m)와 최대 폭. 평균 경사 약 40%, 최대 약 60%. */
+const PAD_RUN = 2.5, PAD_REACH_MAX = 20;
+const HILLSIDE_PROFILES = new Set(['music-east-link', 'rodem-east']);
+const RETAINING_BUILDINGS = new Set(['vision_center']);
+const MIDDLE_YARD: Point[] = [[12, 141.5], [24, 141.5], [55, 139.5], [56, 151], [21, 152], [16, 158], [16, 163], [12, 163]];
+/** 로뎀관 서쪽 날개 사이의 안뜰(2층 통로가 들어가는 곳). */
+const RODEM_COURT: Point[] = [[22, 116], [38, 116], [39, 128.5], [22, 130.5]];
 const blend = (a: number, b: number, t: number) => a + (b - a) * t;
 const smooth = (a: number, b: number, value: number) => { const t = clamp((value - a) / (b - a)); return t * t * (3 - 2 * t); };
 function along(x: number, z: number, a: Anchor, b: Anchor) {
@@ -53,28 +60,51 @@ function polygonDistance(x: number, z: number, polygon: Point[]) {
 const cache = new WeakMap<CampusData, (x: number, z: number) => number>();
 export function tourElevation(campus: CampusData) {
   const cached = cache.get(campus); if (cached) return cached;
-  const pads = campus.buildings.filter(b => b.id !== 'main').map(b => ({ polygon: b.footprint, y: buildingElevation(b.id) }));
-  for (const area of campus.outdoor_areas ?? []) if (area.kind !== 'gate') pads.push({ polygon: area.footprint, y: area.kind === 'field' ? 4 * SLOPE_GAIN : area.id === 'parking_970298862' ? 0.8 * SLOPE_GAIN : area.kind === 'tennis' || area.center[1] > 180 ? UPPER_CAMPUS_LEVEL : PARKING_LEVEL });
+  // retain: 비탈에 기대어 선 건물은 뒤쪽 높은 지면을 그대로 받친다(건물 바닥 높이로 끌어내리지 않는다).
+  const pads: { polygon: Point[]; y: number; retain?: boolean }[] = campus.buildings.filter(b => b.id !== 'main').map(b => ({ polygon: b.footprint, y: buildingElevation(b.id), retain: RETAINING_BUILDINGS.has(b.id) }));
+  // 영비관 동쪽 2층 외부 통로에서 로뎀관·이공관 사이까지는 2층 높이의 마당이다. 비워 두면 3.5m 골짜기가 파인다.
+  pads.push({ polygon: MIDDLE_YARD, y: MIDDLE_LEVEL }, { polygon: RODEM_COURT, y: MIDDLE_LEVEL });
+  for (const area of campus.outdoor_areas ?? []) if (area.kind !== 'gate') pads.push({ polygon: area.footprint, y: area.kind === 'field' ? 4 * SLOPE_GAIN : area.id === 'parking_970298862' ? MAIN_ENTRY_BASE : area.kind === 'tennis' || area.center[1] > 180 ? UPPER_CAMPUS_LEVEL : PARKING_LEVEL });
   const rest = VISION_TERRACE.rest;
   pads.push({ polygon: [[rest.x - rest.width / 2, rest.z - rest.depth / 2], [rest.x + rest.width / 2, rest.z - rest.depth / 2], [rest.x + rest.width / 2, rest.z + rest.depth / 2], [rest.x - rest.width / 2, rest.z + rest.depth / 2]], y: UPPER_CAMPUS_LEVEL });
   const paths = [...TERRACE_PATHS.slice(1), [...VISION_TERRACE_PATH, { id: 'n99', x: 14.59, y: UPPER_CAMPUS_LEVEL, z: 207.48 }]];
   const grade = pavementGrade(campus, SLOPE_PROFILES);
   const height = (x: number, z: number): number => {
     let y = baseTerrain(x, z);
-    let nearest = { distance: Infinity, y, gate: false };
+    let nearest = { distance: Infinity, y, gate: false, hillside: false, mainSide: false, t: 0 };
     for (const profile of SLOPE_PROFILES) for (let i = 1; i < profile.points.length; i++) {
-      const sample = along(x, z, profile.points[i - 1]!, profile.points[i]!);
-      if (sample.distance < nearest.distance) nearest = { ...sample, gate: profile.id === 'main-west' };
+      const a = profile.points[i - 1]!, b = profile.points[i]!, sample = along(x, z, a, b);
+      // 진입로 중심선 기준 본관 쪽(옹벽이 있는 쪽)인지. 첫 오르막 구간에만 본관 쪽 옹벽이 있다.
+      const mainSide = profile.id === 'main-west' && i === 1 && (x - a[0]) * (b[1] - a[1]) - (z - a[1]) * (b[0] - a[0]) > 0;
+      if (sample.distance < nearest.distance) nearest = { ...sample, gate: profile.id === 'main-west', hillside: HILLSIDE_PROFILES.has(profile.id), mainSide };
     }
-    y = blend(y, nearest.y, 1 - smooth(4.8, 13, nearest.distance));
-    let padDistance = Infinity, padHeight = y;
-    for (const pad of pads) {
-      const distance = polygonDistance(x, z, pad.polygon);
-      if (distance < padDistance) { padDistance = distance; padHeight = pad.y; }
+    // 산비탈을 오르는 동쪽 차도는 양옆 지면도 차도를 따라 오른다. 짧게 이으면 차도가 둑 위에 올라 3m 잔디 절벽이 생긴다.
+    const shoulder = nearest.hillside ? Math.min(22, Math.max(8.2, 3.5 * Math.abs(nearest.y - y))) : 8.2;
+    y = blend(y, nearest.y, 1 - smooth(4.8, 4.8 + shoulder, nearest.distance));
+    // 건물·주차장 대지는 높이 차에 비례한 폭으로 지면과 잇고, 여러 대지의 영향을 연속적으로 섞는다.
+    // 예전처럼 가장 가까운 대지 하나만 고정 폭(3.5m)으로 이으면 3~7m 높이 차가 잔디 절벽이 되고,
+    // 오목한 건물(로뎀관) 안쪽은 구덩이로 파이며, 두 대지의 경계에서 높이가 튄다.
+    const y0 = y; let padDistance = Infinity, padWeight = 0, padSum = 0;
+    const near = pads.map(pad => ({ y: pad.y, retain: pad.retain, distance: polygonDistance(x, z, pad.polygon) })).filter(p => p.distance < 40);
+    for (const pad of near) {
+      padDistance = Math.min(padDistance, pad.distance);
+      let run = PAD_RUN * Math.abs(pad.y - y0);
+      // 높이가 다른 두 대지 사이에서는 그 사이 간격 전체를 경사에 쓴다. 한쪽 대지 가장자리에서 급하게 꺾이지 않는다.
+      for (const other of near) {
+        const need = PAD_RUN * Math.abs(pad.y - other.y), gap = pad.distance + other.distance;
+        if (need > 0.5) run = Math.max(run, Math.min(gap, need) * (1 - smooth(need, need + 8, gap)));
+      }
+      // 받치는 건물은 뒤쪽 지면(원지형 또는 바로 옆의 더 높은 마당)이 높으면 잇는 폭을 없앤다.
+      const behind = pad.retain ? Math.max(y0, ...near.filter(o => o !== pad && o.distance < 2).map(o => o.y)) - pad.y : 0;
+      const reach = 0.5 + Math.min(PAD_REACH_MAX, Math.max(3.5, run)) * (1 - smooth(0, 1.5, behind));
+      if (pad.distance >= reach) continue;
+      const a = 1 - smooth(0.5, reach, pad.distance), r = a / Math.max(1e-6, 1 - a);
+      padWeight += r; padSum += r * pad.y;
     }
-    y = blend(y, padHeight, 1 - smooth(0.5, 4, padDistance));
+    y = (y0 + padSum) / (1 + padWeight);
     // 정문 진입로는 차도와 양옆 보도를 같은 횡단면에 놓아 울렁이는 틈을 없앤다.
-    if (nearest.gate && padDistance > 0) y = blend(y, nearest.y, 1 - smooth(7.2, 9.1, nearest.distance));
+    // 본관 쪽은 옹벽(중심선에서 6.3~7.3m)이 높이 차를 받으므로 벽 뒤 지면은 본관 앞 거리 높이에 둔다.
+    if (nearest.gate && padDistance > 0) y = blend(y, nearest.y, 1 - (nearest.mainSide ? smooth(6.3, 7.3, nearest.distance) : smooth(7.2, 9.1, nearest.distance)));
     // 계단 옆 좁은 연결로는 해당 보행면을 유지하고 주변 지면만 자연스럽게 연결한다.
     let terrace = { distance: Infinity, y };
     for (const path of paths) for (let i = 1; i < path.length; i++) {

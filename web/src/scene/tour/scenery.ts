@@ -159,7 +159,7 @@ export function makeScenery(campus: CampusData, layout: RoadLayout): Scenery {
       }
     }
   }
-  // 주차장은 도로와 흰 주차선만 표시하며 차량/직육면체 모형을 생성하지 않는다.
+  // 주차장 바닥은 도로와 흰 주차선만 표시한다. 주차 차량·차막이·펜스는 ParkedCars가 주차 칸 위에 따로 놓는다.
   for (const area of campus.outdoor_areas ?? []) {
     if (area.kind === 'gate') continue;
     const poly = tourFieldFootprint(area);

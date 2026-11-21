@@ -23,7 +23,11 @@ export interface RoadLayout {
   corridors: (TourCorridor & { width: number })[];
   flatPads: ReturnType<typeof pavementPads>;
   parking: MultiPolygon;
+  /** 도색된 주차 칸. 주차 차량·차막이 배치에 쓴다. */
+  bays: ParkingBay[];
 }
+/** 주차 칸 하나. back은 진입구에서 칸 안쪽(차막이 쪽)으로 향하는 단위 벡터. */
+export interface ParkingBay { lot: 'central' | 'music' | 'other'; center: Point; back: Point; ring: Point[] }
 const rounded = (v: number) => Math.round(v * 10000) / 10000;
 const snapSurface = (surface: MultiPolygon): MultiPolygon =>
   surface.map(poly => poly.map(ring => ring.map(([x, z]) => [Number(x.toFixed(7)), Number(z.toFixed(7))])));
@@ -121,7 +125,7 @@ export function buildRoadLayout(campus: CampusData, corridors: TourCorridor[]): 
   sidewalks = clipping.difference(sidewalks, parking, asphalt);
   curbs = clipping.difference(curbs, parking, asphalt); tactile = clipping.difference(tactile, parking, asphalt);
   parking = clipping.intersection(parking, asphalt);
-  const lines: Polygon[] = [];
+  const lines: Polygon[] = [], bays: ParkingBay[] = [];
   const central = campus.outdoor_areas?.find(a => a.id === 'parking_834838406');
   const centralParking = central ? clipping.intersection(parking, [central.footprint]) : [];
   for (const [ring] of parking) {
@@ -135,6 +139,7 @@ export function buildRoadLayout(campus: CampusData, corridors: TourCorridor[]): 
     const stripe = (u: number, v: number, w: number, h: number) => lines.push([ [point(u, v), point(u + w, v), point(u + w, v + h), point(u, v + h)] ]);
     for (let v = minV + 1; v + 4.8 < maxV - 0.5; v += 11) for (let u = minU + 1; u + 2.6 < maxU - 0.5; u += 2.6) {
       stripe(u, v, 0.1, 4.8); stripe(u, v, 2.6, 0.1); stripe(u + 2.5, v, 0.1, 4.8);
+      bays.push({ lot: 'other', center: point(u + 1.3, v + 2.4), back: [uz, -ux], ring: [point(u, v), point(u + 2.6, v), point(u + 2.6, v + 4.8), point(u, v + 4.8)] });
     }
   }
   const otherLines = lines.length ? clipping.difference(clipping.intersection(merge(lines), parking), surface, buildings) : [];
@@ -147,6 +152,8 @@ export function buildRoadLayout(campus: CampusData, corridors: TourCorridor[]): 
       // 경계에 걸친 칸을 억지로 잘라 긴 선·짧은 선이 섞이지 않게 한다.
       if (clipping.difference(bay, centralParking).length || clipping.intersection(bay, buildings).length) continue;
       stripe(u, v, 0.1, 4.8); stripe(u, v + 4.7, 2.6, 0.1); stripe(u + 2.5, v, 0.1, 4.8);
+      const [ox, oz] = spinePoint(0, 0), [nx, nz] = spinePoint(0, 1);
+      bays.push({ lot: 'central', center: spinePoint(u + 1.3, v + 2.4), back: [nx - ox, nz - oz], ring: bay[0]! as Point[] });
     }
   }
   // 건물 쪽은 잔디/수목 대신 외벽까지 이어지는 보도. 주차장 진입부와 차도는 비운다.
@@ -167,6 +174,7 @@ export function buildRoadLayout(campus: CampusData, corridors: TourCorridor[]): 
     const bay = musicBox(u, v, 2.6, 4.8);
     if (clipping.difference(bay, musicParking).length || clipping.intersection(bay, buildings).length) continue;
     musicLines.push(musicBox(u,v,.1,4.8), musicBox(u+2.5,v,.1,4.8), musicBox(u,v === 1.5 ? v : v+4.7,2.6,.1));
+    bays.push({ lot: 'music', center: musicPoint(u + 1.3, v + 2.4), back: v === 1.5 ? [mz, -mx] : [-mz, mx], ring: bay[0]! as Point[] });
   }
   parkingLines = clipping.union(parkingLines, merge(musicLines));
   const fountainLink = FOUNTAIN_FIELD_LINK.slice(1).map((b, i) => capsule(FOUNTAIN_FIELD_LINK[i]!, b, 1.2));
@@ -188,7 +196,9 @@ export function buildRoadLayout(campus: CampusData, corridors: TourCorridor[]): 
   curbs=clipping.difference(curbs,removedWalk,asphalt);tactile=clipping.difference(tactile,removedWalk,asphalt);
   walkways=clipping.difference(walkways,removedWalk,asphalt);
   parkingLines=clipping.difference(clipping.intersection(parkingLines,asphalt),sidewalks,walkways);
-  return { asphalt, sidewalks, curbs, tactile, parkingLines, walkways, corridors: roads, flatPads: pavementPads(campus), parking };
+  // 마지막 포장 정리 뒤에도 칸 전체가 차도 면 안에 남은 칸에만 차를 세운다.
+  const parkedBays = bays.filter(b => !clipping.difference([b.ring], asphalt).length && !clipping.intersection([b.ring], clipping.union(sidewalks, walkways, buildings)).length);
+  return { asphalt, sidewalks, curbs, tactile, parkingLines, walkways, corridors: roads, flatPads: pavementPads(campus), parking, bays: parkedBays };
 }
 
 export function inSurface(p: Point, surface: MultiPolygon): boolean {
