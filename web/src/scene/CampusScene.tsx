@@ -15,6 +15,7 @@ import { RouteLine } from './RouteLine';
 import { useTourStore } from '../store/useTourStore';
 import { StreetViewCamera } from '../camera/StreetViewCamera';
 import { FlightCamera } from '../camera/FlightCamera';
+import { BirdCamera } from '../camera/BirdCamera';
 import { OutdoorMarkerProjector } from '../ui/OutdoorMarkers';
 const TourWorld = lazy(() => import('./tour/TourWorld').then(module => ({ default: module.TourWorld })));
 
@@ -39,7 +40,7 @@ export function CampusScene() {
       {tourActive ? (
         <Suspense fallback={null}>
           <TourWorld />
-          {tourView === 'flight' ? <FlightCamera /> : <StreetViewCamera />}
+          {tourView === 'bird' ? <BirdCamera /> : tourView === 'flight' ? <FlightCamera /> : <StreetViewCamera />}
         </Suspense>
       ) : (
         <>

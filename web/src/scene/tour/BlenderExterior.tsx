@@ -24,12 +24,12 @@ function disposeModel(root: THREE.Object3D) {
 }
 
 /** 가까운 건물만 압축 GLB를 로드한다. 로딩/오류 중에는 절차적 외관을 유지한다. */
-export function useBlenderExterior(building: Building) {
+export function useBlenderExterior(building: Building, eager = false) {
   const [requested, setRequested] = useState(false);
   const [model, setModel] = useState<THREE.Group | null>(null);
   const requestedRef = useRef(false);
   useFrame(({ camera }) => {
-    if (!requestedRef.current && Math.hypot(camera.position.x - building.center[0], camera.position.z - building.center[1]) < 130) {
+    if (!requestedRef.current && (eager || Math.hypot(camera.position.x - building.center[0], camera.position.z - building.center[1]) < 130)) {
       requestedRef.current = true; setRequested(true);
     }
   });

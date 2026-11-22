@@ -14,6 +14,7 @@
     "test:navigation": "node scripts/test-navigation.mjs",
     "test:tour": "node scripts/test-tour.mjs",
     "test:tour-art": "node scripts/test-tour-art.mjs",
+    "test:bird-tour": "node scripts/test-bird-tour.mjs",
     "models:tour": "node scripts/build-tour-models.mjs",
     "models:roads": "node scripts/build-road-details.mjs",
     "gen:types": "node scripts/gen-types.mjs",

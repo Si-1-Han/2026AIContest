@@ -4,7 +4,8 @@ import { playTourMoveSound } from '../features/tour/moveSound';
 import { buildTourNetwork, nearestTourNode, planTourMove, tourPath, TOUR_STEP_METERS, type TourNetwork } from '../features/tour/network';
 import { useCampusStore } from './useCampusStore';
 
-type TourView = 'street' | 'flight';
+/** street: 거리뷰 · flight: 공중 자유 시점 · bird: 새의 시점 자동 투어 */
+export type TourView = 'street' | 'flight' | 'bird';
 
 interface TourState {
   active: boolean;
@@ -18,7 +19,7 @@ interface TourState {
   yaw: number;
   destination: string | null;
   error: string | null;
-  start: () => boolean;
+  start: (view?: TourView) => boolean;
   stop: () => void;
   setView: (view: TourView) => void;
   move: (id: string) => void;
@@ -29,8 +30,8 @@ interface TourState {
 }
 export const useTourStore = create<TourState>((set, get) => ({
   active: false, view: 'street', network: null, nodeId: '', targetId: null, travel: [], positionNonce: 0, visited: [], yaw: 0, destination: null, error: null,
-  start: () => {
-    if (get().active) return true;
+  start: (view = 'street') => {
+    if (get().active) { get().setView(view); return true; }
     const campus = useCampusStore.getState();
     if (!campus.campus || !campus.graph) return false;
     try {
@@ -40,7 +41,7 @@ export const useTourStore = create<TourState>((set, get) => ({
       const next = n.neighbors.map(id => network.nodes[id]!).sort((a, b) => Math.hypot(a.x - center[0]!, a.z - center[1]!) - Math.hypot(b.x - center[0]!, b.z - center[1]!))[0]!;
       campus.closePlanner(); campus.select(null); campus.hover(null);
       document.body.style.cursor = '';
-      set({ active: true, view: 'street', network, nodeId: n.id, targetId: null, travel: [], positionNonce: get().positionNonce + 1, visited: [n.id], yaw: Math.atan2(-(next.x - n.x), -(next.z - n.z)), destination: null, error: null });
+      set({ active: true, view, network, nodeId: n.id, targetId: null, travel: [], positionNonce: get().positionNonce + 1, visited: [n.id], yaw: Math.atan2(-(next.x - n.x), -(next.z - n.z)), destination: null, error: null });
       return true;
     } catch (error) { set({ error: error instanceof Error ? error.message : '투어를 시작할 수 없어요.' }); return false; }
   },

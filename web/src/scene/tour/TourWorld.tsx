@@ -28,9 +28,14 @@ import { campusTerrain } from './terrainGeometry';
 function TourSun() {
   const light = useRef<THREE.DirectionalLight>(null);
   const target = useMemo(() => new THREE.Object3D(), []);
+  const ahead = useMemo(() => new THREE.Vector3(), []);
   useFrame(({ camera }) => {
-    target.position.set(camera.position.x, camera.position.y - 1.8, camera.position.z); target.updateMatrixWorld();
-    light.current?.position.set(camera.position.x - 70, camera.position.y + 110, camera.position.z - 45);
+    // 높이 날수록 그림자 범위를 시선 앞쪽 지면으로 옮긴다(거리뷰 높이에서는 그대로)
+    camera.getWorldDirection(ahead).setY(0);
+    const shift = Math.min(60, Math.max(0, camera.position.y - 12)) / Math.max(ahead.length(), 1e-3);
+    const x = camera.position.x + ahead.x * shift, z = camera.position.z + ahead.z * shift;
+    target.position.set(x, camera.position.y - 1.8, z); target.updateMatrixWorld();
+    light.current?.position.set(x - 70, camera.position.y + 110, z - 45);
   });
   return <><primitive object={target} /><directionalLight ref={light} target={target} intensity={2.8} color="#fff2d9" castShadow shadow-mapSize={[2048, 2048]} shadow-camera-left={-70} shadow-camera-right={70} shadow-camera-top={70} shadow-camera-bottom={-70} shadow-camera-far={300} shadow-radius={2.5} shadow-bias={-0.0001} shadow-normalBias={0.035} /></>;
 }
@@ -38,6 +43,7 @@ function TourSun() {
 export function TourWorld() {
   const campus = useCampusStore(s => s.campus)!;
   const network = useTourStore(s => s.network)!;
+  const bird = useTourStore(s => s.view === 'bird');
   const layout = useMemo(() => buildRoadLayout(campus, network.corridors), [campus, network.corridors]);
   const scenery = useMemo(() => makeScenery(campus, layout), [campus, layout]);
   const groundMask = useMemo(() => groundSurfaceMask(layout), [layout]);
@@ -73,7 +79,7 @@ export function TourWorld() {
     <Batch parts={scenery.metal} metal shadow={false} />
     <RoadDrains parts={scenery.drains} />
     <Trees trees={scenery.trees} />
-    <TourBuildings campus={campus} /><BuildingNames campus={campus} /><CampusFountain /><GateApproach />
+    <TourBuildings campus={campus} />{!bird && <BuildingNames campus={campus} />}<CampusFountain /><GateApproach />
     <TourEffects />
   </>;
 }

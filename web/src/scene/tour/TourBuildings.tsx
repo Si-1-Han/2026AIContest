@@ -10,6 +10,7 @@ import { pedimentGeometry, roofGeometry } from './detailGeometry';
 import { useBlenderExterior } from './BlenderExterior';
 import { buildingElevation } from '../../features/tour/elevationLevels';
 import { roofCrossLightFinish } from './mainBuildingSpec';
+import { useTourStore } from '../../store/useTourStore';
 
 function PitchedRoof({ x, z, y, length, width, angle, color }: { x: number; z: number; y: number; length: number; width: number; angle: number; color: string }) {
   const geometry = useMemo(() => {
@@ -58,8 +59,8 @@ function ProceduralBody({ b }: { b: Building }) {
   </group>;
 }
 
-function Exterior({ b }: { b: Building }) {
-  const model = useBlenderExterior(b);
+function Exterior({ b, eager }: { b: Building; eager: boolean }) {
+  const model = useBlenderExterior(b, eager);
   const spec = useMemo(() => buildExteriorSpec(b), [b]);
   return <group position-y={buildingElevation(b.id)}>
     {model ? <primitive object={model} position={[b.center[0], 0, b.center[1]]} dispose={null} /> : <ProceduralBody b={b} />}
@@ -92,5 +93,7 @@ export function designGemiBridgeParts(campus: CampusData): Part[] {
 
 export function TourBuildings({ campus }: { campus: CampusData }) {
   const bridge = useMemo(() => designGemiBridgeParts(campus), [campus]);
-  return <group>{campus.buildings.map(b => <Exterior key={b.id} b={b} />)}<group position-y={buildingElevation('design')}><Batch parts={bridge} /></group></group>;
+  // 새의 시점 투어는 캠퍼스 전체를 지나가므로 비행 중 외관이 바뀌지 않도록 모델을 미리 불러온다
+  const eager = useTourStore(s => s.view === 'bird');
+  return <group>{campus.buildings.map(b => <Exterior key={b.id} b={b} eager={eager} />)}<group position-y={buildingElevation('design')}><Batch parts={bridge} /></group></group>;
 }

@@ -5,6 +5,8 @@ import { planTourMove, tourPath, TOUR_STEP_METERS } from '../features/tour/netwo
 import { useCampusStore } from '../store/useCampusStore';
 import { useTourStore } from '../store/useTourStore';
 import { tourBuildingName } from '../features/tour/buildingName';
+import { BirdTourOverlay } from './BirdTourOverlay';
+import { TourViewTabs } from './TourViewTabs';
 
 const button = 'rounded-xl border border-slate-200 bg-white/95 px-4 py-2.5 text-sm font-semibold text-slate-700 shadow-sm transition hover:bg-emerald-50 focus-visible:outline-2 focus-visible:outline-emerald-600 disabled:opacity-40';
 export function TourLauncher() {
@@ -12,9 +14,14 @@ export function TourLauncher() {
   const plannerOpen = useCampusStore(s => s.planner.open);
   if (plannerOpen) return null;
   return <div className="absolute left-5 top-52 z-40 max-w-[calc(100%-40px)]">
-    <button id="tour-launcher-focus" onClick={() => useTourStore.getState().start()} className="rounded-2xl border border-emerald-300/40 bg-emerald-950/90 px-5 py-3 text-left text-white shadow-xl backdrop-blur transition hover:bg-emerald-900">
-      <span className="block text-sm font-bold">캠퍼스 투어 시작 ↗</span><span className="mt-0.5 block text-xs text-emerald-200">정문에서 거리뷰로 둘러보기</span>
-    </button>
+    <div className="flex flex-wrap gap-2">
+      <button id="tour-launcher-focus" onClick={() => useTourStore.getState().start()} className="rounded-2xl border border-emerald-300/40 bg-emerald-950/90 px-5 py-3 text-left text-white shadow-xl backdrop-blur transition hover:bg-emerald-900">
+        <span className="block text-sm font-bold">캠퍼스 투어 시작 ↗</span><span className="mt-0.5 block text-xs text-emerald-200">정문에서 거리뷰로 둘러보기</span>
+      </button>
+      <button onClick={() => useTourStore.getState().start('bird')} className="rounded-2xl border border-sky-300/40 bg-sky-950/90 px-5 py-3 text-left text-white shadow-xl backdrop-blur transition hover:bg-sky-900">
+        <span className="block text-sm font-bold">새의 시점 자동 투어 ▶</span><span className="mt-0.5 block text-xs text-sky-200">본관에서 날아올라 캠퍼스 한 바퀴 · 2분</span>
+      </button>
+    </div>
     {error && <p role="alert" className="mt-2 rounded-lg bg-red-950 px-3 py-2 text-xs text-white">{error}</p>}
   </div>;
 }
@@ -48,6 +55,7 @@ export function CampusTour() {
   const destination = useTourStore(s => s.destination);
   const yaw = useTourStore(s => s.yaw);
   const flying = useTourStore(s => s.view === 'flight');
+  const bird = useTourStore(s => s.view === 'bird');
   const [mapOpen, setMapOpen] = useState(true);
   const [course, setCourse] = useState('free');
   const [courseIndex, setCourseIndex] = useState(0);
@@ -67,7 +75,7 @@ export function CampusTour() {
     const end = move.network.nodes[move.path.at(-1)!]!;
     return [id, { distance: move.distance, x: end.x, y: (end.y ?? 0) + 0.2, z: end.z }];
   })), [network, nodeId, route]);
-  useEffect(() => { exit.current?.focus(); return () => document.getElementById('tour-launcher-focus')?.focus(); }, []);
+  useEffect(() => { if (bird) return; exit.current?.focus(); return () => document.getElementById('tour-launcher-focus')?.focus(); }, [bird]);
   useEffect(() => {
     if (course !== 'free') useTourStore.getState().setDestination(itinerary[courseIndex] ?? null);
   }, [course, courseIndex]);
@@ -79,13 +87,14 @@ export function CampusTour() {
     const text = kind === 'stairs' ? (next.y ?? 0) > (n.y ?? 0) ? '계단 올라가기' : '계단 내려가기' : Math.abs(degrees) > 135 ? '뒤로' : degrees > 35 ? '왼쪽' : degrees < -35 ? '오른쪽' : '앞으로';
     return { text, angle: -degrees, distance: Math.round(moves[id]!.distance) };
   };
+  if (bird) return <BirdTourOverlay />;
   return <div id="tour-look-surface" className="absolute inset-0 z-20 touch-none cursor-grab select-none text-slate-800" role="region" aria-label={flying ? '캠퍼스 공중 자유 시점' : '캠퍼스 거리뷰. 드래그 또는 방향키로 둘러보고 이동 지점 버튼을 선택하세요.'}>
     {flying && <FlightControls />}
     <header data-tour-ui className="absolute left-3 right-3 top-3 flex flex-wrap items-center justify-between gap-2 rounded-2xl bg-white/90 p-3 shadow-lg backdrop-blur sm:left-5 sm:right-5 sm:top-5 sm:px-5">
       <div><p className="text-[10px] font-bold tracking-[0.22em] text-emerald-700">HANSEI CAMPUS WALK</p><h1 className="text-base font-extrabold sm:text-xl">캠퍼스 거리 투어</h1><p className="text-xs text-slate-500">{flying ? '공중 자유 시점' : `${tourBuildingName(nearest)} 주변 · 이동 지점 ${visited.length}곳 탐색`}</p></div>
       <div className="flex flex-wrap gap-2">
         {!flying && <button className={button} onClick={() => useTourStore.getState().look(yaw + Math.PI)} aria-label="뒤돌아보기">↶ 뒤돌기</button>}
-        <button className={`${button} !border-emerald-300 !bg-emerald-50 !text-emerald-800`} disabled={!!targetId} onClick={() => useTourStore.getState().setView(flying ? 'street' : 'flight')}>{flying ? '거리뷰로 돌아가기' : '공중 자유 시점'}</button>
+        <TourViewTabs />
         <button ref={exit} className={button} onClick={() => useTourStore.getState().stop()}>투어 종료 {!flying && <span className="hidden sm:inline">· Esc</span>}</button>
       </div>
     </header>
