@@ -1,18 +1,19 @@
 import type { OutdoorArea } from '../../types/generated/campus';
 import { FOUNTAIN_FIELD_LINK, fountainSurface } from './fountainSite';
 import { MUSIC_FORECOURT_LEVEL } from './elevationLevels';
+import { approachEase, FIELD_ENTRY_ROAD_POINT, mainFrontRoadAt } from './graduateApproach';
 
 /** 사진·지도에서 확인한 대학원관/디자인관과 운동장 사이의 음악관 방향 보행로. */
 export const FIELD_WALK = [
   FOUNTAIN_FIELD_LINK.at(-1)!, [-24.4, -111], [-19.8, -99], [-17.5, -87], [-13.3, -62], [-9.2, -37], [-6.8, -22], [-10.1, -14],
 ] as [number, number][];
-/** 차도 중심에서 시작해 보도 메시가 실제 차도 가장자리까지 이어지게 한다. */
-export const FIELD_WALK_ENTRY: [number, number][] = [[-23.19, -131.78], [-25.5, -126], FIELD_WALK[0]!];
+/** 차도에 연결되는 이동 경로. 화면의 진입로 포장은 이 선과 도로변 보도가 만나는 곳부터 그린다. */
+export const FIELD_WALK_ENTRY: [number, number][] = [FIELD_ENTRY_ROAD_POINT, [-25.5, -126], FIELD_WALK[0]!];
 export const FIELD_ENTRY_WIDTH = 3.3;
-// 분수 삼각지 경사면이 운동장 평지에 닿는 선(approachTopZ ≈ -122)에서 사잇길도 평지가 된다.
-// 더 북쪽(-116)까지 경사를 끌면 길이 양옆 평지보다 최대 0.8m 낮아져 잔디 벽 사이 도랑이 된다.
 export const FIELD_ENTRY_FLAT_Z = -122;
-export const FIELD_ENTRY_GRADE_REGION: [number, number][] = [[-30, -129], [-22, -129], [-21, FIELD_ENTRY_FLAT_Z], [-29, FIELD_ENTRY_FLAT_Z]];
+const FIELD_ENTRY_RAMP_TOP = -117;
+const ENTRY_WEST = -43, ENTRY_EAST = -8, ENTRY_GRADE_END = FIELD_ENTRY_RAMP_TOP + 2;
+export const FIELD_ENTRY_GRADE_REGION: [number, number][] = [[ENTRY_WEST, -131], [ENTRY_EAST, -131], [ENTRY_EAST, ENTRY_GRADE_END], [ENTRY_WEST, ENTRY_GRADE_END]];
 export const FIELD_WALK_WIDTH = 1.7;
 export const FIELD_GATE_OPENINGS = [0.045, 0.97];
 const clamp = (t: number) => Math.max(0, Math.min(1, t));
@@ -69,24 +70,17 @@ export function inFieldWalk(x: number, z: number, margin = 0) {
   });
 }
 
-/**
- * 차도 → 사잇길 초입 경사 구간의 양옆 지면. 도로 단면 보정(차도 중심 6.8m) 안쪽이라 잔디가 차도 높이로 눌려,
- * 오르는 보행로 옆에 최대 0.7m 턱이 생긴다. 보행로 높이에서 시작해 높이 차에 비례한 폭으로 원지형에 잇는다.
- */
+/** 차도 가장자리에서 운동장 평지까지 보도와 양옆 잔디에 같은 경사면을 적용한다. */
 export function fieldEntryGround(x: number, z: number, original: number) {
-  if (z < -129.5 || z > FIELD_ENTRY_FLAT_Z + 1 || x < -34 || x > -17) return original;
-  let distance = Infinity;
-  for (let i = 1; i < FIELD_WALK_ENTRY.length; i++) {
-    const a = FIELD_WALK_ENTRY[i - 1]!, b = FIELD_WALK_ENTRY[i]!, dx = b[0] - a[0], dz = b[1] - a[1];
-    const t = clamp(((x - a[0]) * dx + (z - a[1]) * dz) / (dx * dx + dz * dz));
-    distance = Math.min(distance, Math.hypot(x - a[0] - dx * t, z - a[1] - dz * t));
-  }
-  const target = entryLevel(x, z);
-  const reach = Math.min(4, Math.max(2.5, Math.abs(target - original) * 3));
-  const side = Math.max(0, distance - FIELD_ENTRY_WIDTH / 2 - 0.15);
-  if (side >= reach) return original;
+  if (z >= ENTRY_GRADE_END || x <= ENTRY_WEST || x >= ENTRY_EAST) return original;
+  const road = mainFrontRoadAt(x);
+  if (z <= road.z) return original;
+  // 차도와 보도의 횡단면을 맞추고, 보도 안쪽부터 운동장 평지로 오른다.
+  const roadEdge = 3.4, sidewalkEdge = 5.3;
+  const start = road.z + sidewalkEdge;
+  const ramp = approachEase((z - start) / (FIELD_ENTRY_RAMP_TOP - start));
+  const target = road.y + (MUSIC_FORECOURT_LEVEL - road.y) * ramp;
   const smooth = (t: number) => { const c = clamp(t); return c * c * (3 - 2 * c); };
-  // 차도·보도 가장자리(z≈-128)는 건드리지 않는다.
-  const w = (1 - smooth(side / reach)) * smooth((z + 128) / 1.5);
-  return original + (target - original) * w;
+  const weight = smooth((x - ENTRY_WEST) / 10) * smooth((ENTRY_EAST - x) / 9) * smooth((z - road.z) / roadEdge) * smooth((ENTRY_GRADE_END - z) / 2);
+  return original + (target - original) * weight;
 }

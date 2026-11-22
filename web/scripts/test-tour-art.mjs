@@ -18,6 +18,10 @@ try {
   const { MAIN_ENTRANCE, MAIN_ENTRANCE_PATH, MAIN_ENTRY_FLOOR, MAIN_ENTRY_BASE, mainEntryPoint } = await server.ssrLoadModule('/src/features/tour/mainEntrance.ts');
   const { VISION_TERRACE_PATH } = await server.ssrLoadModule('/src/features/tour/visionTerrace.ts');
   const { buildExteriorSpec } = await server.ssrLoadModule('/src/scene/tour/exteriorSpec.ts');
+  const { roofCrossLightFinish } = await server.ssrLoadModule('/src/scene/tour/mainBuildingSpec.ts');
+  const { buildingElevation } = await server.ssrLoadModule('/src/features/tour/elevationLevels.ts');
+  const { designGemiBridgeParts } = await server.ssrLoadModule('/src/scene/tour/TourBuildings.tsx');
+  const bridgeDecks = designGemiBridgeParts(campus).slice(0, 2);
   for (const kind of ['stone', 'brick', 'asphalt', 'paving', 'bark', 'tactile']) {
     const maps = surfacePixels(kind, 64);
     assert.equal(maps.normal.length, 64 * 64 * 4);
@@ -34,6 +38,8 @@ try {
   const draco = await createDecoder({ wasmBinary: await load('web/public/draco/draco_decoder.wasm') });
   let primitives = 0, totalBytes = 0;
   for (const building of campus.buildings) {
+    const bridgeDirection = building.id === 'design' ? -1 : building.id === 'gemi' ? 1 : 0;
+    const checkCollision = bridgeDirection !== 0 || building.id === 'main' || building.id === 'vision_center';
     const spec = buildExteriorSpec(building), entry = manifest.models[building.id];
     assert(spec.frames.length > spec.glass.length * 4, `${building.name}: 사방 창틀·분할 프레임`);
     const bytes = await load(`web/public/models/tour/${entry.file}`); totalBytes += bytes.length;
@@ -46,6 +52,16 @@ try {
     assert(gltf.materials.some(m => m.name.startsWith('frames_')));
     assert(gltf.materials.some(m => m.normalTexture));
     assert(gltf.materials.some(m => m.extensions?.KHR_materials_clearcoat));
+    const emissiveMaterials = gltf.materials.filter(m => m.emissiveFactor?.some(channel => channel > 0));
+    assert.deepEqual(emissiveMaterials.map(m => m.name), building.id === 'main' ? ['crossLight_ffffff_plain'] : [], '실제 GLB: 발광 재질은 본관 십자가에만 적용');
+    for (const material of emissiveMaterials) {
+      const { emissive, emissiveIntensity, metalness, roughness } = roofCrossLightFinish;
+      const expected = new THREE.Color(emissive).multiplyScalar(emissiveIntensity).toArray();
+      const strength = material.extensions?.KHR_materials_emissive_strength?.emissiveStrength ?? 1;
+      assert(material.emissiveFactor.every((channel, i) => Math.abs(channel * strength - expected[i]) < 0.00001));
+      assert(Math.abs(material.pbrMetallicRoughness.metallicFactor - metalness) < 0.00001);
+      assert(Math.abs(material.pbrMetallicRoughness.roughnessFactor - roughness) < 0.00001);
+    }
     for (const material of gltf.materials) {
       const rgb = material.name.split('_')[1].match(/../g).map(channel => parseInt(channel, 16) / 255);
       const expected = rgb.map(v => v <= 0.04045 ? v / 12.92 : ((v + 0.055) / 1.055) ** 2.4);
@@ -78,7 +94,7 @@ try {
       decoder.GetAttributeFloatForAllPoints(geometry, positions, values);
       assert.equal(geometry.num_points(), gltf.accessors[primitive.attributes.POSITION].count);
       for (let i = 0; i < values.size(); i += Math.max(1, Math.floor(values.size() / 500))) assert(Number.isFinite(values.GetValue(i)));
-      if (['vision_center', 'main'].includes(building.id)) {
+      if (checkCollision) {
         const positions = Float32Array.from({ length: values.size() }, (_, i) => values.GetValue(i));
         const faces = new draco.DracoInt32Array(), indices = [];
         for (let face = 0; face < geometry.num_faces(); face++) { decoder.GetFaceFromMesh(geometry, face, faces); indices.push(faces.GetValue(0), faces.GetValue(1), faces.GetValue(2)); }
@@ -88,6 +104,20 @@ try {
       }
       primitives++;
       draco.destroy(values); draco.destroy(status); draco.destroy(geometry); draco.destroy(buffer); draco.destroy(decoder);
+    }
+    if (bridgeDirection) {
+      const body = collisionMeshes.filter(m => m.userData.materialName.startsWith('body_'));
+      assert.equal(bridgeDecks.length, 2);
+      for (const { p, s, ry } of bridgeDecks) {
+        const dx = Math.cos(ry), dz = -Math.sin(ry);
+        const direction = new THREE.Vector3(bridgeDirection * dx, 0, bridgeDirection * dz);
+        const y = p[1] + buildingElevation('design') - buildingElevation(building.id);
+        for (const side of [-s[2] / 2, 0, s[2] / 2]) {
+          const origin = new THREE.Vector3(p[0] - building.center[0] - dz * side, y, p[2] - building.center[1] + dx * side);
+          const ray = new THREE.Raycaster(origin, direction, 0, s[0] / 2 - 0.15);
+          assert(ray.intersectObjects(body).length, `실제 GLB: ${building.name} 외벽과 연결 다리의 바닥·지붕이 폭 전체에서 맞물림`);
+        }
+      }
     }
     if (building.id === 'main') {
       const local = (x, y, z) => new THREE.Vector3(x - building.center[0], y - MAIN_ENTRY_FLOOR, z - building.center[1]);
@@ -102,7 +132,23 @@ try {
       const [x, z] = mainEntryPoint(10, 1.4), doorRay = new THREE.Raycaster(local(x, MAIN_ENTRY_FLOOR + 1.4, z), new THREE.Vector3(-MAIN_ENTRANCE.nx, 0, -MAIN_ENTRANCE.nz), 0, 11);
       const door = doorRay.intersectObjects(collisionMeshes)[0];
       assert(door?.object.userData.materialName.startsWith('glass_355b64'), '실제 GLB: 본관 정면에서 유리 출입문이 보임');
-      for (const m of collisionMeshes) { m.geometry.dispose(); m.material.dispose(); }
+      const roofMeshes = collisionMeshes.filter(m => /^(frames_(aab4b7|bcc4c4|dee4e3)|crossLight_ffffff)_/.test(m.userData.materialName));
+      const roofRay = (offset, height, face = 1) => {
+        const [x, z] = mainEntryPoint(-9.8 + face * 4, -18.85 + offset);
+        return new THREE.Raycaster(local(x, MAIN_ENTRY_FLOOR + 12.84 + height, z), doorRay.ray.direction.clone().multiplyScalar(face), 0, 8).intersectObjects(roofMeshes);
+      };
+      for (const face of [-1, 1]) {
+        for (const [offset, height] of [[0, 0.9], [0, 3.9], [-1.05, 2.94], [1.05, 2.94]]) {
+          assert(roofRay(offset, height, face)[0]?.object.userData.materialName.startsWith('crossLight_ffffff'), '실제 GLB: 본관 옥상 십자가 양면에 빛나는 세로·가로 획');
+        }
+        assert(roofRay(0.185, 0.9, face)[0]?.object.userData.materialName.startsWith('frames_dee4e3'), '실제 GLB: 발광면 둘레의 금속 테두리');
+      }
+      for (const [offset, height] of [[-1.68, 1.2], [1.68, 1.2], [-0.85, 5], [0.85, 5]]) {
+        assert(roofRay(offset, height).length, '실제 GLB: 옥상에 닿는 지지대와 안으로 꺾인 상단');
+      }
+      for (const [offset, height] of [[-0.95, 1.2], [0.95, 1.2], [0, 5.2]]) {
+        assert.equal(roofRay(offset, height).length, 0, '실제 GLB: 십자가 양옆과 철골 상단 사이가 열려 있음');
+      }
     }
     if (building.id === 'vision_center') {
       const origin = (x, y, z) => new THREE.Vector3(x - building.center[0], y, z - building.center[1]);
@@ -114,8 +160,8 @@ try {
       assert.equal(passage.intersectObjects(collisionMeshes).length, 0, '실제 GLB: 2층 외부 통로가 열려 있음');
       const ceiling = new THREE.Raycaster(origin(top.x, 5.4, 156.5), new THREE.Vector3(0, 1, 0), 0, 2);
       assert(ceiling.intersectObjects(collisionMeshes).length > 0, '실제 GLB: 통로 위에는 건물 바닥이 남아 있음');
-      for (const m of collisionMeshes) { m.geometry.dispose(); m.material.dispose(); }
     }
+    for (const m of collisionMeshes) { m.geometry.dispose(); m.material.dispose(); }
   }
   assert(totalBytes < 50 * 1024 ** 2);
   console.log(`✓ 외관 ${campus.buildings.length}동 · 압축 메시 ${primitives}개 실제 디코딩 · PBR/좌표/소스 일치 검증 (${(totalBytes / 1024 ** 2).toFixed(1)}MB)`);

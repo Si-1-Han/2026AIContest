@@ -1,7 +1,9 @@
-import { mainEntryPoint } from './mainEntrance';
-import { spinePoint, spineDistanceAtZ } from './campusSpine';
-import { approachLevel } from './graduateApproach';
+import { MAIN_ENTRY_BASE, mainEntryPoint } from './mainEntrance';
+import { spinePoint, spineDistanceAtZ, spineGrade } from './campusSpine';
+import { approachLevel, spineApproachLevel } from './graduateApproach';
 import { PARKING_LEVEL } from './elevationLevels';
+
+type Point = [number, number];
 
 export const FOUNTAIN_CENTER = [-62.3, -132.3] as const;
 // 분수 수조와 교명 받침이 놓이는 원형 평지. 경사지 중간 높이에 맞춘다.
@@ -13,6 +15,89 @@ export const FOUNTAIN_CLEARING: [number, number][] = Array.from({ length: 96 }, 
   const a = i / 96 * Math.PI * 2;
   return [FOUNTAIN_CENTER[0] + Math.cos(a) * FOUNTAIN_FLAT_RADIUS, FOUNTAIN_CENTER[1] + Math.sin(a) * FOUNTAIN_FLAT_RADIUS];
 });
+
+// 분수대 앞 도로 모서리의 양끝을 기존 두 보도의 연석과 같은 접선으로 잇는다.
+const frontRun = Math.hypot(10.89, -1.36), ux = 10.89 / frontRun, uz = -1.36 / frontRun;
+const cornerStart: Point = [-72.35 + ux * 7.6 - uz * 4.5, -144.86 + uz * 7.6 + ux * 4.5];
+const cornerEndAlong = spineDistanceAtZ(-126);
+const cornerEnd = spinePoint(cornerEndAlong, 3.5);
+const cornerHandleA: Point = [cornerStart[0] - ux * 8.9, cornerStart[1] - uz * 8.9];
+const cornerHandleB = spinePoint(cornerEndAlong - 8.3, 3.5);
+
+export function fountainCornerEdge(offset: number): Point[] {
+  return Array.from({ length: 49 }, (_, i) => {
+    const t = i / 48, u = 1 - t;
+    const coord = (j: 0 | 1) => u ** 3 * cornerStart[j] + 3 * u * u * t * cornerHandleA[j] + 3 * u * t * t * cornerHandleB[j] + t ** 3 * cornerEnd[j];
+    const tangent = (j: 0 | 1) => u * u * (cornerHandleA[j] - cornerStart[j]) + 2 * u * t * (cornerHandleB[j] - cornerHandleA[j]) + t * t * (cornerEnd[j] - cornerHandleB[j]);
+    const dx = tangent(0), dz = tangent(1), len = Math.hypot(dx, dz);
+    return [coord(0) + dz / len * offset, coord(1) - dx / len * offset];
+  });
+}
+export function fountainCornerStrip(from: number, to: number): Point[] {
+  return [...fountainCornerEdge(from), ...fountainCornerEdge(to).reverse()];
+}
+export function fountainCornerLimit(roadMargin: number): Point[] {
+  return [...fountainCornerEdge(-roadMargin), spinePoint(cornerEndAlong, 15.5), [cornerStart[0] - uz * 12, cornerStart[1] + ux * 12]];
+}
+
+const smoothStep = (value: number) => { const t = Math.max(0, Math.min(1, value)); return t * t * (3 - 2 * t); };
+// 평평한 본관 차도와 분수대 앞 갈림길을 한 포장면으로 묶는 영역.
+export const FOUNTAIN_JUNCTION_PAVEMENT: Point[] = [[-96, -159], [-61, -159], [-61, -137], [-72, -126], [-96, -126]];
+export function fountainJunctionGround(x: number, z: number, original: number) {
+  if (x <= -96 || x >= -62 || z <= -159 || z >= -126) return original;
+  const weight = smoothStep((x + 96) / 4) * smoothStep((-62 - x) / 10) * smoothStep((z + 159) / 4) * smoothStep((-126 - z) / 5);
+  return original + (spineApproachLevel(z) - original) * weight;
+}
+const cornerPoints = fountainCornerEdge(0);
+let cornerLength = 0;
+const cornerSegments = cornerPoints.slice(1).map((b, i) => {
+  const a = cornerPoints[i]!, dx = b[0] - a[0], dz = b[1] - a[1], length = Math.hypot(dx, dz);
+  const start = cornerLength;
+  cornerLength += length;
+  return { a, dx, dz, length, start };
+});
+const cornerEndLevel = spineGrade(spinePoint(cornerEndAlong)[1]);
+const cornerEndSlope = spineGrade(spinePoint(cornerEndAlong + 0.5)[1]) - spineGrade(spinePoint(cornerEndAlong - 0.5)[1]);
+
+/** 보도 양끝의 도로 높이와 기울기를 잇고 주변 차도·잔디에 완만하게 섞는다. */
+export function fountainCornerGround(x: number, z: number, original: number) {
+  if (x < -83 || x > -59 || z < -147 || z > -121) return original;
+  let distance = Infinity, along = 0, roadSide = false;
+  for (const { a, dx, dz, length, start } of cornerSegments) {
+    const t = Math.max(0, Math.min(1, ((x - a[0]) * dx + (z - a[1]) * dz) / (length * length)));
+    const d = Math.hypot(x - a[0] - dx * t, z - a[1] - dz * t);
+    if (d < distance) {
+      distance = d;
+      along = start + length * t;
+      roadSide = (x - a[0]) * dz - (z - a[1]) * dx < 0;
+    }
+  }
+  // 연석 가까운 차도만 보도에 맞추고, 차로 중심은 교차로·오르막 기준 높이를 따른다.
+  const reach = roadSide ? 3.35 : 5;
+  if (distance >= reach) return original;
+  const t = along / cornerLength;
+  const target = MAIN_ENTRY_BASE + (cornerEndLevel - MAIN_ENTRY_BASE) * smoothStep(t) + cornerEndSlope * cornerLength * t * t * (t - 1);
+  const weight = (1 - smoothStep((distance - 2.2) / (reach - 2.2))) * smoothStep(along / 1.4) * smoothStep((cornerLength - along) / 1.4);
+  return original + (target - original) * weight;
+}
+
+const FOUNTAIN_JUNCTION_ISLAND: [Point, Point, Point] = [[-80.4456, -149.1148], [-76.3934, -147.4594], [-79.6812, -145.0105]];
+
+/** 보도섬 안의 벽돌·연석·점자블록에는 같은 경사면을 적용하고 주변 차도로 완만하게 잇는다. */
+export function fountainIslandGrade(elevation: (x: number, z: number) => number) {
+  const [a, b, c] = FOUNTAIN_JUNCTION_ISLAND;
+  const y = elevation(...a), by = elevation(...b) - y, cy = elevation(...c) - y;
+  const bx = b[0] - a[0], bz = b[1] - a[1], cx = c[0] - a[0], cz = c[1] - a[1];
+  const det = bx * cz - cx * bz;
+  const gx = (by * cz - cy * bz) / det, gz = (bx * cy - cx * by) / det;
+  return (x: number, z: number, original: number) => {
+    if (x < -82 || x > -75 || z < -150.7 || z > -143.5) return original;
+    const t = smoothStep(distanceToRing(x, z, FOUNTAIN_JUNCTION_ISLAND) / 1.4);
+    const target = y + gx * (x - a[0]) + gz * (z - a[1]);
+    return target + (original - target) * t;
+  };
+}
+
 export const FOUNTAIN_FIELD_LINK: [number, number][] = [[-54.8, -132.3], [-47, -130.8], [-40, -128.4], [-34, -126], [-26.8, -122]];
 // 표시된 분수 뒤 곡선과 사잇길의 분수 쪽 경계 사이를 잔디와 작은 나무로 채운다.
 export const FOUNTAIN_PLANTING: [number, number][] = [

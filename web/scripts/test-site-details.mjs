@@ -155,12 +155,32 @@ try {
   }
   const { roadGeometries } = await server.ssrLoadModule('/src/scene/tour/TourRoads.tsx');
   const pavementGeometries = roadGeometries(layout,elevation), pavementMeshes=pavementGeometries.slice(0,2).map(g=>{const m=new THREE.Mesh(g,material);m.updateMatrixWorld();return m;});
-  const { onBuildingSide } = await server.ssrLoadModule('/src/features/tour/buildingFrontage.ts');
+  const { GRADUATE_ENTRY_SIDEWALK, GRADUATE_ENTRY_BEND, GRADUATE_ENTRY_DOOR, GRADUATE_FORECOURT, onBuildingSide } = await server.ssrLoadModule('/src/features/tour/buildingFrontage.ts');
   const { SPINE_PARKING_RAMPS } = await server.ssrLoadModule('/src/features/tour/campusSpine.ts');
-  assert(!scenery.trees.some(t => onBuildingSide(t.x,t.z)), '대학원관→영비관 건물 쪽 전체에 수목 없음');
+  assert(!scenery.trees.some(t => onBuildingSide(t.x,t.z) && !inSurface([t.x,t.z], [GRADUATE_FORECOURT])), '대학원관 앞 정원을 제외한 건물 쪽 보도에는 수목 없음');
+  const graduateWalk = [GRADUATE_ENTRY_SIDEWALK, GRADUATE_ENTRY_BEND, GRADUATE_ENTRY_DOOR];
+  for (const [i, b] of graduateWalk.slice(1).entries()) {
+    const a = graduateWalk[i];
+    for (let t = 0; t < 1; t += 0.05) {
+      const p = [a[0] + (b[0] - a[0]) * t, a[1] + (b[1] - a[1]) * t];
+      assert(inSurface(p, layout.sidewalks) && !inSurface(p, layout.asphalt), '대학원관 입구 포장은 도로변 보도에서 외벽 입구까지 이어짐');
+    }
+  }
+  assert([[-35, -103], [-49, -106], [-61, -110]].every(p => !inSurface(p, groundSurfaceMask(layout))), '대학원관 진입로 양옆은 잔디');
+  const graduateFrontWalk = [[-62, -97.8], [-56, -97.8], [-51, -97.8], [-68, -96], [-70, -94]];
+  for (let z = -100; z <= 4; z += 2) {
+    for (const side of [4.9, 5.35, 6.1]) graduateFrontWalk.push(spinePoint(spineDistanceAtZ(z), side));
+  }
+  for (const [x, z] of graduateFrontWalk) {
+    assert(inSurface([x, z], layout.sidewalks) && !inSurface([x, z], layout.asphalt), '대학원관 모서리와 도로변 보도 사이에 잔디 틈이 없음');
+    const ray = new THREE.Raycaster(new THREE.Vector3(x, 8, z), new THREE.Vector3(0, -1, 0), 0, 4);
+    const hit = ray.intersectObject(pavementMeshes[1])[0];
+    assert(hit && Math.abs(hit.point.y - 5.2) < 0.002 && !ray.intersectObject(ground).length, '대학원관 연속 보도 실제 메시와 잔디 분리');
+  }
   let frontageSamples=0;
   for(let z=-103;z<34;z+=3) for(const side of [5.6,6.5,8.5,10.5,15,22]) {
     const [x,pz]=spinePoint(spineDistanceAtZ(z),side);
+    if(inSurface([x,pz],[GRADUATE_FORECOURT]))continue;
     if(campus.buildings.some(b=>inSurface([x,pz],[[b.footprint]])) || inSurface([x,pz],layout.asphalt) || inSurface([x,pz],layout.parking) || inSurface([x,pz],layout.walkways))continue;
     assert(inSurface([x,pz],layout.sidewalks), '건물 쪽 잔디 띠를 외벽/주차장까지 포장');
     const ray=new THREE.Raycaster(new THREE.Vector3(x,20,pz),new THREE.Vector3(0,-1,0),0,30);
@@ -178,6 +198,28 @@ try {
   }
   const { FOUNTAIN_WALK,FOUNTAIN_RADIUS }=await server.ssrLoadModule('/src/features/tour/fountainSite.ts');
   for(const p of FOUNTAIN_WALK.slice(1,8))assert(Math.hypot(p[0]-FOUNTAIN_CENTER[0],p[1]-FOUNTAIN_CENTER[1])-0.85>FOUNTAIN_RADIUS+.2,'분수 우회 보행로가 수조를 통과하지 않음');
+  const { fountainCornerEdge } = await server.ssrLoadModule('/src/features/tour/fountainSite.ts');
+  for (const [offset, surface] of [[-0.16, layout.asphalt], [0.09, layout.curbs], [0.82, layout.tactile], [1.48, layout.sidewalks]]) {
+    assert(fountainCornerEdge(offset).slice(1, -1).every(p => inSurface(p, surface)), '분수대 앞 차도·연석·점자블록·보도가 모서리를 따라 연속');
+  }
+  const island = layout.sidewalks.find(poly => inSurface([-78.8, -147.2], [poly]));
+  assert(island, '갈림길 삼각 보도섬 유지');
+  const [a, b, c] = island[0];
+  for (const [u, v] of [[0.35, 0.2], [0.8, 0.05], [0.12, 0.65]]) {
+    const x = a[0] + (b[0] - a[0]) * u + (c[0] - a[0]) * v;
+    const z = a[1] + (b[1] - a[1]) * u + (c[1] - a[1]) * v;
+    const y = elevation(...a) + (elevation(...b) - elevation(...a)) * u + (elevation(...c) - elevation(...a)) * v;
+    assert(Math.abs(elevation(x, z) - y) < 0.002, '보도섬의 벽돌과 연석은 한 경사면');
+  }
+  let junctionSamples = 0;
+  for (let x = -89.4; x < -70; x += 1) for (let z = -153.3; z < -144.45; z += 0.9) {
+    if (!inSurface([x, z], layout.asphalt)) continue;
+    const ray = new THREE.Raycaster(new THREE.Vector3(x, 9, z), new THREE.Vector3(0, -1, 0), 0, 12);
+    const hit = ray.intersectObject(pavementMeshes[0])[0];
+    assert(hit && Math.abs(hit.point.y - MAIN_ENTRY_BASE) < 0.002, '분수대 앞 교차로는 틈 없이 같은 높이의 아스팔트');
+    junctionSamples++;
+  }
+  assert(junctionSamples > 150);
   const {gateWallSections,GATE_ROAD_WIDTH}=await server.ssrLoadModule('/src/features/tour/gateWalls.ts');
   for(const w of gateWallSections()){
     const x=(w.a[0]+w.b[0])/2-w.nx*w.side*.52,z=(w.a[2]+w.b[2])/2-w.nz*w.side*.52;

@@ -1,4 +1,5 @@
 import { MUSIC_FORECOURT_LEVEL } from './elevationLevels';
+import type { CampusData } from '../../types/generated/campus';
 export const MUSIC_SITE: [number, number][] = [[-52, 3.9], [-22.6, 1.95], [-20.4, 34.55], [-49.8, 36.5]];
 export const MUSIC_PARKING: [number, number][] = [[-50.2, 5.6], [-22.48, 3.76], [-20.55, 32.75], [-48.1, 34.58]];
 export const MUSIC_DOOR = { x: -20.49, z: 21.87, y: MUSIC_FORECOURT_LEVEL };
@@ -27,22 +28,19 @@ export function musicForecourtGround(x: number, z: number, original: number) {
   return original + (MUSIC_FORECOURT_LEVEL - original) * t * t * (3 - 2 * t);
 }
 
-/**
- * GEMI관 앞 막다른 차도 끝(n79)에서 GEMI관 남동쪽 모서리와 음악관 북서쪽 모서리 사이 틈을 지나 음악관 앞 주차장으로 이어지는 보행선.
- * 이 틈은 이미 벽돌 보도와 주차장 포장으로 덮여 있어, 거리뷰 이동선만 잇고 별도 포장 띠는 그리지 않는다.
- * 두 건물 외벽과 4m 이상 떨어지게 꺾었다.
- */
-export const GEMI_MUSIC_GAP_PATH = [
-  { id: 'tour_gemi_gap_0', x: -17.5, z: 2.5, y: MUSIC_FORECOURT_LEVEL },
-  { id: 'tour_gemi_gap_1', x: -25, z: 7.5, y: MUSIC_FORECOURT_LEVEL },
-];
-export const GEMI_MUSIC_GAP_CHAIN = ['n79', ...GEMI_MUSIC_GAP_PATH.map(p => p.id), 'tour_music_parking'];
-const gapPoints = [[-11.8, -8.5], ...GEMI_MUSIC_GAP_PATH.map(p => [p.x, p.z]), [MUSIC_ACCESS_PATH[2]!.x, MUSIC_ACCESS_PATH[2]!.z]] as [number, number][];
-/** 거리뷰 이동선이 GEMI관–음악관 틈 보행선 위에 있는지(포장 띠를 새로 만들지 않기 위한 판별). */
-export function onGemiMusicGap(a: [number, number], b: [number, number]) {
-  return [a, b].every(p => gapPoints.slice(1).some((q, i) => {
-    const o = gapPoints[i]!, dx = q[0] - o[0], dz = q[1] - o[1];
-    const t = Math.max(0, Math.min(1, ((p[0] - o[0]) * dx + (p[1] - o[1]) * dz) / (dx * dx + dz * dz)));
-    return Math.hypot(p[0] - o[0] - dx * t, p[1] - o[1] - dz * t) < 0.6;
-  }));
+/** 음악관 주차장 뒤의 옹벽. 양 끝을 두 건물 외벽에 물려 운동장 쪽 틈을 가린다. */
+export function gemiMusicWall(campus: CampusData) {
+  if (!campus.buildings.some(b => b.id === 'gemi') || !campus.buildings.some(b => b.id === 'music')) return;
+  const a: [number, number] = [-24.35, 0.95], b: [number, number] = [-20.6, 12.85];
+  const dx = b[0] - a[0], dz = b[1] - a[1], length = Math.hypot(dx, dz);
+  const thickness = 0.65, nx = dz * thickness / (2 * length), nz = -dx * thickness / (2 * length);
+  const footprint: [number, number][] = [
+    [a[0] - nx, a[1] - nz], [b[0] - nx, b[1] - nz],
+    [b[0] + nx, b[1] + nz], [a[0] + nx, a[1] + nz],
+  ];
+  return {
+    x: (a[0] + b[0]) / 2, z: (a[1] + b[1]) / 2,
+    length, thickness, rotation: -Math.atan2(dz, dx), footprint,
+    baseOffset: -0.15, height: 5.3,
+  };
 }

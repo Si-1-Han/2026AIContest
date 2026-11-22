@@ -8,10 +8,10 @@ const server = await createServer({ root: new URL('../', import.meta.url).pathna
 try {
   const campus = JSON.parse(await readFile(new URL('../public/data/campus.json', import.meta.url)));
   const graph = JSON.parse(await readFile(new URL('../public/data/paths.json', import.meta.url)));
-  const { buildTourNetwork, tourPath, planTourMove } = await server.ssrLoadModule('/src/features/tour/network.ts');
+  const { buildTourNetwork, clearSegment, tourPath, planTourMove } = await server.ssrLoadModule('/src/features/tour/network.ts');
   const { MAIN_ACCESS_NODES, MAIN_SITE_PATHS, MAIN_WALK_SURFACES, MAIN_UPPER_PATH, MAIN_GARDEN_LEVEL, MAIN_FIRST_FLOOR, MAIN_THIRD_FLOOR, MAIN_PARKING, MAIN_STAIR_PLANTERS, MAIN_LOWER_CUT, mainSitePoint, isMainAccessStair } = await server.ssrLoadModule('/src/features/tour/mainBuildingAccess.ts');
   const { MAIN_ENTRY_FLOOR, MAIN_ENTRY_BASE, mainEntryLocal } = await server.ssrLoadModule('/src/features/tour/mainEntrance.ts');
-  const { MUSIC_PARKING, MUSIC_SITE, MUSIC_ACCESS_PATH } = await server.ssrLoadModule('/src/features/tour/musicForecourt.ts');
+  const { MUSIC_PARKING, MUSIC_SITE, MUSIC_ACCESS_PATH, gemiMusicWall } = await server.ssrLoadModule('/src/features/tour/musicForecourt.ts');
   const { FIELD_WALK, tourFieldFootprint } = await server.ssrLoadModule('/src/features/tour/fieldWalk.ts');
   const { tourElevation } = await server.ssrLoadModule('/src/features/tour/terrain.ts');
   const { buildExteriorSpec } = await server.ssrLoadModule('/src/scene/tour/exteriorSpec.ts');
@@ -81,9 +81,11 @@ try {
   assert(clipping.intersection(layout.parkingLines, [MUSIC_PARKING]).length > 0, '음악관 앞은 주차선이 있는 주차장');
   assert(!network.nodes.tour_music_corner, '주차장에서 운동장 뒤로 뚫었던 지름길 제거');
   assert(!network.segments.some(([a, b]) => [a, b].includes('n79') && [a, b].includes('n64')), '원본의 잘못된 음악관 북쪽 연결도 제외');
-  // GEMI관 앞 막다른 차도 끝 → GEMI관·음악관 사이 틈 → 음악관 앞 주차장은 거리뷰로 이어진다(포장 띠는 새로 그리지 않음).
-  const gapRoute = tourPath(network, 'n79', [network.nodes.tour_music_parking.x, network.nodes.tour_music_parking.z]);
-  assert(gapRoute.includes('tour_gemi_gap_0') && gapRoute.includes('tour_gemi_gap_1') && gapRoute.length < 12, 'GEMI관–음악관 틈 보행 연결');
+  const musicWall = gemiMusicWall(campus);
+  assert(musicWall && network.corridors.every(c => clearSegment(c.a, c.b, musicWall.footprint)), '거리뷰 동선이 GEMI관–음악관 옹벽을 통과하지 않음');
+  assert(!Object.keys(network.nodes).some(id => id.startsWith('tour_gemi_gap_')), '옛 사잇길 이동 지점 제거');
+  const musicRoute = tourPath(network, 'n79', [network.nodes.tour_music_parking.x, network.nodes.tour_music_parking.z]);
+  assert(musicRoute.includes('tour_music_road') && musicRoute.at(-1) === 'tour_music_parking', '음악관 주차장은 기존 진입로로 접근');
   // 3층 입구·진입 경사로 옆 지면은 비탈로 이어진다(입구 옆 5m 잔디 절벽·외벽 쪽 1층 높이 띠 없음).
   for (let u = 42.3; u <= 76; u += 0.5) for (let v = -40; v <= -2; v += 0.5) {
     const [x, z] = mainSitePoint(u, v);

@@ -1,5 +1,5 @@
 {
-  "revision": "b04619079d23a244",
+  "revision": "ec7e7fe4ef0272bd",
   "generator": "Blender",
   "sources": [
     "web/public/data/campus.json",
@@ -23,7 +23,9 @@
     "web/src/features/tour/fountainSite.ts",
     "web/src/scene/tour/siteGeometry.ts",
     "web/src/features/tour/buildingFrontage.ts",
-    "web/src/scene/tour/terrainCuts.ts"
+    "web/src/scene/tour/terrainCuts.ts",
+    "web/src/features/tour/pavedAreas.ts",
+    "web/src/features/tour/graduateApproach.ts"
   ],
   "grate": {
     "file": "drain-grate.glb",

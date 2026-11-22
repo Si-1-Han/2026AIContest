@@ -1,8 +1,10 @@
 import { MAIN_ENTRANCE, MAIN_ENTRY_RISE, mainEntryPoint } from '../../features/tour/mainEntrance';
 import type { Part } from './Batch';
 
+export const roofCrossLightFinish = { roughness: 0.28, metalness: 0, emissive: '#ffffff', emissiveIntensity: 10 };
+
 /** 본관 정면 저층동과 주차장 측면의 유리 계단실. 높이는 2층 정문 바닥 기준. */
-export function addMainBuildingDetails(stone: Part[], frames: Part[], glass: Part[], round: Part[], angle: number) {
+export function addMainBuildingDetails(stone: Part[], frames: Part[], glass: Part[], round: Part[], angle: number): Part[] {
   const point = (v: number, u: number, y: number): Part['p'] => {
     const [x, z] = mainEntryPoint(v, u); return [x, y, z];
   };
@@ -66,7 +68,55 @@ export function addMainBuildingDetails(stone: Part[], frames: Part[], glass: Par
   }
   for (const offset of [-3.9, -1.3, 1.3, 3.9]) frames.push({ p: point(towerV + offset, towerU - 2.53, (top + bottom) / 2), s: [0.09, top - bottom, 0.11], color: '#304b5c', ry: angle + Math.PI / 2 });
   box(towerU, towerV, top + 0.12, 5.05, 0.24, 8.05, '#9ba9ad');
-  // 지붕 위 십자가 프레임은 유리 계단실 위에 낮게 둔다.
-  for (const side of [-1, 1]) frames.push({ p: point(towerV, towerU + side * 0.8, top + 2.1), s: [0.09, 4.2, 0.09], color: '#a9b3b1' });
-  for (const y of [top + 1, top + 3]) frames.push({ p: point(towerV, towerU, y), s: [2.3, 0.09, 0.09], color: '#a9b3b1', ry: angle });
+  // 본관의 상징. 열린 철골 지지대 사이에 면이 넓은 은빛 십자가를 건다.
+  const roof = top + 0.24;
+  const beam = ([u0, y0]: [number, number], [u1, y1]: [number, number], profile: number, color: string) => {
+    frames.push({
+      p: point(towerV, towerU + (u0 + u1) / 2, roof + (y0 + y1) / 2),
+      s: [Math.hypot(u1 - u0, y1 - y0), profile, profile],
+      color, ry: angle, rz: Math.atan2(y1 - y0, u1 - u0),
+    });
+  };
+  const supportColor = '#aab4b7', braceColor = '#bcc4c4', crossColor = '#dee4e3';
+  for (const side of [-1, 1]) {
+    const inner = side * 1.39, outer = side * 1.68, shoulder = 4.15;
+    const tipOuter: [number, number] = [side * 0.48, 5.38];
+    const tipInner: [number, number] = [side * 0.41, 5.02];
+    box(towerU + side * 1.535, towerV, roof + 0.035, 0.52, 0.07, 0.55, '#7c898b');
+    beam([outer, 0.04], [outer, shoulder], 0.11, supportColor);
+    beam([inner, 0.04], [inner, shoulder - 0.16], 0.10, supportColor);
+    beam([outer, shoulder], tipOuter, 0.11, supportColor);
+    beam([inner, shoulder - 0.16], tipInner, 0.10, supportColor);
+    beam(tipOuter, tipInner, 0.085, supportColor);
+    for (let i = 0; i < 6; i++) {
+      const lower = 0.12 + i * 0.63, upper = lower + 0.63;
+      beam([inner, lower], [outer, lower], 0.05, braceColor);
+      beam(i % 2 ? [outer, lower] : [inner, lower], i % 2 ? [inner, upper] : [outer, upper], 0.055, braceColor);
+    }
+    const midOuter: [number, number] = [(outer + tipOuter[0]) / 2, (shoulder + tipOuter[1]) / 2];
+    const midInner: [number, number] = [(inner + tipInner[0]) / 2, (shoulder - 0.16 + tipInner[1]) / 2];
+    beam([inner, shoulder - 0.16], midOuter, 0.055, braceColor);
+    beam(midOuter, midInner, 0.05, braceColor);
+    beam(midInner, tipOuter, 0.055, braceColor);
+  }
+  const stemY = roof + 2.18, armY = roof + 2.94;
+  frames.push(
+    { p: point(towerV, towerU, stemY), s: [0.43, 4.02, 0.34], color: crossColor, ry: angle },
+    { p: point(towerV, towerU, armY), s: [2.87, 0.39, 0.29], color: crossColor, ry: angle },
+  );
+  // 공중에서 앞뒤 어느 쪽으로 돌아와도 흰 발광면이 보이도록 양면에 넣는다.
+  const lightColor = roofCrossLightFinish.emissive;
+  const lightStemWidth = 0.31, lightArmWidth = (2.7 - lightStemWidth) / 2;
+  const lightArmOffset = (lightStemWidth + lightArmWidth) / 2;
+  const lightPanel = (v: number, u: number, y: number, w: number, h: number): Part => ({
+    p: point(v, towerU + u, y), s: [w, h, 0.065], color: lightColor, ry: angle,
+  });
+  return [-1, 1].flatMap(face => {
+    const v = towerV + face * 0.16;
+    return [
+      lightPanel(v, 0, stemY, lightStemWidth, 3.88),
+      lightPanel(v, -lightArmOffset, armY, lightArmWidth, 0.27),
+      lightPanel(v, lightArmOffset, armY, lightArmWidth, 0.27),
+    ];
+  });
 }

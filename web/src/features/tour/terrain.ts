@@ -4,7 +4,7 @@ import { mainSiteGround, mainUpperFootGround } from './mainBuildingAccess';
 import { MAIN_ENTRY_BASE } from './mainEntrance';
 import { pavementGrade } from './pavementGrade';
 import { baseTerrain } from './baseTerrain';
-import { FOUNTAIN_CENTER, FOUNTAIN_RADIUS, fountainGround, fountainPlaza, fountainPlazaLevel, fountainSurface, fountainSiteDistance } from './fountainSite';
+import { FOUNTAIN_CENTER, FOUNTAIN_RADIUS, fountainCornerGround, fountainGround, fountainIslandGrade, fountainJunctionGround, fountainPlaza, fountainPlazaLevel, fountainSurface, fountainSiteDistance } from './fountainSite';
 import { spineDistanceAtZ, spinePoint, spineLocal } from './campusSpine';
 import { frontageGround } from './buildingFrontage';
 import { fieldWalkGround, fieldEntryGround } from './fieldWalk';
@@ -154,11 +154,13 @@ export function tourElevation(campus: CampusData) {
     // 본관 3층 진입로 시작부는 도로 단면 보정보다 나중에 적용해 경사로 옆면이 드러나지 않게 한다.
     return fieldEntryGround(x, z, mainUpperFootGround(x, z, scienceSideGround(x, z, scienceCourtGround(x, z, result))));
   };
+  const junctionHeight = (x: number, z: number) => fountainCornerGround(x, z, fountainJunctionGround(x, z, height(x, z)));
+  const islandGrade = fountainIslandGrade(junctionHeight);
   const samples = new Map<string, number>();
   const memoized = (x: number, z: number) => {
     const key = `${x.toFixed(3)}/${z.toFixed(3)}`;
     const found = samples.get(key); if (found !== undefined) return found;
-    const value = height(x, z); samples.set(key, value); return value;
+    const value = islandGrade(x, z, junctionHeight(x, z)); samples.set(key, value); return value;
   };
   cache.set(campus, memoized); return memoized;
 }

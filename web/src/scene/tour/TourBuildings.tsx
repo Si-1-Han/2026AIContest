@@ -9,6 +9,7 @@ import { useSurfaceMaps } from './materials';
 import { pedimentGeometry, roofGeometry } from './detailGeometry';
 import { useBlenderExterior } from './BlenderExterior';
 import { buildingElevation } from '../../features/tour/elevationLevels';
+import { roofCrossLightFinish } from './mainBuildingSpec';
 
 function PitchedRoof({ x, z, y, length, width, angle, color }: { x: number; z: number; y: number; length: number; width: number; angle: number; color: string }) {
   const geometry = useMemo(() => {
@@ -49,6 +50,9 @@ function ProceduralBody({ b }: { b: Building }) {
   return <group>
     {geometries.map((g, i) => <mesh key={i} geometry={g} position-y={spec.levels[i]!.level * b.floor_height} castShadow receiveShadow><meshStandardMaterial color={b.id === 'graduate' && spec.levels[i]!.level < 2 ? '#475052' : theme.wall} {...wallMaps} normalScale={new THREE.Vector2(0.35, 0.35)} roughness={0.94} /></mesh>)}
     <Batch parts={spec.stone} /><Batch parts={spec.frames} metal /><Batch parts={spec.glass} glass /><Batch parts={spec.round} shape="cylinder" /><Batch parts={spec.cones} shape="cone" />
+    {spec.roofCrossLights.map((part, i) => <mesh key={i} position={part.p} rotation-y={part.ry ?? 0}>
+      <boxGeometry args={part.s} /><meshStandardMaterial color={part.color} {...roofCrossLightFinish} />
+    </mesh>)}
     {spec.roofs.map((roof, i) => <PitchedRoof key={i} {...roof} />)}
     {spec.pediments.map((part, i) => <Pediment key={i} part={part} />)}
   </group>;
@@ -64,15 +68,29 @@ function Exterior({ b }: { b: Building }) {
   </group>;
 }
 
+export function designGemiBridgeParts(campus: CampusData): Part[] {
+  if (!campus.buildings.some(b => b.id === 'design') || !campus.buildings.some(b => b.id === 'gemi')) return [];
+  // 양쪽 외벽 안으로 양끝을 물려 기울어진 외벽과 슬래브 사이의 틈을 막는다.
+  const designEnd = [-42.6, -39.4] as const;
+  const gemiEnd = [-39.8, -24.2] as const;
+  const dx = gemiEnd[0] - designEnd[0], dz = gemiEnd[1] - designEnd[1];
+  const length = Math.hypot(dx, dz), angle = -Math.atan2(dz, dx);
+  const x = (designEnd[0] + gemiEnd[0]) / 2, z = (designEnd[1] + gemiEnd[1]) / 2;
+  const width = 3.1, post = 0.15, sideOffset = (width - post) / 2;
+  const parts: Part[] = [4.2, 7.4].map(y => ({
+    p: [x, y, z], s: [length, 0.25, width], color: '#d0d7cc', ry: angle,
+  }));
+  for (const offset of [-sideOffset, sideOffset]) for (let i = 0; i < 6; i++) {
+    const along = (i / 5 - 0.5) * (length - post);
+    parts.push({
+      p: [x + (dx * along - dz * offset) / length, 5.8, z + (dz * along + dx * offset) / length],
+      s: [post, 3.2, post], color: '#849b9e', ry: angle,
+    });
+  }
+  return parts;
+}
+
 export function TourBuildings({ campus }: { campus: CampusData }) {
-  const bridge = useMemo(() => {
-    const parts: Part[] = [];
-    // 사진에서 확인된 디자인관 ↔ GEMI관의 공중 연결통로.
-    const a: [number, number] = [-42, -36], b: [number, number] = [-40, -25];
-    const x = (a[0] + b[0]) / 2, z = (a[1] + b[1]) / 2, len = Math.hypot(b[0] - a[0], b[1] - a[1]), angle = -Math.atan2(b[1] - a[1], b[0] - a[0]);
-    for (const y of [4.2, 7.4]) parts.push({ p: [x, y, z], s: [len, 0.25, 3.1], color: '#d0d7cc', ry: angle });
-    for (const offset of [-1.5, 1.5]) for (let i = 0; i < 6; i++) parts.push({ p: [a[0] + (b[0] - a[0]) * i / 5 + offset, 5.8, a[1] + (b[1] - a[1]) * i / 5], s: [0.15, 3.2, 0.15], color: '#849b9e' });
-    return parts;
-  }, []);
+  const bridge = useMemo(() => designGemiBridgeParts(campus), [campus]);
   return <group>{campus.buildings.map(b => <Exterior key={b.id} b={b} />)}<group position-y={buildingElevation('design')}><Batch parts={bridge} /></group></group>;
 }

@@ -1,4 +1,4 @@
-import { MUSIC_ACCESS_PATH, GEMI_MUSIC_GAP_PATH, GEMI_MUSIC_GAP_CHAIN } from './musicForecourt';
+import { MUSIC_ACCESS_PATH, gemiMusicWall } from './musicForecourt';
 import { FIELD_WALK, FIELD_WALK_ENTRY } from './fieldWalk';
 import { FOUNTAIN_WALK } from './fountainSite';
 import { straightenSpineNodes, spinePoint, spineDistanceAtZ } from './campusSpine';
@@ -9,6 +9,7 @@ import { TERRACE_STOPS, VISION_TERRACE_PATH, TERRACE_PATHS, RODEM_ACCESS_PATH, V
 import { tourElevation } from './terrain';
 import { tourCollisionOutlines } from './buildingAccess';
 import { SCIENCE_APPROACH, SCIENCE_GARDEN_ENTRY, SCIENCE_GARDEN_WALK } from './scienceGarden';
+import { GRADUATE_ENTRY_ROUTE } from './buildingFrontage';
 
 export type Point = [number, number];
 export interface TourNode { id: string; x: number; y?: number; z: number; stop?: boolean; neighbors: string[] }
@@ -16,7 +17,7 @@ export interface TourCorridor { a: Point; b: Point; ay?: number; by?: number; st
 export interface TourNetwork { nodes: Record<string, TourNode>; start: string; segments: [string, string][]; kinds: Record<string, TourCorridor['kind']>; corridors: TourCorridor[] }
 export const TOUR_STEP_METERS = 30;
 
-import { SOUTH_LINK } from './southLink';
+import { SOUTH_LINK, STUDENT_UNION_SIDEWALK, STUDENT_UNION_STEPS, studentUnionEntryPoint } from './southLink';
 export { SOUTH_LINK };
 
 function withConfirmedRoad(graph: PathGraph): PathGraph {
@@ -53,9 +54,25 @@ function withVisionStairs(campus: CampusData, graph: PathGraph): PathGraph {
 
 }
 
+function withGraduateEntrance(campus: CampusData, graph: PathGraph): PathGraph {
+  if (!campus.buildings.some(b => b.id === 'graduate')) return graph;
+  const road = graph.edges.find(e => e.kind === 'road' && e.a === 'tour_fountain_0' && e.b === 'tour_music_road');
+  if (!road) return graph;
+  const nodes = GRADUATE_ENTRY_ROUTE
+    .map(([x, z], i) => ({ id: `tour_graduate_entry_${i}`, x, z, y: 0, type: 'junction' as const, building_id: null, floor_index: null }));
+  const [junction, ...walk] = nodes;
+  const a = graph.nodes.find(n => n.id === road.a)!, b = graph.nodes.find(n => n.id === road.b)!;
+  type Location = Pick<PathGraph['nodes'][number], 'id' | 'x' | 'z'>;
+  const link = (a: Location, b: Location, kind: 'road' | 'walk') =>
+    ({ a: a.id, b: b.id, kind, length: Math.hypot(b.x - a.x, b.z - a.z) });
+  const roadLinks = [link(a, junction!, 'road'), link(junction!, b, 'road')];
+  const walkLinks = walk.map((n, i) => link(nodes[i]!, n, 'walk'));
+  return { ...graph, nodes: [...graph.nodes, ...nodes], edges: [...graph.edges.filter(e => e !== road), ...roadLinks, ...walkLinks] };
+}
+
 function withMainEntrance(campus: CampusData, graph: PathGraph): PathGraph {
   if (!campus.buildings.some(b => b.id === 'main') || !graph.nodes.some(n => n.id === 'n25')) return graph;
-  const nodes = [...new Map([...MAIN_ENTRANCE_PATH, ...MAIN_ACCESS_NODES, ...MUSIC_ACCESS_PATH, ...GEMI_MUSIC_GAP_PATH].map(p => [p.id, p])).values()].map(p => ({ ...p, type: 'junction' as const, building_id: null, floor_index: null }));
+  const nodes = [...new Map([...MAIN_ENTRANCE_PATH, ...MAIN_ACCESS_NODES, ...MUSIC_ACCESS_PATH].map(p => [p.id, p])).values()].map(p => ({ ...p, type: 'junction' as const, building_id: null, floor_index: null }));
   const all = new Map([...graph.nodes, ...nodes].map(n => [n.id, n]));
   // 기존 잔디 언덕으로 들어가던 접근선을 새 계단 진입로로 대체한다.
   const edges = graph.edges.filter(e => {
@@ -82,8 +99,6 @@ function withMainEntrance(campus: CampusData, graph: PathGraph): PathGraph {
     [MAIN_UPPER_ROAD.id, ...MAIN_UPPER_PATH.map(p => p.id)],
     MAIN_GARDEN_PATH.map(p => p.id),
     ['tour_music_road', ...MUSIC_ACCESS_PATH.map(p => p.id)],
-    // GEMI관 앞 막다른 차도 끝 → GEMI관·음악관 사이 틈 → 음악관 앞 주차장.
-    GEMI_MUSIC_GAP_CHAIN,
   ];
   return { ...graph, nodes: [...graph.nodes, ...nodes], edges: [...edges, ...chains.flatMap(ids => ids.slice(1).flatMap((b, i) => {
     const a = ids[i]!, p = all.get(a), q = all.get(b);
@@ -118,7 +133,8 @@ export function clearSegment(a: Point, b: Point, polygon: Point[], margin = 1.4)
 /** 실내 접근선·건물 관통선·교외 구간을 제외하고 정문에서 이어지는 보행망만 사용한다. */
 export function buildTourNetwork(campus: CampusData, graph: PathGraph): TourNetwork {
   const elevation = tourElevation(campus);
-  graph = withConfirmedRoad(graph);
+  const wall = gemiMusicWall(campus);
+  graph = withGraduateEntrance(campus, withConfirmedRoad(graph));
   graph = withVisionStairs(campus, { ...graph, nodes: graph.nodes.map(n => ({ ...n, y: elevation(n.x, n.z) })) });
   graph = withMainEntrance(campus, graph);
   const source = new Map(graph.nodes.map(n => [n.id, n]));
@@ -127,11 +143,16 @@ export function buildTourNetwork(campus: CampusData, graph: PathGraph): TourNetw
   const kinds: TourNetwork['kinds'] = {};
   const corridors: TourCorridor[] = [];
   const add = (id: string, x: number, z: number, y = 0) => nodes[id] ??= { id, x, y, z, stop: TERRACE_STOPS.has(id) || MAIN_ACCESS_NODES.some(p => p.id === id) || MAIN_ENTRANCE_PATH.some(p => p.id === id && p.stop) || id === 'tour_science_1', neighbors: [] };
+  const connect = (a: TourNode, b: TourNode, kind: TourCorridor['kind']) => {
+    if (a.neighbors.includes(b.id)) return;
+    a.neighbors.push(b.id); b.neighbors.push(a.id); segments.push([a.id, b.id]); kinds[`${a.id}/${b.id}`] = kind;
+  };
   const nearCampus = (p: Point) => inside(p, campus.boundary) || campus.boundary.some((v, i) => segmentDistance(p, v, campus.boundary[(i + 1) % campus.boundary.length]!) < 8);
   for (const [ei, e] of graph.edges.entries()) {
     const a = source.get(e.a), b = source.get(e.b);
     if (!a || !b || a.type === 'entrance' || b.type === 'entrance' || e.kind === 'stairs' && !a.id.startsWith('tour_vision_') && !a.id.startsWith('tour_main_')) continue;
     const pa: Point = [a.x, a.z], pb: Point = [b.x, b.z];
+    if (wall && !clearSegment(pa, pb, wall.footprint)) continue;
     if (!campus.buildings.every(v => tourCollisionOutlines(v, a.y, b.y).every(outline => clearSegment(pa, pb, outline)))) continue;
     const steps = Math.max(1, Math.ceil(Math.hypot(b.x - a.x, b.y - a.y, b.z - a.z) / 10));
     if (!Array.from({ length: steps + 1 }, (_, i): Point => [a.x + (b.x - a.x) * i / steps, a.z + (b.z - a.z) * i / steps]).every(nearCampus)) continue;
@@ -141,10 +162,19 @@ export function buildTourNetwork(campus: CampusData, graph: PathGraph): TourNetw
     for (let i = 1; i <= steps; i++) {
       const x = a.x + (b.x - a.x) * i / steps, z = a.z + (b.z - a.z) * i / steps;
       const next = add(i === steps ? b.id : `tour_${ei}_${i}`, x, z, i === steps ? b.y : structure ? a.y + (b.y - a.y) * i / steps : elevation(x, z));
-      if (!last.neighbors.includes(next.id)) {
-        last.neighbors.push(next.id); next.neighbors.push(last.id); segments.push([last.id, next.id]); kinds[`${last.id}/${next.id}`] = e.kind;
-      }
+      connect(last, next, e.kind);
       last = next;
+    }
+  }
+  if (segments.length && campus.buildings.some(b => b.id === 'student_union')) {
+    const road = studentUnionEntryPoint(17.8);
+    const junction = nearestTourNode({ nodes }, road);
+    if (Math.hypot(junction.x - road[0], junction.z - road[1]) < 4) {
+      const walk = add('tour_student_union_sidewalk', ...STUDENT_UNION_SIDEWALK, elevation(...STUDENT_UNION_SIDEWALK));
+      const steps = add('tour_student_union_steps', ...STUDENT_UNION_STEPS, elevation(...STUDENT_UNION_STEPS));
+      // 이동 화살표만 차도에서 갈라진다. 보도는 연석 안쪽에서 따로 만든다.
+      connect(junction, walk, 'walk');
+      connect(walk, steps, 'walk');
     }
   }
   const gate = campus.outdoor_areas?.find(v => v.id === 'gate_main')?.center ?? [-122.13, -217.57];
@@ -157,7 +187,7 @@ export function buildTourNetwork(campus: CampusData, graph: PathGraph): TourNetw
   return { nodes: Object.fromEntries(candidates.filter(n => reached.has(n.id)).map(n => [n.id, n])), start, segments: connected, kinds, corridors: corridors.filter(c => candidates.some(n => reached.has(n.id) && Math.hypot(n.x - c.a[0], n.z - c.a[1]) < 0.01)) };
 }
 
-export function nearestTourNode(network: TourNetwork, goal: Point): TourNode {
+export function nearestTourNode(network: Pick<TourNetwork, 'nodes'>, goal: Point): TourNode {
   return Object.values(network.nodes).reduce((a, b) => Math.hypot(b.x - goal[0], b.z - goal[1]) < Math.hypot(a.x - goal[0], a.z - goal[1]) ? b : a);
 }
 

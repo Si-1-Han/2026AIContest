@@ -119,8 +119,9 @@ export function buildExteriorSpec(b: Building) {
   const entranceT = b.id === 'vision_center' ? 0.26 : b.id === 'main' ? MAIN_ENTRANCE.t : 0.5;
   const entranceRise = 0;
   const entrance = { edge: front, t: entranceT, rise: entranceRise, stairsHeight: b.id === 'main' ? MAIN_ENTRY_RISE : 0 };
+  let roofCrossLights: Part[] = [];
   if (b.id === 'main') {
-    addMainBuildingDetails(stone, frames, glass, round, front.angle);
+    roofCrossLights = addMainBuildingDetails(stone, frames, glass, round, front.angle);
   } else {
     glass.push({ p: fp(entranceT, 0.19, 1.5), s: [3, 3, 0.2], color: '#355b64', ry: front.angle });
     box(fp(entranceT, 1.0, 3.25), [6, 0.35, 2.6], ['graduate', 'theology', 'student_union'].includes(b.id) ? '#3a464b' : theme.trim, front.angle);
@@ -212,5 +213,5 @@ export function buildExteriorSpec(b: Building) {
     { x: 59.1, z: 125.7, y: height, length: 28, width: 12, angle: Math.PI / 2 + 0.045, color: '#508f80' },
     { x: 39, z: 135, y: height, length: 32, width: 11.8, angle: 0.045, color: '#508f80' },
   ] : [];
-  return { stone, frames, glass, round, cones, pediments, roofs, front, entrance, levels, height };
+  return { stone, frames, glass, round, cones, pediments, roofs, roofCrossLights, front, entrance, levels, height };
 }

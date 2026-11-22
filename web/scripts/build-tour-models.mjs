@@ -25,6 +25,7 @@ async function png(path, pixels, size) {
 }
 try {
   const { buildExteriorSpec, themes } = await server.ssrLoadModule('/src/scene/tour/exteriorSpec.ts');
+  const { roofCrossLightFinish } = await server.ssrLoadModule('/src/scene/tour/mainBuildingSpec.ts');
   const { extrudeFootprint } = await server.ssrLoadModule('/src/lib/geometry.ts');
   const { pedimentGeometry, roofGeometry } = await server.ssrLoadModule('/src/scene/tour/detailGeometry.ts');
   const { surfacePixels, SURFACE_REPEAT } = await server.ssrLoadModule('/src/scene/tour/materials.ts');
@@ -41,7 +42,7 @@ try {
   const buildings = campus.buildings.map(b => {
     const spec = buildExteriorSpec(b), theme = themes[b.id], surface = ['music', 'rodem'].includes(b.id) ? 'brick' : 'stone';
     return { id: b.id, name: b.name, center: b.center, radius: Math.max(...b.footprint.map(([x, z]) => Math.hypot(x - b.center[0], z - b.center[1]))), height: spec.height, front: spec.front,
-      parts: { stone: spec.stone, frames: spec.frames, glass: spec.glass, cylinder: spec.round, cone: spec.cones },
+      parts: { stone: spec.stone, frames: spec.frames, crossLight: spec.roofCrossLights, glass: spec.glass, cylinder: spec.round, cone: spec.cones },
       meshes: [
         ...spec.levels.map(f => mesh(extrudeFootprint(f.outline.map(([x, z]) => [x - b.center[0], z - b.center[1]]), b.floor_height), [b.center[0], f.level * b.floor_height, b.center[1]], 0, b.id === 'graduate' && f.level < 2 ? '#475052' : theme.wall, surface)),
         ...spec.roofs.map(r => mesh(roofGeometry(r.width, r.length), [r.x, r.y, r.z], r.angle + Math.PI / 2, r.color)),
@@ -49,7 +50,7 @@ try {
       ],
     };
   });
-  await writeFile(join(work, 'recipe.json'), JSON.stringify({ version: 1, revision, attribution: campus.attribution, coordinateSystem: 'x-east/y-up/z-south; local building center', textures, buildings }));
+  await writeFile(join(work, 'recipe.json'), JSON.stringify({ version: 1, revision, attribution: campus.attribution, coordinateSystem: 'x-east/y-up/z-south; local building center', textures, roofCrossLightFinish, buildings }));
 } finally { await server.close(); }
 
 const arg = process.argv.indexOf('--blender');

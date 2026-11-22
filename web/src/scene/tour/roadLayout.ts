@@ -1,14 +1,16 @@
 import { gateRoadPoints, gateWallSections, GATE_ROAD_WIDTH } from '../../features/tour/gateWalls';
 import { MAIN_PARKING, MAIN_ROAD_OPENINGS, MAIN_FRONT_PLAZA, MAIN_STREET, MAIN_LOWER_CUT, MAIN_STAIR_SITE, MAIN_STAIR_PLANTERS } from '../../features/tour/mainBuildingAccess';
-import { MUSIC_PARKING, MUSIC_SITE, onGemiMusicGap } from '../../features/tour/musicForecourt';
+import { MUSIC_PARKING, MUSIC_SITE } from '../../features/tour/musicForecourt';
 import { FIELD_ENTRY_WIDTH, FIELD_WALK_ENTRY, FIELD_WALK_WIDTH, inFieldWalk } from '../../features/tour/fieldWalk';
 import { pavementPads } from '../../features/tour/pavementGrade';
-import { BUILDING_FRONTAGE } from '../../features/tour/buildingFrontage';
-import { FOUNTAIN_FIELD_LINK, FOUNTAIN_PLANTING, onFountainWalk } from '../../features/tour/fountainSite';
+import { BUILDING_FRONTAGE, GRADUATE_CORNER_WALK, GRADUATE_ENTRY_BEND, GRADUATE_ENTRY_DOOR, GRADUATE_ENTRY_ROUTE, GRADUATE_ENTRY_SIDEWALK, GRADUATE_FORECOURT } from '../../features/tour/buildingFrontage';
+import { FOUNTAIN_FIELD_LINK, FOUNTAIN_JUNCTION_PAVEMENT, FOUNTAIN_PLANTING, fountainCornerLimit, fountainCornerStrip, onFountainWalk } from '../../features/tour/fountainSite';
 import { SPINE_PARKING_RAMPS, CENTRAL_PARKING_APRON } from '../../features/tour/campusSpine';
 import { CAMPUS_SPINE, SPINE_LENGTH, SPINE_RESERVED, SPINE_DRIVEWAY_OPENINGS, SPINE_DRIVEWAY_Z, SPINE_DRIVEWAY_WIDTH, spineDistanceAtZ, spinePoint, spineStrip, onCampusSpine } from '../../features/tour/campusSpine';
 import { MAIN_ROAD_FORECOURT, VISION_GROUND_APRON, MUSIC_TO_VISION_ASPHALT } from '../../features/tour/pavedAreas';
 import { inScienceCourt } from '../../features/tour/scienceGarden';
+import { STUDENT_UNION_ENTRY_WALK } from '../../features/tour/southLink';
+import { MAIN_FRONT_PROFILE } from '../../features/tour/graduateApproach';
 import clipping, { type MultiPolygon, type Polygon } from 'polygon-clipping';
 import { inside, segmentDistance, type Point, type TourCorridor } from '../../features/tour/network';
 import type { CampusData, ContextBuilding } from '../../types/generated/campus';
@@ -58,9 +60,9 @@ export function buildRoadLayout(campus: CampusData, corridors: TourCorridor[]): 
   // 이공관 앞 정원 안의 보행 통로는 정원 벽돌 포장이 대신한다(차도·보도 띠를 만들지 않는다).
   const gardenWalk = (c: TourCorridor) => c.kind === 'walk' && inScienceCourt(...c.a, 3) && inScienceCourt(...c.b, 3);
   const followsFieldEntry = (c: TourCorridor) => [c.a, c.b].every(p => FIELD_WALK_ENTRY.some(q => p[0] === q[0] && p[1] === q[1]));
-  // GEMI관–음악관 틈은 이미 보도·주차장 포장이 덮고 있어 이동선만 쓰고 띠를 다시 그리지 않는다.
-  const gapWalk = (c: TourCorridor) => c.kind === 'walk' && onGemiMusicGap(c.a, c.b);
-  const roads = corridors.filter(c => Math.hypot(c.b[0] - c.a[0], c.b[1] - c.a[1]) > 0.01 && !gardenWalk(c) && !gapWalk(c)).map(c => ({ ...c,
+  const graduateWalk = (c: TourCorridor) => c.kind === 'walk' && [c.a, c.b].every(p => GRADUATE_ENTRY_ROUTE.some(q => p[0] === q[0] && p[1] === q[1]));
+  const hasGraduate = campus.buildings.some(b => b.id === 'graduate');
+  const roads = corridors.filter(c => Math.hypot(c.b[0] - c.a[0], c.b[1] - c.a[1]) > 0.01 && !gardenWalk(c) && !graduateWalk(c)).map(c => ({ ...c,
     width: c.kind !== 'road' ? !c.structure && (inFieldWalk(...c.a, 0.05) && inFieldWalk(...c.b, 0.05) || onFountainWalk(c.a, c.b)) ? FIELD_WALK_WIDTH : c.kind === 'stairs' || c.structure ? 3.2 : 2.6 : onCampusSpine(c.a, c.b) ? CAMPUS_SPINE.roadWidth : Math.max(3, Math.min(c.a[1] < -140 ? 9 : 7, clearance(c.a) * 2 - 1, clearance(c.b) * 2 - 1)),
   }));
   const isSiteWalk = (c: typeof roads[number]) => c.kind === 'walk' && !c.structure && (c.width === FIELD_WALK_WIDTH || followsFieldEntry(c));
@@ -160,7 +162,10 @@ export function buildRoadLayout(campus: CampusData, corridors: TourCorridor[]): 
   const ramps=SPINE_PARKING_RAMPS.map(r=>[r]);
   asphalt=clipping.union(asphalt,ramps);
   const fields = (campus.outdoor_areas ?? []).filter(a => a.kind === 'field').map(a => [a.footprint]);
-  const frontage = clipping.difference([BUILDING_FRONTAGE], buildings, asphalt, parking, openings, fields);
+  const frontageArea = hasGraduate
+    ? clipping.union(clipping.difference([BUILDING_FRONTAGE], [GRADUATE_FORECOURT]), [GRADUATE_CORNER_WALK])
+    : [[BUILDING_FRONTAGE]];
+  const frontage = clipping.difference(frontageArea, buildings, asphalt, parking, openings, fields);
   sidewalks = clipping.difference(clipping.union(sidewalks, frontage), [FOUNTAIN_PLANTING]);
   let parkingLines = clipping.union(otherLines, merge(centralLines));
   // 작은 주차장이 중앙 주차장과 합쳐져도 음악관 앞 도색을 따로 생성한다.
@@ -180,7 +185,11 @@ export function buildRoadLayout(campus: CampusData, corridors: TourCorridor[]): 
   const fountainLink = FOUNTAIN_FIELD_LINK.slice(1).map((b, i) => capsule(FOUNTAIN_FIELD_LINK[i]!, b, 1.2));
   const fieldEntry = FIELD_WALK_ENTRY.slice(1).map((b, i) => capsule(FIELD_WALK_ENTRY[i]!, b, FIELD_ENTRY_WIDTH / 2));
   const siteWalks = roads.filter(isSiteWalk);
-  let walkways = clipping.difference(merge([...fountainLink, ...fieldEntry, ...siteWalks.map(c => capsule(c.a, c.b, c.width / 2))]), buildings, vehicleSurface);
+  // 운동장·분수 쪽 보도는 교차로에서 이어지는 길이다. 사잇길은 그 보도의 바깥 경계에 붙인다.
+  const roadCenter = MAIN_FRONT_PROFILE.map(([x, z]): Point => [x, z]);
+  const fieldRoadside: Polygon = [[...roadCenter, ...roadCenter.map(([x, z]): Point => [x, z + 10]).reverse()]];
+  const fieldRoadsideWalk = clipping.intersection(sidewalks, fieldRoadside);
+  let walkways = clipping.difference(merge([...fountainLink, ...fieldEntry, ...siteWalks.map(c => capsule(c.a, c.b, c.width / 2))]), buildings, vehicleSurface, fieldRoadsideWalk);
   asphalt = clipping.difference(asphalt, walkways);
   sidewalks = clipping.difference(sidewalks, walkways, asphalt,ramps);
   curbs = clipping.difference(curbs, walkways,ramps); tactile = clipping.difference(tactile, walkways,ramps);
@@ -189,12 +198,39 @@ export function buildRoadLayout(campus: CampusData, corridors: TourCorridor[]): 
     const point=(p:typeof w.a,offset:number):Point=>[p[0]-w.nx*w.side*offset,p[2]-w.nz*w.side*offset];
     return [point(w.a,.5),point(w.b,.5),point(w.b,2.3),point(w.a,2.3)];
   });
-  const afterGate=clipping.difference([MAIN_ROAD_FORECOURT],wallWalks.map(r=>[r]),walkways);
+  const afterGate=clipping.difference([MAIN_ROAD_FORECOURT],wallWalks.map(r=>[r]),walkways,fieldRoadside);
   const removedWalk=clipping.intersection(clipping.union(sidewalks,curbs,tactile,walkways),clipping.union(afterGate,[VISION_GROUND_APRON],[MUSIC_TO_VISION_ASPHALT]));
   asphalt=clipping.difference(clipping.union(asphalt,removedWalk),buildings);
   sidewalks=clipping.difference(sidewalks,removedWalk,asphalt);
   curbs=clipping.difference(curbs,removedWalk,asphalt);tactile=clipping.difference(tactile,removedWalk,asphalt);
   walkways=clipping.difference(walkways,removedWalk,asphalt);
+  // 분수대 앞에서는 잘려 있던 양쪽 보도를 한 곡선으로 연결한다.
+  const cornerRoadMargin = 2.2;
+  const fountainCorner = [fountainCornerLimit(cornerRoadMargin)];
+  const cornerRoad = [fountainCornerStrip(-cornerRoadMargin, 0)];
+  const cornerWalk = [fountainCornerStrip(0, CAMPUS_SPINE.sidewalkWidth)];
+  asphalt = clipping.union(clipping.difference(asphalt, fountainCorner), cornerRoad);
+  sidewalks = clipping.union(clipping.difference(sidewalks, fountainCorner), cornerWalk);
+  curbs = clipping.union(clipping.difference(curbs, fountainCorner), [fountainCornerStrip(0, 0.18)]);
+  tactile = clipping.union(clipping.difference(tactile, fountainCorner), [fountainCornerStrip(0.7, 0.95)]);
+  walkways = clipping.difference(walkways, cornerWalk, cornerRoad);
+  if (hasGraduate) {
+    const entry = merge([capsule(GRADUATE_ENTRY_SIDEWALK, GRADUATE_ENTRY_BEND, 2.25), capsule(GRADUATE_ENTRY_BEND, GRADUATE_ENTRY_DOOR, 2.25)]);
+    sidewalks = clipping.union(sidewalks, clipping.difference(entry, asphalt, curbs, buildings, walkways));
+  }
+  if (campus.buildings.some(b => b.id === 'student_union')) {
+    const entryWalk = clipping.difference([STUDENT_UNION_ENTRY_WALK], asphalt, curbs, buildings, walkways);
+    sidewalks = clipping.union(sidewalks, entryWalk);
+  }
+  // 도로 합집합에서 생긴 실금 크기의 구멍만 메운다. 보도섬의 실제 개구부는 유지한다.
+  asphalt = asphalt.map(([outer, ...holes]) => [outer!, ...holes.filter(ring => {
+    if (!ring.every(p => inside(p, FOUNTAIN_JUNCTION_PAVEMENT))) return true;
+    const twiceArea = ring.reduce((area, [x, z], i) => {
+      const [nextX, nextZ] = ring[(i + 1) % ring.length]!;
+      return area + x * nextZ - z * nextX;
+    }, 0);
+    return Math.abs(twiceArea) >= 0.0002;
+  })]);
   parkingLines=clipping.difference(clipping.intersection(parkingLines,asphalt),sidewalks,walkways);
   // 마지막 포장 정리 뒤에도 칸 전체가 차도 면 안에 남은 칸에만 차를 세운다.
   const parkedBays = bays.filter(b => !clipping.difference([b.ring], asphalt).length && !clipping.intersection([b.ring], clipping.union(sidewalks, walkways, buildings)).length);

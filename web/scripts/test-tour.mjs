@@ -23,6 +23,7 @@ try {
   const { PARKING_LEVEL, MIDDLE_LEVEL, UPPER_CAMPUS_LEVEL, SLOPE_GAIN, buildingElevation } = await server.ssrLoadModule('/src/features/tour/elevationLevels.ts');
   const { tourElevation, SLOPE_PROFILES } = await server.ssrLoadModule('/src/features/tour/terrain.ts');
   const { tourCollisionOutlines, SCIENCE_APPROACH, tourPlaceGoal, tourPlaceLookAt } = await server.ssrLoadModule('/src/features/tour/buildingAccess.ts');
+  const { STUDENT_UNION_ENTRY_WALK, studentUnionEntryPoint } = await server.ssrLoadModule('/src/features/tour/southLink.ts');
   const { MAIN_ENTRANCE_PATH, MAIN_ENTRY_RISE, MAIN_ENTRY_FLOOR, MAIN_ENTRY_BASE, mainEntryPoint, mainEntryLocal } = await server.ssrLoadModule('/src/features/tour/mainEntrance.ts');
   const { MUSIC_PARKING } = await server.ssrLoadModule('/src/features/tour/musicForecourt.ts');
   const { MAIN_PARKING } = await server.ssrLoadModule('/src/features/tour/mainBuildingAccess.ts');
@@ -30,6 +31,8 @@ try {
   const { gateWallSections, inGateApproach, gateRoadPoints, GATE_ROAD_WIDTH } = await server.ssrLoadModule('/src/features/tour/gateWalls.ts');
   const { roadGeometries } = await server.ssrLoadModule('/src/scene/tour/TourRoads.tsx');
   const { campusTerrain } = await server.ssrLoadModule('/src/scene/tour/terrainGeometry.ts');
+  const { mainFrontRoadAt } = await server.ssrLoadModule('/src/features/tour/graduateApproach.ts');
+  const { FIELD_WALK, FIELD_WALK_ENTRY } = await server.ssrLoadModule('/src/features/tour/fieldWalk.ts');
   const { useCampusStore } = await server.ssrLoadModule('/src/store/useCampusStore.ts');
   const { useTourStore } = await server.ssrLoadModule('/src/store/useTourStore.ts');
   const { CampusTour } = await server.ssrLoadModule('/src/ui/CampusTour.tsx');
@@ -65,6 +68,12 @@ try {
   assert.throws(() => buildTourNetwork(campus, { nodes: [], edges: [] }));
   assert(network.nodes.tour_south_0 && network.nodes.tour_south_1 && network.nodes.tour_south_2, '지도에서 확인한 동쪽 도로와 이공관 앞 연결길');
   assert(tourPath(network, 'n133', [64, 213]).length <= 3, '동쪽 연결도로로 직접 이동');
+  const studentUnion = campus.buildings.find(b => b.id === 'student_union');
+  const unionRoute = tourPath(network, network.start, tourPlaceGoal(studentUnion));
+  assert.deepEqual(unionRoute.slice(-2), ['tour_student_union_sidewalk', 'tour_student_union_steps'], '학생회관은 기존 보도에서 중앙 계단 앞으로 이동');
+  const graduate = campus.buildings.find(b => b.id === 'graduate');
+  const graduateRoute = tourPath(network, network.start, tourPlaceGoal(graduate));
+  assert(graduateRoute.includes('tour_graduate_entry_1') && graduateRoute.includes('tour_graduate_entry_2') && graduateRoute.at(-1) === 'tour_graduate_entry_3', '대학원관 바로 이동과 안내는 도로변 보도에서 북쪽 입구에 도착');
   for (const p of VISION_TERRACE_PATH) {
     assert(network.nodes[p.id], `${p.id}: 영상비전센터 계단·쉼터 경로 연결`);
     assert.equal(network.nodes[p.id].y, p.y);
@@ -159,6 +168,29 @@ try {
   decks.forEach(g => { g.base.dispose(); g.top.dispose(); }); deckMaterial.dispose();
   const layout = buildRoadLayout(campus, network.corridors);
   assert(layout.asphalt.length > 0, '고도가 있는 도로도 지면에 표시');
+  const fieldEntryArea = [[[-39, -137], [-16, -137], [-16, -117], [-39, -117]]];
+  assert.equal(clipping.intersection(fieldEntryArea, layout.walkways, layout.asphalt).length, 0, '운동장 사잇길 포장이 차도를 덮지 않음');
+  for (let x = -38; x <= -17; x += 0.5) {
+    const { z } = mainFrontRoadAt(x);
+    assert(inSurface([x, z + 3.85], layout.sidewalks), '사잇길이 만나는 기존 도로변 보도 연속');
+  }
+  const fieldApproach = [[-24.75, -127.9], ...FIELD_WALK_ENTRY.slice(1), FIELD_WALK[1]];
+  for (let i = 1; i < fieldApproach.length; i++) {
+    const [a, b] = [fieldApproach[i - 1], fieldApproach[i]];
+    for (let j = 0; j <= 20; j++) {
+      const p = [a[0] + (b[0] - a[0]) * j / 20, a[1] + (b[1] - a[1]) * j / 20];
+      assert(inSurface(p, layout.sidewalks) || inSurface(p, layout.walkways), '도로변 보도에서 운동장 사잇길까지 포장 연속');
+    }
+  }
+  for (let x = -32; x <= -20; x += 0.5) for (let z = -128; z < -118; z += 0.25) {
+    const y = elevation(x, z);
+    const next = elevation(x, z + 0.25);
+    assert(next >= y - 0.01 && next - y < 0.07, '사잇길과 양옆 잔디는 같은 완만한 오르막으로 이어짐');
+  }
+  for (let distance = 2.45; distance <= 13.2; distance += 0.25) for (const side of [-2.5, 0, 2.5]) {
+    assert(inSurface(studentUnionEntryPoint(distance, side), layout.sidewalks), '학생회관 계단에서 기존 보도까지 진입로 연속');
+  }
+  assert.equal(clipping.intersection([STUDENT_UNION_ENTRY_WALK], layout.asphalt, layout.sidewalks).length, 0, '학생회관 보도가 차도를 덮지 않음');
   const roadMeshes = roadGeometries(layout, elevation);
   for (const [index, mesh] of roadMeshes.entries()) {
     const p = mesh.getAttribute('position');

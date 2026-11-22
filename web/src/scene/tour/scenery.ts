@@ -1,4 +1,4 @@
-import { inMusicForecourt } from '../../features/tour/musicForecourt';
+import { gemiMusicWall, inMusicForecourt } from '../../features/tour/musicForecourt';
 import { inMainEntrance } from '../../features/tour/mainEntrance';
 import { inMainSite } from '../../features/tour/mainBuildingAccess';
 import { FIELD_WALK, FIELD_GATE_OPENINGS, inFieldWalk, tourFieldFootprint } from '../../features/tour/fieldWalk';
@@ -11,9 +11,10 @@ import { inVisionTerrace } from '../../features/tour/visionTerrace';
 import { SLOPE_PROFILES, tourElevation } from '../../features/tour/terrain';
 import { FOUNTAIN_CENTER, FOUNTAIN_FLAT_RADIUS, FOUNTAIN_PLANTING, inFountainSite } from '../../features/tour/fountainSite';
 import { inScienceCourt, GARDEN_TREES } from '../../features/tour/scienceGarden';
-import { onBuildingSide } from '../../features/tour/buildingFrontage';
+import { GRADUATE_FORECOURT, onBuildingSide } from '../../features/tour/buildingFrontage';
 import { CAMPUS_SPINE, spineDistanceAtZ, spinePoint } from '../../features/tour/campusSpine';
 import { approachRoadPoint, APPROACH_START_Z } from '../../features/tour/graduateApproach';
+import { STUDENT_UNION_ENTRY_WALK } from '../../features/tour/southLink';
 
 // 로뎀관 앞, 중앙 주차장과 막다른 진입로 사이 잔디.
 const RODEM_LAWN: Point[] = [[27, 62], [55, 49], [69, 65], [77, 98], [68, 103], [35, 107], [34, 140], [23, 146], [12, 140], [9, 97], [22, 82]];
@@ -23,6 +24,11 @@ export interface Scenery { stone: Part[]; metal: Part[]; leaves: Part[]; trunks:
 export function makeScenery(campus: CampusData, layout: RoadLayout): Scenery {
   const s: Scenery = { stone: [], metal: [], leaves: [], trunks: [], paving: [], paint: [], drains: [], trees: [] };
   const box = (list: Part[], p: Part['p'], scale: Part['s'], color: string, ry = 0) => list.push({ p, s: scale, color, ry });
+  const wall = gemiMusicWall(campus);
+  if (wall) {
+    box(s.stone, [wall.x, wall.baseOffset + wall.height / 2, wall.z], [wall.length, wall.height, wall.thickness], '#ded8c7', wall.rotation);
+    box(s.stone, [wall.x, wall.baseOffset + wall.height + 0.07, wall.z], [wall.length, 0.14, wall.thickness + 0.13], '#c8c1ae', wall.rotation);
+  }
   const polygons = [...campus.buildings.map(b => b.footprint), ...(campus.outdoor_areas ?? []).filter(a => a.kind !== 'gate').map(a => a.footprint)];
   const free = (p: Point, margin = 2.4) => inside(p, campus.boundary) && !inSurface(p, layout.asphalt) && !inSurface(p, layout.sidewalks) && !polygons.some(poly => inside(p, poly) || poly.some((v, i) => segmentDistance(p, v, poly[(i + 1) % poly.length]!) < margin)) && layout.corridors.every(c => segmentDistance(p, c.a, c.b) > c.width / 2 + 3.2);
   const tree = (x: number, z: number, seed: number, shrub = false) => {
@@ -67,12 +73,12 @@ export function makeScenery(campus: CampusData, layout: RoadLayout): Scenery {
   const plantingObstacles = [...polygons, ...campus.context.map(b => b.footprint)];
   const nearEdge = (p: Point, ring: Point[], margin: number) =>
     ring.some((a, i) => segmentDistance(p, a, ring[(i + 1) % ring.length]!) < margin);
-  const canPlant = (p: Point, scale: number, fountainGarden = false) => {
+  const canPlant = (p: Point, scale: number, allowFountainSite = false, crownClearance = 0) => {
     const [x, z] = p;
-    if ((!fountainGarden && inFountainSite(x, z, 7)) || inGateApproach(x, z, 2) || inMainSite(x, z, 2)) return false;
-    const clearance = 1.5 + scale;
+    if ((!allowFountainSite && inFountainSite(x, z, 7)) || inGateApproach(x, z, 2) || inMainSite(x, z, 2)) return false;
+    const clearance = Math.max(1.5 + scale, crownClearance);
     if (pavement.some(surface => inSurface(p, surface) || surface.some(poly => poly.some(ring => nearEdge(p, ring, clearance))))) return false;
-    if (plantingObstacles.some(ring => inside(p, ring) || nearEdge(p, ring, 1.5 + 2 * scale))) return false;
+    if (plantingObstacles.some(ring => inside(p, ring) || nearEdge(p, ring, Math.max(1.5 + 2 * scale, crownClearance)))) return false;
     return s.trees.every(t => Math.hypot(t.x - x, t.z - z) >= (t.shrub ? 2 : 1.2 + 1.6 * (t.scale + scale)));
   };
   // 보도 가까이 작은 나무와 꽃나무를, 그 뒤에는 키와 수관 폭이 다른 나무를 엇갈려 심는다.
@@ -110,18 +116,42 @@ export function makeScenery(campus: CampusData, layout: RoadLayout): Scenery {
       }
     }
   };
-  if (campus.buildings.some(b => b.id === 'graduate')) {
+  const graduate = campus.buildings.find(b => b.id === 'graduate');
+  if (graduate) {
     // 대학원관 옆에서 영산비전센터 앞 주차장 끝까지 아파트 쪽 녹지를 이어 채운다.
     plantRows([approachRoadPoint(APPROACH_START_Z), CAMPUS_SPINE.a, spinePoint(spineDistanceAtZ(153))], -1);
   }
   if (field) {
+    // 운동장 골대 뒤 북쪽 잔디. 넓은 곳에는 큰 나무를 두고, 도로가 굽어 잔디가 좁아지는 쪽은 낮게 심는다.
+    const fieldFrontTrees: [number, number, TreePlacement['species'], number][] = [
+      [-22.1, -120.2, 'flowering', 0.62],
+      [-18.6, -123.7, 'broadleaf', 0.43],
+      [-16.3, -120.15, 'broadleaf', 0.99],
+      [-12.5, -122.9, 'flowering', 0.70],
+      [-11.4, -118.9, 'broadleaf', 0.39],
+      [-7.75, -121.25, 'ginkgo', 1.0],
+      [-4.4, -123.55, 'flowering', 0.52],
+      [-2.95, -119.9, 'broadleaf', 0.47],
+      [1, -121.55, 'broadleaf', 0.91],
+      [5.25, -123.15, 'flowering', 0.52],
+      [7.15, -120.85, 'broadleaf', 0.44],
+      [10.35, -121.94, 'pine', 0.76],
+      [14.55, -122.25, 'flowering', 0.65],
+      [18.35, -122.5, 'broadleaf', 0.55],
+      [21.45, -122.58, 'flowering', 0.50],
+      [24.08, -122.45, 'ginkgo', 0.36],
+    ];
+    for (const [x, z, species, scale] of fieldFrontTrees) {
+      const seed = (1 + Math.sin(x * 2.41 + z * 1.67)) / 2;
+      if (canPlant([x, z], scale, true, 4.3 * scale)) s.trees.push({ x, z, seed, species, scale });
+    }
     // 운동장 동쪽에서 로뎀관의 굽은 오르막을 지나 학생회관 교차로까지 이어진다.
     const eastBend = SLOPE_PROFILES.find(profile => profile.id === 'rodem-east')!.points.map(([x, z]): Point => [x, z]);
     plantRows([[33.97, -125.96], [36.72, -120.1], [51.66, -13.18], [58.37, 36.18], [57.42, 45.17], ...eastBend, [63.08, 203.01]], 1);
     // 커브 바깥 넓은 잔디는 보도 옆보다 느슨하게 심어 보도 쪽 수관과 자연스럽게 이어지게 한다.
     plantRows(eastBend.slice(1), 1, [{ offset: 26, start: 6, spacing: 10.5, low: false, spread: 9 }]);
   }
-  if (field && campus.buildings.some(b => b.id === 'graduate')) {
+  if (field && graduate) {
     for (let row = 0; row < 11; row++) {
       const z = -128 + row * 2.9;
       for (let x = -70 + (row % 2) * 1.5; x < -22; x += 3.2) {
@@ -130,6 +160,19 @@ export function makeScenery(campus: CampusData, layout: RoadLayout): Scenery {
         const scale = 0.27 + seed * 0.12;
         if (!inside(p, FOUNTAIN_PLANTING) || Math.hypot(p[0] - FOUNTAIN_CENTER[0], p[1] - FOUNTAIN_CENTER[1]) < FOUNTAIN_FLAT_RADIUS + 1.4) continue;
         if (canPlant(p, scale, true)) s.trees.push({ x: p[0], z: p[1], seed, scale, species: seed < 0.2 ? 'pine' : 'broadleaf' });
+      }
+    }
+  }
+  if (graduate) {
+    // 진입로 양옆의 새 잔디를 분수대 녹지와 비슷한 높이의 나무로 채운다.
+    for (let row = 0, z = -119; z < -97; row++, z += 4.2) {
+      for (let x = -72 + (row % 2) * 2.25; x < -24; x += 4.5) {
+        const seed = (1 + Math.sin(x * 2.17 + z * 1.49)) / 2;
+        const p: Point = [x + Math.cos(x * 0.47 + z) * 0.95, z + (seed - 0.5) * 1.55];
+        if (!inside(p, GRADUATE_FORECOURT) || inside(p, FOUNTAIN_PLANTING) || nearEdge(p, graduate.footprint, 4)) continue;
+        const scale = 0.34 + seed * 0.28;
+        if (!canPlant(p, scale, true, 4.3 * scale)) continue;
+        s.trees.push({ x: p[0], z: p[1], seed, scale, species: seed < 0.18 ? 'flowering' : seed > 0.8 ? 'ginkgo' : 'broadleaf' });
       }
     }
   }
@@ -157,6 +200,54 @@ export function makeScenery(campus: CampusData, layout: RoadLayout): Scenery {
         if (!layout.sidewalks.some(poly => poly.some(ring => nearEdge(p, ring, 4.5)))) continue;
         plantSmallTree(p, seed);
       }
+    }
+    // 로뎀관 앞 도로와 주차장 사이의 빈 곳에 낮은 꽃나무를 엇갈려 배치한다.
+    for (let row = 0, z = 54.4; z < 143; row++, z += 4.2) {
+      for (let x = 13.2 + (row % 2) * 2.2; x < 76; x += 4.4) {
+        const seed = (1 + Math.sin(x * 2.17 + z * 1.49)) / 2;
+        const p: Point = [x + Math.cos(x * 0.47 + z) * 0.7, z + (seed - 0.5) * 1.4];
+        const scale = 0.4 + seed * 0.12;
+        if (!inside(p, RODEM_LAWN) || inVisionTerrace(...p, 2.1)) continue;
+        if (campus.buildings.some(b => nearEdge(p, b.footprint, 10))) continue;
+        if (canPlant(p, scale)) s.trees.push({ x: p[0], z: p[1], seed, species: 'flowering', scale });
+      }
+    }
+  }
+  if (campus.buildings.some(b => b.id === 'music')) {
+    // 음악관 남측과 중앙 주차장 사이의 잔디 띠. 중앙 계단 앞은 비운다.
+    const west = -31.4, east = 50, stairX = 11.65;
+    for (let i = 0, x = west; x <= east; i++) {
+      const seed = (1 + Math.sin(i * 2.39996 + 0.7)) / 2;
+      const z = 37.04 - (x - west) * 0.039 + (seed - 0.5) * 0.4;
+      const scale = 0.27 + seed * 0.1;
+      if (Math.abs(x - stairX) >= 3.6) {
+        for (const offset of [0, -0.1, 0.1, -0.25, 0.25, -0.45, 0.45, -0.65, 0.65, -0.85, 0.85]) {
+          const p: Point = [x, z + offset];
+          if (!canPlant(p, scale)) continue;
+          s.trees.push({ x: p[0], z: p[1], seed, scale, species: seed < 0.18 ? 'pine' : 'broadleaf' });
+          break;
+        }
+      }
+      x += 4.0 + (seed - 0.5) * 1.35;
+    }
+    // 음악관 끝에서 도로가 굽는 쪽으로 넓어지는 잔디. 큰 나무는 가운데에 둔다.
+    const cornerTrees: [number, number, TreePlacement['species'], number][] = [
+      [28.7, 39.8, 'broadleaf', 0.42],
+      [33.4, 39.7, 'flowering', 0.6],
+      [39.4, 39.8, 'broadleaf', 0.86],
+      [45.1, 39.35, 'flowering', 0.62],
+      [49.8, 37.6, 'broadleaf', 0.43],
+      [31.7, 43.9, 'pine', 0.77],
+      [35.9, 44.6, 'flowering', 0.64],
+      [41.6, 44.65, 'broadleaf', 0.81],
+      [48.55, 41.45, 'broadleaf', 0.45],
+      [33.2, 48.2, 'broadleaf', 0.42],
+      [37.9, 48.05, 'flowering', 0.54],
+      [45.1, 44, 'flowering', 0.52],
+    ];
+    for (const [x, z, species, scale] of cornerTrees) {
+      const seed = (1 + Math.sin(x * 2.41 + z * 1.67)) / 2;
+      if (canPlant([x, z], scale)) s.trees.push({ x, z, seed, species, scale });
     }
   }
   // 주차장 바닥은 도로와 흰 주차선만 표시한다. 주차 차량·차막이·펜스는 ParkedCars가 주차 칸 위에 따로 놓는다.
@@ -193,9 +284,9 @@ export function makeScenery(campus: CampusData, layout: RoadLayout): Scenery {
       }
     }
   }
-  // 좁은 보행로의 입구는 낮은 안내 기둥만 두어 통행 폭을 확보한다.
-  for (const [x, z] of [FIELD_WALK[0]!, FIELD_WALK.at(-1)!]) for (const side of [-1, 1]) {
-    s.trunks.push({ p: [x + side * 1.1, 0.65, z], s: [0.065, 1.3, 0.065], color: '#647c70' });
+  const [southX, southZ] = FIELD_WALK.at(-1)!;
+  for (const side of [-1, 1]) {
+    s.trunks.push({ p: [southX + side * 1.1, 0.65, southZ], s: [0.065, 1.3, 0.065], color: '#647c70' });
   }
   const elevation = tourElevation(campus);
   for (const parts of [s.stone, s.metal, s.leaves, s.trunks, s.paving, s.paint, s.drains]) for (const p of parts) p.p[1] += elevation(p.p[0], p.p[2]);
@@ -210,6 +301,12 @@ export function makeScenery(campus: CampusData, layout: RoadLayout): Scenery {
   }
   // 이공관 앞 정원의 수풀 속 나무(소나무·활엽수)는 배치도대로 고정 위치에 둔다.
   s.trees.push(...GARDEN_TREES.map(t => ({ ...t })));
+  if (campus.buildings.some(b => b.id === 'student_union')) {
+    s.trees = s.trees.filter(t => {
+      const p: Point = [t.x, t.z], crown = t.scale * (t.shrub ? 2.15 : 4.3);
+      return !inside(p, STUDENT_UNION_ENTRY_WALK) && !nearEdge(p, STUDENT_UNION_ENTRY_WALK, crown);
+    });
+  }
   for (const t of s.trees) t.y = elevation(t.x, t.z);
   return s;
 }

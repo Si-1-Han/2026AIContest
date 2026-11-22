@@ -1,6 +1,6 @@
 {
   "version": 1,
-  "revision": "2ed139acae527b38",
+  "revision": "6d9b6dab40432b89",
   "generator": "Blender 4.5.16 LTS",
   "attribution": "© OpenStreetMap contributors (ODbL 1.0)",
   "accuracy": "photo-guided approximate exterior; no surveyed dimensions or interiors",
@@ -61,9 +61,9 @@
         -193.79
       ],
       "height": 28.8,
-      "vertices": 117394,
-      "bytes": 3924064,
-      "sha256": "ef3af628a6e6adbcbf35bc157c2ba7e017fdedb37c20fc5ce6f69452027f45a1"
+      "vertices": 118498,
+      "bytes": 3975288,
+      "sha256": "1c903c47ce07a0fa96ab08a8aa97ce2131cc4017888179042b2fa4098cb6ab19"
     },
     "vision": {
       "file": "vision.glb",

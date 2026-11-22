@@ -55,7 +55,7 @@ def transform(point, position, angle=0, rz=0, center=(0, 0)):
 
 def primitive(kind, scale):
     sx, sy, sz = scale
-    if kind in ("stone", "frames", "glass"):
+    if kind in ("stone", "frames", "glass", "crossLight"):
         vertices = [(x * sx / 2, y * sy / 2, z * sz / 2) for x, y, z in [(-1, -1, -1), (1, -1, -1), (1, 1, -1), (-1, 1, -1), (-1, -1, 1), (1, -1, 1), (1, 1, 1), (-1, 1, 1)]]
         return vertices, [(0, 3, 2, 1), (4, 5, 6, 7), (0, 1, 5, 4), (3, 7, 6, 2), (0, 4, 7, 3), (1, 2, 6, 5)]
     count = 24
@@ -94,6 +94,12 @@ def main():
             shader.inputs["Coat Weight"].default_value = 1
             shader.inputs["Coat Roughness"].default_value = 0.1
             shader.inputs["IOR"].default_value = 1.5
+        if role == "crossLight":
+            finish = recipe["roofCrossLightFinish"]
+            shader.inputs["Roughness"].default_value = finish["roughness"]
+            shader.inputs["Metallic"].default_value = finish["metalness"]
+            shader.inputs["Emission Color"].default_value = (*linear(finish["emissive"]), 1)
+            shader.inputs["Emission Strength"].default_value = finish["emissiveIntensity"]
         if surface:
             uv = nodes.new("ShaderNodeTexCoord")
             mapping = nodes.new("ShaderNodeMapping")
@@ -178,7 +184,7 @@ def main():
             bm.to_mesh(mesh)
             bm.free()
             bevel = obj.modifiers.new("Edge highlights · 1–3cm bevel", "BEVEL")
-            bevel.width = 0.012 if role in ("frames", "glass") else 0.025
+            bevel.width = 0.004 if role == "crossLight" else 0.012 if role in ("frames", "glass") else 0.025
             bevel.segments, bevel.limit_method = 1, "ANGLE"
             bevel.angle_limit = 0.35
             bevel.harden_normals = True
