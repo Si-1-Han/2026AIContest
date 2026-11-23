@@ -1,0 +1,80 @@
+# EC2 운영용 구성. GitHub Actions(.github/workflows/deploy.yml)가 이 파일을 EC2의
+# /opt/hansei-campus/ 로 복사하고, GHCR에 올린 이미지를 받아 실행합니다.
+#
+#   브라우저 ─▶ site(Caddy :80/:443) ─┬─ /            정적 사이트
+#                                      ├─ /data/*      지도 JSON (campus-data 볼륨)
+#                                      ├─ /api/guide   guide(Node) ─▶ Anthropic API
+#                                      └─ /api/*, /health, /docs  api(FastAPI)
+#
+# 값은 같은 폴더의 .env에서 읽습니다 (deploy/.env.example 참고, 배포 때마다 Actions가 다시 씀).
+name: hansei-campus
+
+x-logging: &logging
+  driver: json-file
+  options: { max-size: "10m", max-file: "3" }
+
+services:
+  site:
+    image: ${IMAGE_PREFIX}-site:${IMAGE_TAG:-latest}
+    restart: unless-stopped
+    ports:
+      - "80:80"
+      - "443:443"
+      - "443:443/udp"
+    environment:
+      SITE_ADDRESS: ${SITE_ADDRESS:-:80} # 비어 있으면 :80 (Caddy는 빈 값을 기본값으로 바꾸지 않음)
+    volumes:
+      - campus-data:/srv/data:ro
+      - caddy-data:/data # HTTPS 인증서
+      - caddy-config:/config
+    depends_on:
+      api: { condition: service_healthy }
+      guide: { condition: service_healthy }
+    healthcheck:
+      test: ["CMD", "wget", "-qO-", "http://127.0.0.1:2019/config/"]
+      interval: 30s
+      timeout: 3s
+      retries: 3
+    logging: *logging
+
+  api:
+    image: ${IMAGE_PREFIX}-api:${IMAGE_TAG:-latest}
+    restart: unless-stopped
+    # 이미지에 든 지도 데이터(= main 브랜치 내용)를 공유 볼륨에 펼친 뒤 서버를 띄운다.
+    # 그래서 배포할 때마다 데이터가 main 기준으로 맞춰진다 (관리자 화면 수정은 다음 배포 전까지만 유지).
+    command:
+      - sh
+      - -c
+      - cp -a /app/data/. /srv/data/ && exec uvicorn campus.api.main:app --host 0.0.0.0 --port 8000 --proxy-headers --forwarded-allow-ips='*'
+    environment:
+      CAMPUS_DATA_DIR: /srv/data
+      CAMPUS_DATABASE_URL: sqlite:////app/var/app.db
+      CAMPUS_ADMIN_TOKEN: ${CAMPUS_ADMIN_TOKEN:-}
+      CAMPUS_CORS_ORIGINS: '[]' # 같은 주소에서만 쓰므로 CORS 불필요
+    volumes:
+      - campus-data:/srv/data
+      - api-var:/app/var # SQLite: 이벤트·통계·건물 수정 내용 (배포해도 유지)
+      - ./private:/app/backend/data/private:ro # 관리자 계정 admins.json (EC2에만 둠)
+    healthcheck:
+      test: ["CMD", "python", "-c", "import urllib.request; urllib.request.urlopen('http://127.0.0.1:8000/health', timeout=3)"]
+      interval: 15s
+      timeout: 5s
+      retries: 5
+      start_period: 30s
+    logging: *logging
+
+  guide:
+    image: ${IMAGE_PREFIX}-guide:${IMAGE_TAG:-latest}
+    restart: unless-stopped
+    environment:
+      ANTHROPIC_API_KEY: ${ANTHROPIC_API_KEY:-}
+      GUIDE_MODEL: ${GUIDE_MODEL:-}
+      GUIDE_DAILY_LIMIT: ${GUIDE_DAILY_LIMIT:-2000}
+      GUIDE_RATE_PER_MIN: ${GUIDE_RATE_PER_MIN:-20}
+    logging: *logging
+
+volumes:
+  campus-data:
+  api-var:
+  caddy-data:
+  caddy-config:

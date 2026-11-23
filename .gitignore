@@ -3,6 +3,7 @@ node_modules/
 
 # build
 dist/
+dist-server/
 .cache/
 *.blend1
 *.tsbuildinfo

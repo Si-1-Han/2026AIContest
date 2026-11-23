@@ -1,0 +1,47 @@
+# 한세 3D 캠퍼스 — EC2 진입점 (Caddy)
+#
+# SITE_ADDRESS (deploy/.env)
+#   비워 두면 ":80"  →  http://<EC2 퍼블릭 IP> 로 접속
+#   도메인을 넣으면  →  Let's Encrypt 인증서를 자동 발급해 https://<도메인> 으로 접속
+#                      (도메인 A 레코드가 EC2 IP를 가리키고, 보안 그룹에서 80·443이 열려 있어야 함)
+
+{$SITE_ADDRESS::80} {
+	encode zstd gzip
+
+	header {
+		X-Content-Type-Options nosniff
+		Referrer-Policy strict-origin-when-cross-origin
+		-Server
+	}
+
+	# AI 길안내 (Node, web/server/guide-server.ts)
+	handle /api/guide {
+		reverse_proxy guide:3000
+	}
+
+	# Campus API (FastAPI) — 데이터·경로 엔진·관리자·통계, 그리고 자동 문서
+	@api path /api/* /health /docs /docs/* /redoc /openapi.json
+	handle @api {
+		reverse_proxy api:8000
+	}
+
+	# 지도 데이터 JSON — API 컨테이너가 시작할 때 채우는 공유 볼륨에서 제공한다.
+	# (관리자 화면에서 고친 내용이 다음 배포 전까지 바로 보이도록)
+	handle_path /data/* {
+		root * /srv/data
+		header Cache-Control "no-cache"
+		file_server
+	}
+
+	# 정적 사이트 (Vite 빌드). 해시가 붙은 /assets는 오래 캐시하고, 나머지 경로는 SPA로 index.html
+	handle {
+		root * /srv/site
+		@hashed path /assets/*
+		header @hashed Cache-Control "public, max-age=31536000, immutable"
+		# 나머지(index.html·음악·모델)는 매번 ETag로 확인 → 배포 직후에도 새 버전이 보인다
+		@unhashed not path /assets/*
+		header @unhashed Cache-Control "no-cache"
+		try_files {path} /index.html
+		file_server
+	}
+}

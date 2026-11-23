@@ -8,3 +8,5 @@
 **/.env.*
 backend/data/private
 **/*.db
+**/dist
+**/dist-server
