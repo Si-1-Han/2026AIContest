@@ -1,6 +1,6 @@
 {
   "version": 1,
-  "revision": "6d9b6dab40432b89",
+  "revision": "2694c6be089994ac",
   "generator": "Blender 4.5.16 LTS",
   "attribution": "© OpenStreetMap contributors (ODbL 1.0)",
   "accuracy": "photo-guided approximate exterior; no surveyed dimensions or interiors",
@@ -49,9 +49,9 @@
         121.19
       ],
       "height": 7.2,
-      "vertices": 24006,
-      "bytes": 862968,
-      "sha256": "7396d53341a12892f78f196a77c276be37b1dbf56ba67b3782c40fa579636f16"
+      "vertices": 23902,
+      "bytes": 865716,
+      "sha256": "0d2a88d4c2aee8201aef5da2f171fa710fecd42c1f542d81199e6bbec476c2b0"
     },
     "main": {
       "file": "main.glb",
@@ -73,9 +73,9 @@
         258.76
       ],
       "height": 21.6,
-      "vertices": 55408,
-      "bytes": 1893412,
-      "sha256": "0ed3c91123e27d13f1599a22063fa43cfc31ace062a5092149695c109cea5e57"
+      "vertices": 54304,
+      "bytes": 1867504,
+      "sha256": "8b06372ec0467d42d8ca0af6e0a4974c375faa99491b0c901c6acaad460cd231"
     },
     "theology": {
       "file": "theology.glb",
@@ -109,9 +109,9 @@
         19.78
       ],
       "height": 18,
-      "vertices": 53775,
-      "bytes": 1639900,
-      "sha256": "6cba6dcdc7f47a034b616233e574074295f4c0c8e8351abfe102d171d9915ae4"
+      "vertices": 53575,
+      "bytes": 1645064,
+      "sha256": "435627e7e516cfff6c05d483b5c8dbae992f57510cc8089a47e0cf1de7b8bfad"
     },
     "science": {
       "file": "science.glb",

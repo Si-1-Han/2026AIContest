@@ -1,6 +1,6 @@
 import { gateRoadPoints, gateWallSections, GATE_ROAD_WIDTH } from '../../features/tour/gateWalls';
 import { MAIN_PARKING, MAIN_ROAD_OPENINGS, MAIN_FRONT_PLAZA, MAIN_STREET, MAIN_LOWER_CUT, MAIN_STAIR_SITE, MAIN_STAIR_PLANTERS } from '../../features/tour/mainBuildingAccess';
-import { MUSIC_PARKING, MUSIC_SITE } from '../../features/tour/musicForecourt';
+import { MUSIC_FIELD_WALK, MUSIC_PARKING, MUSIC_SITE } from '../../features/tour/musicForecourt';
 import { FIELD_ENTRY_WIDTH, FIELD_WALK_ENTRY, FIELD_WALK_WIDTH, inFieldWalk } from '../../features/tour/fieldWalk';
 import { pavementPads } from '../../features/tour/pavementGrade';
 import { BUILDING_FRONTAGE, GRADUATE_CORNER_WALK, GRADUATE_ENTRY_BEND, GRADUATE_ENTRY_DOOR, GRADUATE_ENTRY_ROUTE, GRADUATE_ENTRY_SIDEWALK, GRADUATE_FORECOURT } from '../../features/tour/buildingFrontage';
@@ -10,6 +10,8 @@ import { CAMPUS_SPINE, SPINE_LENGTH, SPINE_RESERVED, SPINE_DRIVEWAY_OPENINGS, SP
 import { MAIN_ROAD_FORECOURT, VISION_GROUND_APRON, MUSIC_TO_VISION_ASPHALT } from '../../features/tour/pavedAreas';
 import { inScienceCourt } from '../../features/tour/scienceGarden';
 import { STUDENT_UNION_ENTRY_WALK } from '../../features/tour/southLink';
+import { RODEM_ENTRY_WALK } from '../../features/tour/rodemEntrance';
+import { VISION_ENTRY_WALK } from '../../features/tour/visionEntrance';
 import { MAIN_FRONT_PROFILE } from '../../features/tour/graduateApproach';
 import clipping, { type MultiPolygon, type Polygon } from 'polygon-clipping';
 import { inside, segmentDistance, type Point, type TourCorridor } from '../../features/tour/network';
@@ -218,8 +220,9 @@ export function buildRoadLayout(campus: CampusData, corridors: TourCorridor[]): 
     const entry = merge([capsule(GRADUATE_ENTRY_SIDEWALK, GRADUATE_ENTRY_BEND, 2.25), capsule(GRADUATE_ENTRY_BEND, GRADUATE_ENTRY_DOOR, 2.25)]);
     sidewalks = clipping.union(sidewalks, clipping.difference(entry, asphalt, curbs, buildings, walkways));
   }
-  if (campus.buildings.some(b => b.id === 'student_union')) {
-    const entryWalk = clipping.difference([STUDENT_UNION_ENTRY_WALK], asphalt, curbs, buildings, walkways);
+  for (const [id, footprint] of [['student_union', STUDENT_UNION_ENTRY_WALK], ['rodem', RODEM_ENTRY_WALK], ['music', MUSIC_FIELD_WALK], ['vision', VISION_ENTRY_WALK]] as const) {
+    if (!campus.buildings.some(b => b.id === id)) continue;
+    const entryWalk = clipping.difference([footprint], asphalt, curbs, buildings, walkways);
     sidewalks = clipping.union(sidewalks, entryWalk);
   }
   // 도로 합집합에서 생긴 실금 크기의 구멍만 메운다. 보도섬의 실제 개구부는 유지한다.

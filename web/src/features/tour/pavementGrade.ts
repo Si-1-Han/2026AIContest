@@ -1,6 +1,6 @@
-import graph from '../../../public/data/paths.json';
+import originalGraph from '../../../public/data/paths.json';
 import { straightenSpineNodes, spineLocal, spineGrade, spineRampGrade, spinePoint, SPINE_LENGTH, CENTRAL_PARKING_APRON } from './campusSpine';
-import type { CampusData } from '../../types/generated/campus';
+import type { CampusData, PathGraph } from '../../types/generated/campus';
 import { MAIN_ENTRY_BASE, mainEntryLocal } from './mainEntrance';
 import { MAIN_PARKING, MAIN_STREET, inMainStreet, mainLowerGrade } from './mainBuildingAccess';
 import { MUSIC_SITE } from './musicForecourt';
@@ -9,11 +9,12 @@ import { frontageGrade, BUILDING_FRONTAGE, FRONTAGE_FLAT_CLIP } from './building
 import { inFountainSite, fountainSurface } from './fountainSite';
 import clipping from 'polygon-clipping';
 import { FIELD_ENTRY_FLAT_Z, FIELD_ENTRY_GRADE_REGION, fieldWalkGrade } from './fieldWalk';
-import { SOUTH_LINK } from './southLink';
+import { SOUTH_LINK, withScienceSideRoad } from './southLink';
 import { baseTerrain } from './baseTerrain';
 
 type Point = [number, number];
 type Anchor = [number, number, number];
+const graph = withScienceSideRoad(originalGraph as PathGraph);
 const clamp = (t: number) => Math.max(0, Math.min(1, t));
 function sample(x: number, z: number, a: Anchor, b: Anchor) {
   const dx = b[0] - a[0], dz = b[1] - a[1];

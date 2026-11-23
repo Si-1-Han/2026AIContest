@@ -14,15 +14,16 @@ import { inScienceCourt, GARDEN_TREES } from '../../features/tour/scienceGarden'
 import { GRADUATE_FORECOURT, onBuildingSide } from '../../features/tour/buildingFrontage';
 import { CAMPUS_SPINE, spineDistanceAtZ, spinePoint } from '../../features/tour/campusSpine';
 import { approachRoadPoint, APPROACH_START_Z } from '../../features/tour/graduateApproach';
-import { STUDENT_UNION_ENTRY_WALK } from '../../features/tour/southLink';
+import { SCIENCE_SIDE_ROAD, STUDENT_UNION_ENTRY_WALK } from '../../features/tour/southLink';
+import { RODEM_ENTRY_WALK } from '../../features/tour/rodemEntrance';
 
 // 로뎀관 앞, 중앙 주차장과 막다른 진입로 사이 잔디.
 const RODEM_LAWN: Point[] = [[27, 62], [55, 49], [69, 65], [77, 98], [68, 103], [35, 107], [34, 140], [23, 146], [12, 140], [9, 97], [22, 82]];
 
 export interface TreePlacement { x: number; y?: number; z: number; seed: number; species: 'pine' | 'broadleaf' | 'flowering' | 'ginkgo'; scale: number; shrub?: boolean }
-export interface Scenery { stone: Part[]; metal: Part[]; leaves: Part[]; trunks: Part[]; paving: Part[]; paint: Part[]; drains: Part[]; trees: TreePlacement[] }
+export interface Scenery { stone: Part[]; metal: Part[]; leaves: Part[]; trunks: Part[]; paving: Part[]; paint: Part[]; fieldCircleCenters: Part['p'][]; drains: Part[]; trees: TreePlacement[] }
 export function makeScenery(campus: CampusData, layout: RoadLayout): Scenery {
-  const s: Scenery = { stone: [], metal: [], leaves: [], trunks: [], paving: [], paint: [], drains: [], trees: [] };
+  const s: Scenery = { stone: [], metal: [], leaves: [], trunks: [], paving: [], paint: [], fieldCircleCenters: [], drains: [], trees: [] };
   const box = (list: Part[], p: Part['p'], scale: Part['s'], color: string, ry = 0) => list.push({ p, s: scale, color, ry });
   const wall = gemiMusicWall(campus);
   if (wall) {
@@ -147,7 +148,7 @@ export function makeScenery(campus: CampusData, layout: RoadLayout): Scenery {
     }
     // 운동장 동쪽에서 로뎀관의 굽은 오르막을 지나 학생회관 교차로까지 이어진다.
     const eastBend = SLOPE_PROFILES.find(profile => profile.id === 'rodem-east')!.points.map(([x, z]): Point => [x, z]);
-    plantRows([[33.97, -125.96], [36.72, -120.1], [51.66, -13.18], [58.37, 36.18], [57.42, 45.17], ...eastBend, [63.08, 203.01]], 1);
+    plantRows([[33.97, -125.96], [36.72, -120.1], [51.66, -13.18], [58.37, 36.18], [57.42, 45.17], ...eastBend, ...SCIENCE_SIDE_ROAD.slice(1)], 1);
     // 커브 바깥 넓은 잔디는 보도 옆보다 느슨하게 심어 보도 쪽 수관과 자연스럽게 이어지게 한다.
     plantRows(eastBend.slice(1), 1, [{ offset: 26, start: 6, spacing: 10.5, low: false, spread: 9 }]);
   }
@@ -214,6 +215,22 @@ export function makeScenery(campus: CampusData, layout: RoadLayout): Scenery {
     }
   }
   if (campus.buildings.some(b => b.id === 'music')) {
+    // 운동장 쪽 보도와 음악관 동쪽 외벽 사이의 잔디. 폭이 좁아지는 모서리에는 낮은 나무를 둔다.
+    const eastLawnTrees: [number, number, TreePlacement['species'], number][] = [
+      [44.45, -4, 'flowering', 0.62],
+      [45.65, 0.6, 'broadleaf', 0.44],
+      [45.15, 4.95, 'ginkgo', 0.82],
+      [46.7, 10.1, 'flowering', 0.61],
+      [45.55, 14, 'broadleaf', 0.43],
+      [47.4, 17.15, 'flowering', 0.56],
+      [46.5, 22.3, 'broadleaf', 0.91],
+      [45.4, 26.2, 'pine', 0.44],
+      [48.4, 28.6, 'flowering', 0.60],
+    ];
+    for (const [x, z, species, scale] of eastLawnTrees) {
+      const seed = (1 + Math.sin(x * 2.41 + z * 1.67)) / 2;
+      if (canPlant([x, z], scale, false, 4.3 * scale)) s.trees.push({ x, z, seed, species, scale });
+    }
     // 음악관 남측과 중앙 주차장 사이의 잔디 띠. 중앙 계단 앞은 비운다.
     const west = -31.4, east = 50, stairX = 11.65;
     for (let i = 0, x = west; x <= east; i++) {
@@ -264,7 +281,7 @@ export function makeScenery(campus: CampusData, layout: RoadLayout): Scenery {
       for (const v of [0.05, 0.95]) box(s.paint, point(0.5, v, 0.205), [len * 0.92, 0.025, 0.14], '#f0efe1', angle);
       // 운동장의 센터 서클과 페널티 구역.
       if (area.kind === 'field') {
-        for (let i = 0; i < 32; i++) { const t = i / 32 * Math.PI * 2; box(s.paint, point(0.5 + Math.cos(t) * 7 / len, 0.5 + Math.sin(t) * 7 / width, 0.21), [1.45, 0.025, 0.12], '#f0efe1', angle - t - Math.PI / 2); }
+        s.fieldCircleCenters.push(point(0.5, 0.5, 0.223));
         for (const u of [0.12, 0.88]) {
           box(s.paint, point(u, 0.5, 0.21), [0.14, 0.025, width * 0.48], '#f0efe1', angle);
           for (const v of [0.26, 0.74]) box(s.paint, point(u < 0.5 ? 0.08 : 0.92, v, 0.21), [len * 0.08, 0.025, 0.13], '#f0efe1', angle);
@@ -290,6 +307,7 @@ export function makeScenery(campus: CampusData, layout: RoadLayout): Scenery {
   }
   const elevation = tourElevation(campus);
   for (const parts of [s.stone, s.metal, s.leaves, s.trunks, s.paving, s.paint, s.drains]) for (const p of parts) p.p[1] += elevation(p.p[0], p.p[2]);
+  for (const center of s.fieldCircleCenters) center[1] += elevation(center[0], center[2]);
   for (const p of s.drains) {
     const angle = p.ry ?? 0;
     p.rz = Math.atan2(elevation(p.p[0] + Math.cos(angle) * 0.425, p.p[2] - Math.sin(angle) * 0.425) - elevation(p.p[0] - Math.cos(angle) * 0.425, p.p[2] + Math.sin(angle) * 0.425), 0.85);
@@ -301,10 +319,11 @@ export function makeScenery(campus: CampusData, layout: RoadLayout): Scenery {
   }
   // 이공관 앞 정원의 수풀 속 나무(소나무·활엽수)는 배치도대로 고정 위치에 둔다.
   s.trees.push(...GARDEN_TREES.map(t => ({ ...t })));
-  if (campus.buildings.some(b => b.id === 'student_union')) {
+  for (const [id, walk] of [['student_union', STUDENT_UNION_ENTRY_WALK], ['rodem', RODEM_ENTRY_WALK]] as const) {
+    if (!campus.buildings.some(b => b.id === id)) continue;
     s.trees = s.trees.filter(t => {
       const p: Point = [t.x, t.z], crown = t.scale * (t.shrub ? 2.15 : 4.3);
-      return !inside(p, STUDENT_UNION_ENTRY_WALK) && !nearEdge(p, STUDENT_UNION_ENTRY_WALK, crown);
+      return !inside(p, walk) && !nearEdge(p, walk, crown);
     });
   }
   for (const t of s.trees) t.y = elevation(t.x, t.z);

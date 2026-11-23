@@ -10,7 +10,7 @@ const root = resolve(fileURLToPath(new URL('../..', import.meta.url)));
 const work = join(root, '.cache/tour-models');
 const output = join(root, 'web/public/models/tour');
 await mkdir(work, { recursive: true }); await mkdir(output, { recursive: true });
-const sourceFiles = ['web/public/data/campus.json', 'web/src/scene/tour/exteriorSpec.ts', 'web/src/scene/tour/mainBuildingSpec.ts', 'web/src/features/tour/visionTerrace.ts', 'web/src/features/tour/elevationLevels.ts', 'web/src/features/tour/mainEntrance.ts', 'web/src/scene/tour/detailGeometry.ts', 'web/src/scene/tour/materials.ts', 'tools/blender/build_exteriors.py'];
+const sourceFiles = ['web/public/data/campus.json', 'web/src/scene/tour/exteriorSpec.ts', 'web/src/scene/tour/mainBuildingSpec.ts', 'web/src/features/tour/visionTerrace.ts', 'web/src/features/tour/elevationLevels.ts', 'web/src/features/tour/mainEntrance.ts', 'web/src/features/tour/rodemEntrance.ts', 'web/src/features/tour/musicForecourt.ts', 'web/src/features/tour/visionEntrance.ts', 'web/src/scene/tour/detailGeometry.ts', 'web/src/scene/tour/materials.ts', 'tools/blender/build_exteriors.py'];
 const digest = createHash('sha256'); for (const name of sourceFiles) digest.update(await readFile(join(root, name)));
 const revision = digest.digest('hex').slice(0, 16);
 const server = await createServer({ root: join(root, 'web'), cacheDir: join(work, 'vite'), mode: 'static', server: { middlewareMode: true, hmr: false, ws: false }, appType: 'custom' });

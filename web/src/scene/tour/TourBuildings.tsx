@@ -61,9 +61,11 @@ function ProceduralBody({ b }: { b: Building }) {
 function Exterior({ b }: { b: Building }) {
   const model = useBlenderExterior(b);
   const spec = useMemo(() => buildExteriorSpec(b), [b]);
+  const smallSign = b.id === 'rodem' || b.id === 'vision';
   return <group position-y={buildingElevation(b.id)}>
     {model ? <primitive object={model} position={[b.center[0], 0, b.center[1]]} dispose={null} /> : <ProceduralBody b={b} />}
-    {b.id === 'main' ? <Sign text="한세대학교  HANSEI UNIVERSITY  본관" edge={spec.front} t={spec.entrance.t} offset={2.96} y={3.2} width={12.3} compact /> : <Sign text={tourBuildingName(b)} edge={spec.front} t={spec.entrance.t} y={b.id === 'graduate' ? 7.4 : 4.0} width={Math.min(spec.front.length * 0.8, 10)} dark={b.id === 'graduate' || b.id === 'theology'} />}
+    {b.id === 'main' ? <Sign text="한세대학교  HANSEI UNIVERSITY  본관" edge={spec.front} t={spec.entrance.t} offset={2.96} y={3.2} width={12.3} compact /> : <Sign text={tourBuildingName(b)} edge={spec.front} t={spec.entrance.t} y={b.id === 'graduate' ? 7.4 : smallSign ? 3.65 : 4.0} width={smallSign ? 3.4 : Math.min(spec.front.length * 0.8, 10)} dark={b.id === 'graduate' || b.id === 'theology'} />}
+    {spec.musicFieldFront && <Sign text={tourBuildingName(b)} edge={spec.musicFieldFront} y={3.66} width={4.2} />}
 
   </group>;
 }

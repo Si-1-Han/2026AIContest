@@ -13,6 +13,8 @@ import { buildingElevation, PARKING_LEVEL, MIDDLE_LEVEL, UPPER_CAMPUS_LEVEL, SLO
 import { VISION_TERRACE_PATH, VISION_TERRACE, TERRACE_PATHS, isTerraceStair } from './visionTerrace';
 import { scienceCourtGround } from './scienceGarden';
 import { scienceSideGround } from './visionTerrace';
+import { SCIENCE_SIDE_ROAD } from './southLink';
+import { rodemEntryGround } from './rodemEntrance';
 import { MAIN_FRONT_PROFILE, APPROACH_START_Z, APPROACH_TOP_Z, APPROACH_ROAD_END_Z, approachRoadPoint, spineApproachLevel } from './graduateApproach';
 
 type Point = [number, number];
@@ -31,7 +33,7 @@ export const SLOPE_PROFILES: { id: string; points: Anchor[] }[] = [
     })] },
   { id: 'music-west', points: [[...spinePoint(spineDistanceAtZ(APPROACH_TOP_Z)), PARKING_LEVEL], [...spinePoint(spineDistanceAtZ(-4)), PARKING_LEVEL], [...spinePoint(spineDistanceAtZ(35)), PARKING_LEVEL], [...spinePoint(spineDistanceAtZ(145.26)), PARKING_LEVEL]] },
   { id: 'music-east-link', points: [[27.38, 62.85, PARKING_LEVEL], [68.14, 59.6, 6.2 * SLOPE_GAIN]] },
-  { id: 'rodem-east', points: [[68.14, 59.6, 6.2 * SLOPE_GAIN], [75.26, 77.35, eastSlopeHeight(0.15)], [80, 101.97, eastSlopeHeight(0.43)], [77.85, 129.66, eastSlopeHeight(0.68)], [67.86, 146.22, eastSlopeHeight(0.86)], [61.43, 160.18, UPPER_CAMPUS_LEVEL]] },
+  { id: 'rodem-east', points: [[68.14, 59.6, 6.2 * SLOPE_GAIN], [75.26, 77.35, eastSlopeHeight(0.15)], [80, 101.97, eastSlopeHeight(0.43)], [77.85, 129.66, eastSlopeHeight(0.68)], [67.86, 146.22, eastSlopeHeight(0.86)], [...SCIENCE_SIDE_ROAD[0]!, UPPER_CAMPUS_LEVEL]] },
 ];
 const clamp = (x: number) => Math.max(0, Math.min(1, x));
 /** 대지 높이 차 1m당 잇는 거리(m)와 최대 폭. 평균 경사 약 40%, 최대 약 60%. */
@@ -69,6 +71,7 @@ export function tourElevation(campus: CampusData) {
   pads.push({ polygon: [[rest.x - rest.width / 2, rest.z - rest.depth / 2], [rest.x + rest.width / 2, rest.z - rest.depth / 2], [rest.x + rest.width / 2, rest.z + rest.depth / 2], [rest.x - rest.width / 2, rest.z + rest.depth / 2]], y: UPPER_CAMPUS_LEVEL });
   const paths = [...TERRACE_PATHS.slice(1), [...VISION_TERRACE_PATH, { id: 'n99', x: 14.59, y: UPPER_CAMPUS_LEVEL, z: 207.48 }]];
   const grade = pavementGrade(campus, SLOPE_PROFILES);
+  const hasRodem = campus.buildings.some(b => b.id === 'rodem');
   const height = (x: number, z: number): number => {
     let y = baseTerrain(x, z);
     let nearest = { distance: Infinity, y, gate: false, hillside: false, mainSide: false, t: 0 };
@@ -152,7 +155,8 @@ export function tourElevation(campus: CampusData) {
       return fieldEntryGround(x, z, edge + (far - edge) * w);
     }
     // 본관 3층 진입로 시작부는 도로 단면 보정보다 나중에 적용해 경사로 옆면이 드러나지 않게 한다.
-    return fieldEntryGround(x, z, mainUpperFootGround(x, z, scienceSideGround(x, z, scienceCourtGround(x, z, result))));
+    const finished = fieldEntryGround(x, z, mainUpperFootGround(x, z, scienceSideGround(x, z, scienceCourtGround(x, z, result))));
+    return hasRodem ? rodemEntryGround(x, z, finished, grade) : finished;
   };
   const junctionHeight = (x: number, z: number) => fountainCornerGround(x, z, fountainJunctionGround(x, z, height(x, z)));
   const islandGrade = fountainIslandGrade(junctionHeight);

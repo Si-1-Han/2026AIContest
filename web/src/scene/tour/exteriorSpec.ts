@@ -2,6 +2,9 @@ import { addMainBuildingDetails } from './mainBuildingSpec';
 import { MAIN_ENTRANCE, MAIN_ENTRY_RISE, MAIN_ENTRY_BASE, MAIN_ENTRY_FLOOR, mainEntryLocal } from '../../features/tour/mainEntrance';
 import clipping from 'polygon-clipping';
 import { VISION_PASSAGE_CUT } from '../../features/tour/visionTerrace';
+import { RODEM_DOOR_WIDTH, RODEM_ENTRY_T, RODEM_ENTRY_WALL } from '../../features/tour/rodemEntrance';
+import { VISION_DOOR_WIDTH, VISION_ENTRY_T, VISION_ENTRY_WALL } from '../../features/tour/visionEntrance';
+import { MUSIC_FIELD_DOOR_WIDTH } from '../../features/tour/musicForecourt';
 import type { Building } from '../../types/generated/campus';
 import type { Part } from './Batch';
 import { inside } from '../../features/tour/network';
@@ -32,6 +35,8 @@ export function edges(outline: P[]) {
 export type Edge = ReturnType<typeof edges>[number];
 export function onEdge(e: Edge, t: number, offset = 0): P { return [e.a[0] + (e.b[0] - e.a[0]) * t + e.nx * offset, e.a[1] + (e.b[1] - e.a[1]) * t + e.nz * offset]; }
 
+const isEntryWall = ({ a, b }: Edge, wall: [P, P]) => [a, b].every(([x, z], i) => x === wall[i]![0] && z === wall[i]![1]);
+const isMusicFieldWall = (edge: Edge) => edge.nz < -0.98 && edge.length > 50;
 
 export function buildExteriorSpec(b: Building) {
   const theme = themes[b.id] ?? themes.main!;
@@ -40,7 +45,11 @@ export function buildExteriorSpec(b: Building) {
   const outlineEdges = edges(b.footprint);
   // 정면 방향은 제공된 사진과 운동장/중앙도로의 상대 위치를 기준으로 지정한다.
   const frontDir: P = ['graduate', 'design', 'gemi'].includes(b.id) ? [1, 0] : b.id === 'music' ? [0, 1] : b.id === 'student_union' ? [-1, 0] : b.id === 'main' ? [-1, 0.5] : b.id === 'science' ? [0, 1] : [0, -1];
-  const front = outlineEdges.filter(e => e.length > 9).sort((a, c) => (c.nx * frontDir[0] + c.nz * frontDir[1]) * 30 + c.length * 0.08 - (a.nx * frontDir[0] + a.nz * frontDir[1]) * 30 - a.length * 0.08)[0]!;
+  const movedDoor = b.id === 'rodem' ? { wall: RODEM_ENTRY_WALL, t: RODEM_ENTRY_T, width: RODEM_DOOR_WIDTH }
+    : b.id === 'vision' ? { wall: VISION_ENTRY_WALL, t: VISION_ENTRY_T, width: VISION_DOOR_WIDTH } : undefined;
+  const movedFront = movedDoor && outlineEdges.find(e => isEntryWall(e, movedDoor.wall));
+  const musicFieldFront = b.id === 'music' ? outlineEdges.find(isMusicFieldWall) : undefined;
+  const front = movedFront ?? outlineEdges.filter(e => e.length > 9).sort((a, c) => (c.nx * frontDir[0] + c.nz * frontDir[1]) * 30 + c.length * 0.08 - (a.nx * frontDir[0] + a.nz * frontDir[1]) * 30 - a.length * 0.08)[0]!;
   const floorShift = b.id === 'main' ? 1 : 0;
   const height = (b.levels - floorShift) * b.floor_height;
   const floors = b.floors.filter(f => f.level > 0);
@@ -54,10 +63,13 @@ export function buildExteriorSpec(b: Building) {
     const curtain = b.id === 'gemi' || b.id === 'student_union' || (b.id === 'vision_center' && level < 3);
     const count = Math.max(1, Math.floor(e.length / (curtain ? 2.5 : 3.4)));
     const cell = e.length / count;
+    const doorway = level !== 0 ? undefined : movedDoor && isEntryWall(e, movedDoor.wall) ? movedDoor
+      : musicFieldFront && isMusicFieldWall(e) ? { t: 0.5, width: MUSIC_FIELD_DOOR_WIDTH } : undefined;
     if (e.length > 2.5) for (let i = 0; i < count; i++) {
       const t = (i + 0.5) / count;
       const p = onEdge(e, t, 0.14);
       // 출입구 위에 일반 창문·창턱을 겹쳐 그리지 않는다.
+      if (doorway && Math.abs(t - doorway.t) * e.length < doorway.width / 2 + cell * 0.4) continue;
       if (b.id === 'main' && level === 0 && e.nx * front.nx + e.nz * front.nz > 0.99) {
         const center = onEdge(front, MAIN_ENTRANCE.t), u = (p[0] - center[0]) * MAIN_ENTRANCE.ux + (p[1] - center[1]) * MAIN_ENTRANCE.uz;
         if (Math.abs(u) < 5.3) continue;
@@ -101,7 +113,13 @@ export function buildExteriorSpec(b: Building) {
       }
     }
     const p = onEdge(e, 0.5, 0.1);
-    box([p[0], y + 0.08, p[1]], [e.length, b.id === 'music' ? 0.18 : 0.12, 0.30], theme.trim, e.angle);
+    if (doorway) {
+      const center = e.length * doorway.t, opening = doorway.width / 2 + 0.07;
+      for (const [start, end] of [[0, center - opening], [center + opening, e.length]] as const) {
+        const [x, z] = onEdge(e, (start + end) / (2 * e.length), 0.1);
+        box([x, y + 0.08, z], [end - start, 0.12, 0.30], theme.trim, e.angle);
+      }
+    } else box([p[0], y + 0.08, p[1]], [e.length, b.id === 'music' ? 0.18 : 0.12, 0.30], theme.trim, e.angle);
     if (b.id === 'graduate' && level < 2) box([p[0], y + 0.4, p[1]], [e.length, 0.8, 0.2], '#454d50', e.angle);
     if (b.id === 'science' && level < 2) box([p[0], y + 0.5, p[1]], [e.length, 0.7, 0.2], '#d1ad9b', e.angle);
     if (b.id === 'vision' && e.length > 15) for (let t = 0.04; t < 1; t += 0.12) { const q = onEdge(e, t, 0.17); box([q[0], y + 1.8, q[1]], [0.8, 3.6, 0.3], theme.wall, e.angle); }
@@ -116,17 +134,35 @@ export function buildExteriorSpec(b: Building) {
   }
   const fp = (t: number, offset: number, y: number): Part['p'] => { const p = onEdge(front, t, offset); return [p[0], y, p[1]]; };
   // 이공관은 남향 안뜰에만 출입구를 둔다. 영비관 문은 계단이 열리는 쪽을 비운다.
-  const entranceT = b.id === 'vision_center' ? 0.26 : b.id === 'main' ? MAIN_ENTRANCE.t : 0.5;
+  const entranceT = movedFront && movedDoor ? movedDoor.t : b.id === 'vision_center' ? 0.26 : b.id === 'main' ? MAIN_ENTRANCE.t : 0.5;
   const entranceRise = 0;
   const entrance = { edge: front, t: entranceT, rise: entranceRise, stairsHeight: b.id === 'main' ? MAIN_ENTRY_RISE : 0 };
+  const addGlazedEntrance = (edge: Edge, t: number, width: number) => {
+    const door = (side: number, offset: number, y: number): Part['p'] => {
+      const [x, z] = onEdge(edge, t + side / edge.length, offset);
+      return [x, y, z];
+    };
+    box(door(0, 0.055, 1.39), [width + 0.14, 2.78, 0.14], '#263d42', edge.angle);
+    for (const side of [-1, 1]) {
+      glass.push({ p: door(side * (width / 4 - 0.012), 0.145, 1.39), s: [width / 2 - 0.1, 2.54, 0.08], color: '#52737d', ry: edge.angle });
+      box(door(side * 0.11, 0.22, 1.13), [0.04, 0.34, 0.08], '#bbc5c4', edge.angle);
+    }
+    for (const side of [-width / 2, 0, width / 2]) {
+      frames.push({ p: door(side, 0.17, 1.4), s: [0.1, 2.72, 0.14], color: '#526d73', ry: edge.angle });
+    }
+    box(door(0, 0.56, 3.07), [width + 0.64, 0.24, 1.38], theme.trim, edge.angle);
+  };
   let roofCrossLights: Part[] = [];
   if (b.id === 'main') {
     roofCrossLights = addMainBuildingDetails(stone, frames, glass, round, front.angle);
+  } else if (movedFront && movedDoor) {
+    addGlazedEntrance(movedFront, entranceT, movedDoor.width);
   } else {
     glass.push({ p: fp(entranceT, 0.19, 1.5), s: [3, 3, 0.2], color: '#355b64', ry: front.angle });
     box(fp(entranceT, 1.0, 3.25), [6, 0.35, 2.6], ['graduate', 'theology', 'student_union'].includes(b.id) ? '#3a464b' : theme.trim, front.angle);
     for (let i = 0; i < (b.id === 'theology' ? 11 : 3); i++) box(fp(entranceT, 1.3 + i * 0.4, 0.12 + (b.id === 'theology' ? 10 - i : 2 - i) * 0.14), [b.id === 'theology' ? 8.5 : 5.2, 0.24, 0.6], '#c9ccc0', front.angle);
   }
+  if (musicFieldFront) addGlazedEntrance(musicFieldFront, 0.5, MUSIC_FIELD_DOOR_WIDTH);
   if (b.id === 'graduate' || b.id === 'design') {
     glass.push({ p: fp(0.86, 0.55, height * 0.52), s: [3.8, height * 0.95, 1.3], color: '#7caaaf', ry: front.angle });
     if (b.id === 'design') {
@@ -203,15 +239,14 @@ export function buildExteriorSpec(b: Building) {
     }
   }
   if (b.id === 'theology') for (let t = 0.06; t < 1; t += 0.12) round.push({ p: fp(t, 0.24, height / 2), s: [0.3, height - 0.4, 0.3], color: '#f3f2e5' });
-  if (b.id === 'vision') for (let y = 2; y < height; y += 0.6) glass.push({ p: fp(0.5, 0.3, y), s: [1.4, 0.51, 0.2], color: '#bad2cd', ry: front.angle });
   if (b.id === 'student_union') box(fp(0.5, 0.8, height * 0.65), [front.length * 0.85, 0.8, 2], '#32494a', front.angle);
   if (b.id === 'rodem') for (const e of outlineEdges.filter(e => e.length > 6)) {
     const p = onEdge(e, 0.5); box([p[0], height + 0.35, p[1]], [e.length + 1.2, 0.3, 3.4], '#4c8c80', e.angle);
   }
   const roofs: RoofSpec[] = b.id === 'music' ? [{ x: b.center[0], z: b.center[1], y: height, length: 64, width: 20.5, angle: front.angle, color: '#ab654b' }] : b.id === 'rodem' ? [
     { x: 50.5, z: 108, y: height, length: 32, width: 12, angle: 0.045, color: '#508f80' },
-    { x: 59.1, z: 125.7, y: height, length: 28, width: 12, angle: Math.PI / 2 + 0.045, color: '#508f80' },
+    { x: 45.7, z: 121.5, y: height, length: 19.6, width: 14.8, angle: Math.PI / 2 + 0.055, color: '#508f80' },
     { x: 39, z: 135, y: height, length: 32, width: 11.8, angle: 0.045, color: '#508f80' },
   ] : [];
-  return { stone, frames, glass, round, cones, pediments, roofs, roofCrossLights, front, entrance, levels, height };
+  return { stone, frames, glass, round, cones, pediments, roofs, roofCrossLights, front, entrance, musicFieldFront, levels, height };
 }

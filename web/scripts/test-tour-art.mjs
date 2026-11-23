@@ -30,7 +30,7 @@ try {
   }
   assert.equal(Object.keys(manifest.models).length, campus.buildings.length);
   const digest = createHash('sha256');
-  for (const name of ['web/public/data/campus.json', 'web/src/scene/tour/exteriorSpec.ts', 'web/src/scene/tour/mainBuildingSpec.ts', 'web/src/features/tour/visionTerrace.ts', 'web/src/features/tour/elevationLevels.ts', 'web/src/features/tour/mainEntrance.ts', 'web/src/scene/tour/detailGeometry.ts', 'web/src/scene/tour/materials.ts', 'tools/blender/build_exteriors.py']) digest.update(await load(name));
+  for (const name of ['web/public/data/campus.json', 'web/src/scene/tour/exteriorSpec.ts', 'web/src/scene/tour/mainBuildingSpec.ts', 'web/src/features/tour/visionTerrace.ts', 'web/src/features/tour/elevationLevels.ts', 'web/src/features/tour/mainEntrance.ts', 'web/src/features/tour/rodemEntrance.ts', 'web/src/features/tour/musicForecourt.ts', 'web/src/features/tour/visionEntrance.ts', 'web/src/scene/tour/detailGeometry.ts', 'web/src/scene/tour/materials.ts', 'tools/blender/build_exteriors.py']) digest.update(await load(name));
   assert.equal(manifest.revision, digest.digest('hex').slice(0, 16), 'Blender 산출물이 현재 외관/재질 소스와 일치');
 
   await writeFile(join(temporary, 'decoder.cjs'), await load('web/public/draco/draco_wasm_wrapper.js'));

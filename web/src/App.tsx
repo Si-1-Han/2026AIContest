@@ -53,7 +53,8 @@ export default function App() {
         const tour = useTourStore.getState();
         if (!tour.active) useCampusStore.getState().back();
         else if (!e.repeat) {
-          if (tour.view === 'street') tour.stop();
+          if (tour.view === 'auto') tour.exitAuto();
+          else if (tour.view === 'street') tour.stop();
           else if (!document.pointerLockElement) tour.setView('street');
         }
       }

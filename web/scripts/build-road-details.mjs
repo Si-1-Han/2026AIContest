@@ -13,6 +13,7 @@ const digest = createHash('sha256');
 sources.push('web/src/features/tour/campusSpine.ts', 'web/src/features/tour/fountainSite.ts', 'web/src/scene/tour/siteGeometry.ts');
 sources.push('web/src/features/tour/buildingFrontage.ts', 'web/src/scene/tour/terrainCuts.ts');
 sources.push('web/src/features/tour/pavedAreas.ts', 'web/src/features/tour/graduateApproach.ts');
+sources.push('web/src/features/tour/southLink.ts', 'web/src/features/tour/rodemEntrance.ts', 'web/src/features/tour/visionEntrance.ts');
 for (const path of sources) digest.update(await readFile(join(root, path)));
 const revision = digest.digest('hex').slice(0, 16);
 const server = await createServer({ root: join(root, 'web'), cacheDir: join(work, 'vite'), configFile: false, server: { middlewareMode: true, hmr: false, ws: false } });

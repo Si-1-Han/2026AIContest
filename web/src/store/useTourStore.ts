@@ -3,12 +3,22 @@ import { create } from 'zustand';
 import { playTourMoveSound } from '../features/tour/moveSound';
 import { buildTourNetwork, nearestTourNode, planTourMove, tourPath, TOUR_STEP_METERS, type TourNetwork } from '../features/tour/network';
 import { useCampusStore } from './useCampusStore';
+import { AUTO_TOUR_LENGTH } from '../features/tour/autoTourHighlights';
 
-type TourView = 'street' | 'flight';
+type ManualTourView = 'street' | 'flight';
+type TourView = ManualTourView | 'auto';
+
+interface AutoTourPlayback {
+  phase: 'loading' | 'playing' | 'paused' | 'finished';
+  seconds: number;
+  run: number;
+  returnView: ManualTourView;
+}
 
 interface TourState {
   active: boolean;
   view: TourView;
+  auto: AutoTourPlayback | null;
   network: TourNetwork | null;
   nodeId: string;
   targetId: string | null;
@@ -20,7 +30,12 @@ interface TourState {
   error: string | null;
   start: () => boolean;
   stop: () => void;
-  setView: (view: TourView) => void;
+  setView: (view: ManualTourView) => void;
+  startAuto: () => void;
+  exitAuto: () => void;
+  toggleAutoPause: () => void;
+  restartAuto: () => void;
+  updateAutoTime: (run: number, seconds: number) => void;
   move: (id: string) => void;
   jumpToBuilding: (id: string) => void;
   arrive: () => void;
@@ -28,7 +43,7 @@ interface TourState {
   setDestination: (id: string | null) => void;
 }
 export const useTourStore = create<TourState>((set, get) => ({
-  active: false, view: 'street', network: null, nodeId: '', targetId: null, travel: [], positionNonce: 0, visited: [], yaw: 0, destination: null, error: null,
+  active: false, view: 'street', auto: null, network: null, nodeId: '', targetId: null, travel: [], positionNonce: 0, visited: [], yaw: 0, destination: null, error: null,
   start: () => {
     if (get().active) return true;
     const campus = useCampusStore.getState();
@@ -44,10 +59,36 @@ export const useTourStore = create<TourState>((set, get) => ({
       return true;
     } catch (error) { set({ error: error instanceof Error ? error.message : '투어를 시작할 수 없어요.' }); return false; }
   },
-  stop: () => set({ active: false, view: 'street', targetId: null, travel: [], destination: null }),
+  stop: () => set({ active: false, view: 'street', auto: null, targetId: null, travel: [], destination: null }),
   setView: (view) => {
     const s = get();
-    if (s.active && !s.targetId && s.view !== view) set({ view });
+    if (s.active && !s.auto && !s.targetId && s.view !== view) set({ view });
+  },
+  startAuto: () => {
+    const s = get();
+    if (!s.active || s.targetId || s.view === 'auto') return;
+    set({ view: 'auto', auto: { phase: 'loading', seconds: 0, run: 0, returnView: s.view } });
+  },
+  exitAuto: () => {
+    const { auto } = get();
+    if (auto) set({ view: auto.returnView, auto: null });
+  },
+  toggleAutoPause: () => {
+    const { auto } = get();
+    if (auto?.phase === 'paused' || auto?.phase === 'playing') {
+      set({ auto: { ...auto, phase: auto.phase === 'paused' ? 'playing' : 'paused' } });
+    }
+  },
+  restartAuto: () => {
+    const { auto } = get();
+    if (auto) set({ auto: { ...auto, phase: 'loading', seconds: 0, run: auto.run + 1 } });
+  },
+  updateAutoTime: (run, time) => {
+    const { auto } = get();
+    if (!auto || auto.run !== run || auto.phase === 'paused' || auto.phase === 'finished') return;
+    const seconds = Math.min(AUTO_TOUR_LENGTH, Math.floor(time * 30) / 30);
+    const phase = seconds >= AUTO_TOUR_LENGTH ? 'finished' : 'playing';
+    if (auto.seconds !== seconds || auto.phase !== phase) set({ auto: { ...auto, seconds, phase } });
   },
   move: (id) => {
     const s = get();

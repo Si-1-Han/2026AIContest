@@ -4,6 +4,9 @@ import * as THREE from 'three';
 import { GLTFLoader } from 'three/examples/jsm/loaders/GLTFLoader.js';
 import { DRACOLoader } from 'three/examples/jsm/loaders/DRACOLoader.js';
 import type { Building } from '../../types/generated/campus';
+import { AUTO_TOUR_PRELOAD } from '../../features/tour/autoTour';
+import { autoTourElapsedAt } from '../../features/tour/autoTourHighlights';
+import { useTourStore } from '../../store/useTourStore';
 import manifest from '../../../public/models/tour/manifest.json';
 
 interface ModelEntry { file: string; sha256: string }
@@ -28,14 +31,17 @@ export function useBlenderExterior(building: Building) {
   const [requested, setRequested] = useState(false);
   const [model, setModel] = useState<THREE.Group | null>(null);
   const requestedRef = useRef(false);
+  const preloadAt = autoTourElapsedAt(AUTO_TOUR_PRELOAD[building.id] ?? Infinity);
+  const preload = useTourStore(state => !!state.auto && state.auto.seconds >= preloadAt);
   useFrame(({ camera }) => {
     if (!requestedRef.current && Math.hypot(camera.position.x - building.center[0], camera.position.z - building.center[1]) < 130) {
       requestedRef.current = true; setRequested(true);
     }
   });
+  const shouldLoad = requested || preload;
   useEffect(() => {
     const entry = models[building.id];
-    if (!requested || !entry) return;
+    if (!shouldLoad || !entry) return;
     let cancelled = false, owned: THREE.Group | null = null;
     const decoder = new DRACOLoader().setDecoderPath(`${import.meta.env.BASE_URL}draco/`).setWorkerLimit(1);
     const loader = new GLTFLoader().setDRACOLoader(decoder);
@@ -51,6 +57,6 @@ export function useBlenderExterior(building: Building) {
       if (!cancelled) console.warn(`[tour] ${building.id}: 절차적 외관으로 계속 표시합니다.`, error);
     });
     return () => { cancelled = true; decoder.dispose(); if (owned) disposeModel(owned); };
-  }, [requested, building.id]);
+  }, [shouldLoad, building.id]);
   return model;
 }

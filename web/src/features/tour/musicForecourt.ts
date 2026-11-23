@@ -1,8 +1,29 @@
 import { MUSIC_FORECOURT_LEVEL } from './elevationLevels';
 import type { CampusData } from '../../types/generated/campus';
+type Point = [number, number];
 export const MUSIC_SITE: [number, number][] = [[-52, 3.9], [-22.6, 1.95], [-20.4, 34.55], [-49.8, 36.5]];
 export const MUSIC_PARKING: [number, number][] = [[-50.2, 5.6], [-22.48, 3.76], [-20.55, 32.75], [-48.1, 34.58]];
 export const MUSIC_DOOR = { x: -20.49, z: 21.87, y: MUSIC_FORECOURT_LEVEL };
+/** 운동장 쪽 출입구 앞은 건물 모서리와 인도를 잇는 사진의 경계까지 포장한다. */
+export const MUSIC_FIELD_WALK: Point[] = [[-23.5, 12.65], [41.61, 8.24], [40.53, -8.35], [-24.6, -5.1]];
+export const MUSIC_FIELD_DOOR: Point = [10.235, 10.205];
+export const MUSIC_FIELD_DOOR_WIDTH = 4.5;
+const fieldWallLength = Math.hypot(62.73, 4.19);
+const fieldWallX = 62.73 / fieldWallLength, fieldWallZ = -4.19 / fieldWallLength;
+
+export function musicFieldEntryPoint(distance: number): Point {
+  return [MUSIC_FIELD_DOOR[0] + fieldWallZ * distance, MUSIC_FIELD_DOOR[1] - fieldWallX * distance];
+}
+
+export function musicFieldEntrySide(x: number, z: number) {
+  return (x - MUSIC_FIELD_DOOR[0]) * fieldWallX + (z - MUSIC_FIELD_DOOR[1]) * fieldWallZ;
+}
+
+export const MUSIC_FIELD_ENTRY_NODES = [
+  { id: 'tour_music_field_sidewalk', point: musicFieldEntryPoint(15.6) },
+  { id: 'tour_music_field_door', point: musicFieldEntryPoint(3.5) },
+];
+
 // 지도 네모의 남측 인도에서 들어온다. 운동장 뒤로 뚫린 지름길은 없다.
 export const MUSIC_ACCESS_PATH = [
   { id: 'tour_music_sidewalk', x: -41.5, z: 35.7, y: MUSIC_FORECOURT_LEVEL, stop: true },

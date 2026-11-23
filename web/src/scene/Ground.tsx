@@ -1,4 +1,4 @@
-import { Grid, Line } from '@react-three/drei';
+import { Line } from '@react-three/drei';
 import { useMemo } from 'react';
 import { COLORS } from '../config';
 import { flatShape } from '../lib/geometry';
@@ -18,19 +18,6 @@ export function Ground() {
         <circleGeometry args={[1600, 64]} />
         <meshStandardMaterial color={COLORS.ground} roughness={1} />
       </mesh>
-      <Grid
-        position={[0, 0.02, 0]}
-        args={[2000, 2000]}
-        cellSize={10}
-        cellThickness={0.4}
-        cellColor="#eee5d0"
-        sectionSize={100}
-        sectionThickness={0.8}
-        sectionColor="#e2d5b4"
-        fadeDistance={1100}
-        fadeStrength={1.5}
-        infiniteGrid
-      />
       {campusGeo && (
         <mesh geometry={campusGeo} position-y={0.08} receiveShadow>
           <meshStandardMaterial color={COLORS.campus} roughness={0.9} />

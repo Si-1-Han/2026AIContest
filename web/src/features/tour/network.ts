@@ -1,4 +1,4 @@
-import { MUSIC_ACCESS_PATH, gemiMusicWall } from './musicForecourt';
+import { MUSIC_ACCESS_PATH, MUSIC_FIELD_ENTRY_NODES, gemiMusicWall, musicFieldEntrySide } from './musicForecourt';
 import { FIELD_WALK, FIELD_WALK_ENTRY } from './fieldWalk';
 import { FOUNTAIN_WALK } from './fountainSite';
 import { straightenSpineNodes, spinePoint, spineDistanceAtZ } from './campusSpine';
@@ -10,6 +10,8 @@ import { tourElevation } from './terrain';
 import { tourCollisionOutlines } from './buildingAccess';
 import { SCIENCE_APPROACH, SCIENCE_GARDEN_ENTRY, SCIENCE_GARDEN_WALK } from './scienceGarden';
 import { GRADUATE_ENTRY_ROUTE } from './buildingFrontage';
+import { RODEM_ENTRY_NODES, rodemEntryLocal } from './rodemEntrance';
+import { VISION_ENTRY_NODES, visionEntrySide } from './visionEntrance';
 
 export type Point = [number, number];
 export interface TourNode { id: string; x: number; y?: number; z: number; stop?: boolean; neighbors: string[] }
@@ -17,10 +19,11 @@ export interface TourCorridor { a: Point; b: Point; ay?: number; by?: number; st
 export interface TourNetwork { nodes: Record<string, TourNode>; start: string; segments: [string, string][]; kinds: Record<string, TourCorridor['kind']>; corridors: TourCorridor[] }
 export const TOUR_STEP_METERS = 30;
 
-import { SOUTH_LINK, STUDENT_UNION_SIDEWALK, STUDENT_UNION_STEPS, studentUnionEntryPoint } from './southLink';
+import { SOUTH_LINK, STUDENT_UNION_SIDEWALK, STUDENT_UNION_STEPS, studentUnionEntryPoint, withScienceSideRoad } from './southLink';
 export { SOUTH_LINK };
 
 function withConfirmedRoad(graph: PathGraph): PathGraph {
+  graph = withScienceSideRoad(graph);
   graph = { ...graph, nodes: straightenSpineNodes(graph.nodes) };
   if (!graph.nodes.some(n => n.id === 'n133') || !graph.nodes.some(n => n.id === 'n99')) return graph;
   const nodes = [...SOUTH_LINK.slice(1).map(([x, z], i) => ({ id: `tour_south_${i}`, x, y: 0, z, type: 'junction' as const, building_id: null, floor_index: null })), ...[SCIENCE_GARDEN_ENTRY, SCIENCE_APPROACH].map(([x, z], i) => ({ id: `tour_science_${i}`, x: x!, y: 0, z: z!, type: 'junction' as const, building_id: null, floor_index: null })),
@@ -68,6 +71,26 @@ function withGraduateEntrance(campus: CampusData, graph: PathGraph): PathGraph {
   const roadLinks = [link(a, junction!, 'road'), link(junction!, b, 'road')];
   const walkLinks = walk.map((n, i) => link(nodes[i]!, n, 'walk'));
   return { ...graph, nodes: [...graph.nodes, ...nodes], edges: [...graph.edges.filter(e => e !== road), ...roadLinks, ...walkLinks] };
+}
+
+const rodemEntryRoad = 'tour_rodem_entry_road';
+const musicFieldEntryRoad = 'tour_music_field_road';
+const visionEntryRoad = 'tour_vision_entry_road';
+function withEntranceRoadJunction(graph: PathGraph, id: string, [from, to]: [string, string], entranceSide: (x: number, z: number) => number): PathGraph {
+  const a = graph.nodes.find(n => n.id === from), b = graph.nodes.find(n => n.id === to);
+  if (!a || !b) return graph;
+  const edge = graph.edges.find(e => e.kind === 'road' && (e.a === a.id && e.b === b.id || e.a === b.id && e.b === a.id));
+  if (!edge) return graph;
+  const start = entranceSide(a.x, a.z), end = entranceSide(b.x, b.z);
+  if (start * end >= 0) return graph;
+  const t = start / (start - end);
+  const x = a.x + (b.x - a.x) * t, z = a.z + (b.z - a.z) * t;
+  const node = { id, x, y: 0, z, type: 'junction' as const, building_id: null, floor_index: null };
+  const edges = graph.edges.flatMap(e => e !== edge ? [e] : [
+    { ...edge, a: a.id, b: node.id, length: Math.hypot(x - a.x, z - a.z) },
+    { ...edge, a: node.id, b: b.id, length: Math.hypot(b.x - x, b.z - z) },
+  ]);
+  return { ...graph, nodes: [...graph.nodes, node], edges };
 }
 
 function withMainEntrance(campus: CampusData, graph: PathGraph): PathGraph {
@@ -135,6 +158,9 @@ export function buildTourNetwork(campus: CampusData, graph: PathGraph): TourNetw
   const elevation = tourElevation(campus);
   const wall = gemiMusicWall(campus);
   graph = withGraduateEntrance(campus, withConfirmedRoad(graph));
+  if (campus.buildings.some(b => b.id === 'rodem')) graph = withEntranceRoadJunction(graph, rodemEntryRoad, ['n142', 'n141'], (x, z) => rodemEntryLocal(x, z).side);
+  if (campus.buildings.some(b => b.id === 'music')) graph = withEntranceRoadJunction(graph, musicFieldEntryRoad, ['n123', 'n79'], musicFieldEntrySide);
+  if (campus.buildings.some(b => b.id === 'vision')) graph = withEntranceRoadJunction(graph, visionEntryRoad, ['n94', 'n100'], visionEntrySide);
   graph = withVisionStairs(campus, { ...graph, nodes: graph.nodes.map(n => ({ ...n, y: elevation(n.x, n.z) })) });
   graph = withMainEntrance(campus, graph);
   const source = new Map(graph.nodes.map(n => [n.id, n]));
@@ -164,6 +190,16 @@ export function buildTourNetwork(campus: CampusData, graph: PathGraph): TourNetw
       const next = add(i === steps ? b.id : `tour_${ei}_${i}`, x, z, i === steps ? b.y : structure ? a.y + (b.y - a.y) * i / steps : elevation(x, z));
       connect(last, next, e.kind);
       last = next;
+    }
+  }
+  for (const [road, access] of [[rodemEntryRoad, RODEM_ENTRY_NODES], [musicFieldEntryRoad, MUSIC_FIELD_ENTRY_NODES], [visionEntryRoad, VISION_ENTRY_NODES]] as const) {
+    let previous = nodes[road];
+    if (!previous) continue;
+    for (const { id, point: [x, z] } of access) {
+      const next = add(id, x, z, elevation(x, z));
+      // 보행로는 보도와 하나의 포장 메시로 그린다. 이 연결은 거리 투어 이동에만 쓴다.
+      connect(previous, next, 'walk');
+      previous = next;
     }
   }
   if (segments.length && campus.buildings.some(b => b.id === 'student_union')) {

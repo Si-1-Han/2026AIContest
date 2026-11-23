@@ -1,10 +1,13 @@
 import { Line } from '@react-three/drei';
+import clipping from 'polygon-clipping';
 import { useEffect, useMemo } from 'react';
+import { SPINE_DRIVEWAY_WIDTH, SPINE_DRIVEWAY_Z, spineDistanceAtZ, spineLocal, spinePoint } from '../features/tour/campusSpine';
 import { flatShape } from '../lib/geometry';
 import { useCampusStore } from '../store/useCampusStore';
 import type { OutdoorArea } from '../types/generated/campus';
 
 type Point = [number, number, number];
+type PlanPoint = [number, number];
 const SURFACE = { field: '#377653', tennis: '#397f83', parking: '#394456', gate: '#24556b' };
 const EDGE = { field: '#8fbf8b', tennis: '#9ae0cc', parking: '#8397b5', gate: '#ffd166' };
 
@@ -69,6 +72,7 @@ function Area({ area }: { area: OutdoorArea }) {
         lineWidth={selected ? 2.5 : 1.5}
         raycast={() => null}
       />
+      {area.kind === 'parking' && <ParkingMarkings area={area} />}
       {(area.kind === 'field' || area.kind === 'tennis') && <CourtMarkings area={area} />}
       {area.kind === 'gate' && (
         <Line
@@ -83,6 +87,58 @@ function Area({ area }: { area: OutdoorArea }) {
       )}
     </group>
   );
+}
+
+const BAY_WIDTH = 2.6;
+const BAY_DEPTH = 4.8;
+const ROW_SPACING = 11.2;
+const PARKING_DRIVEWAYS = SPINE_DRIVEWAY_Z.map(spineDistanceAtZ);
+
+function parkingAxes(outline: PlanPoint[]) {
+  const sides = outline.map((a, i) => {
+    const b = outline[(i + 1) % outline.length]!;
+    const dx = b[0] - a[0], dz = b[1] - a[1];
+    return { a, dx, dz, length: Math.hypot(dx, dz) };
+  });
+  const { a: [x, z], dx, dz, length } = sides.reduce((longest, side) => side.length > longest.length ? side : longest);
+  const ux = dx / length, uz = dz / length;
+  return {
+    local: ([px, pz]: PlanPoint): PlanPoint => [(px - x) * ux + (pz - z) * uz, -(px - x) * uz + (pz - z) * ux],
+    point: (u: number, v: number): PlanPoint => [x + u * ux - v * uz, z + u * uz + v * ux],
+  };
+}
+
+function ParkingMarkings({ area }: { area: OutdoorArea }) {
+  const points = useMemo(() => {
+    const outline = area.footprint;
+    const central = area.id === 'parking_834838406';
+    const { local, point } = central ? {
+      local: ([x, z]: PlanPoint): PlanPoint => {
+        const { along, side } = spineLocal(x, z);
+        return [along, side];
+      },
+      point: spinePoint,
+    } : parkingAxes(outline);
+    const uv = outline.map(local);
+    const along = uv.map(([u]) => u), across = uv.map(([, v]) => v);
+    const lastU = Math.max(...along) - BAY_WIDTH - 0.5;
+    const lastV = Math.max(...across) - BAY_DEPTH - 0.5;
+    const lines: Point[] = [];
+    const onSurface = ([x, z]: PlanPoint): Point => [x, 0.25, z];
+    for (let v = Math.min(...across) + 1; v <= lastV; v += ROW_SPACING) {
+      for (let u = Math.min(...along) + 1; u <= lastU; u += BAY_WIDTH) {
+        const end = u + BAY_WIDTH;
+        if (central && PARKING_DRIVEWAYS.some(entry => u < entry + SPINE_DRIVEWAY_WIDTH / 2 && end > entry - SPINE_DRIVEWAY_WIDTH / 2)) continue;
+        const bay = [point(u, v), point(u, v + BAY_DEPTH), point(end, v + BAY_DEPTH), point(end, v)];
+        if (clipping.difference([bay], [outline]).length) continue;
+        const [a, b, c, d] = bay.map(onSurface) as [Point, Point, Point, Point];
+        lines.push(a, b, b, c, c, d);
+      }
+    }
+    return lines;
+  }, [area]);
+
+  return points.length > 0 && <Line points={points} segments color="#eef2f6" lineWidth={1.1} raycast={() => null} />;
 }
 
 /** 사각 외곽선에 맞춰 선을 배치해 코트 방향과 캠퍼스 좌표를 일치시킨다. */

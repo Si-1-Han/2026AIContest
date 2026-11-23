@@ -17,6 +17,7 @@ import { StreetViewCamera } from '../camera/StreetViewCamera';
 import { FlightCamera } from '../camera/FlightCamera';
 import { OutdoorMarkerProjector } from '../ui/OutdoorMarkers';
 const TourWorld = lazy(() => import('./tour/TourWorld').then(module => ({ default: module.TourWorld })));
+const AutoTourCamera = lazy(() => import('../camera/AutoTourCamera').then(module => ({ default: module.AutoTourCamera })));
 
 export function CampusScene() {
   const tourActive = useTourStore(s => s.active);
@@ -39,7 +40,9 @@ export function CampusScene() {
       {tourActive ? (
         <Suspense fallback={null}>
           <TourWorld />
-          {tourView === 'flight' ? <FlightCamera /> : <StreetViewCamera />}
+          <Suspense fallback={null}>
+            {tourView === 'auto' ? <AutoTourCamera /> : tourView === 'flight' ? <FlightCamera /> : <StreetViewCamera />}
+          </Suspense>
         </Suspense>
       ) : (
         <>

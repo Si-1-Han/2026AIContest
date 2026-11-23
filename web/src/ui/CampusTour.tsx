@@ -5,6 +5,7 @@ import { planTourMove, tourPath, TOUR_STEP_METERS } from '../features/tour/netwo
 import { useCampusStore } from '../store/useCampusStore';
 import { useTourStore } from '../store/useTourStore';
 import { tourBuildingName } from '../features/tour/buildingName';
+import { AutoTourControls } from './AutoTourControls';
 
 const button = 'rounded-xl border border-slate-200 bg-white/95 px-4 py-2.5 text-sm font-semibold text-slate-700 shadow-sm transition hover:bg-emerald-50 focus-visible:outline-2 focus-visible:outline-emerald-600 disabled:opacity-40';
 export function TourLauncher() {
@@ -48,10 +49,12 @@ export function CampusTour() {
   const destination = useTourStore(s => s.destination);
   const yaw = useTourStore(s => s.yaw);
   const flying = useTourStore(s => s.view === 'flight');
+  const automatic = useTourStore(s => s.view === 'auto');
   const [mapOpen, setMapOpen] = useState(true);
   const [course, setCourse] = useState('free');
   const [courseIndex, setCourseIndex] = useState(0);
   const exit = useRef<HTMLButtonElement>(null);
+  const autoStart = useRef<HTMLButtonElement>(null);
   const n = network.nodes[nodeId]!;
   const places = [...campus.buildings, ...(campus.outdoor_areas ?? [])];
   const placeDistance = (p: typeof places[number]) => { const goal = tourPlaceGoal(p); return Math.min(Math.hypot(goal[0] - n.x, goal[1] - n.z), ...(p.id === 'main' ? MAIN_ACCESS_NODES.map(a => Math.hypot(a.x - n.x, a.z - n.z)) : [])); };
@@ -69,6 +72,9 @@ export function CampusTour() {
   })), [network, nodeId, route]);
   useEffect(() => { exit.current?.focus(); return () => document.getElementById('tour-launcher-focus')?.focus(); }, []);
   useEffect(() => {
+    if (!automatic && document.activeElement === document.body) autoStart.current?.focus({ preventScroll: true });
+  }, [automatic]);
+  useEffect(() => {
     if (course !== 'free') useTourStore.getState().setDestination(itinerary[courseIndex] ?? null);
   }, [course, courseIndex]);
   const direction = (id: string) => {
@@ -79,13 +85,15 @@ export function CampusTour() {
     const text = kind === 'stairs' ? (next.y ?? 0) > (n.y ?? 0) ? '계단 올라가기' : '계단 내려가기' : Math.abs(degrees) > 135 ? '뒤로' : degrees > 35 ? '왼쪽' : degrees < -35 ? '오른쪽' : '앞으로';
     return { text, angle: -degrees, distance: Math.round(moves[id]!.distance) };
   };
+  if (automatic) return <AutoTourControls />;
   return <div id="tour-look-surface" className="absolute inset-0 z-20 touch-none cursor-grab select-none text-slate-800" role="region" aria-label={flying ? '캠퍼스 공중 자유 시점' : '캠퍼스 거리뷰. 드래그 또는 방향키로 둘러보고 이동 지점 버튼을 선택하세요.'}>
     {flying && <FlightControls />}
-    <header data-tour-ui className="absolute left-3 right-3 top-3 flex flex-wrap items-center justify-between gap-2 rounded-2xl bg-white/90 p-3 shadow-lg backdrop-blur sm:left-5 sm:right-5 sm:top-5 sm:px-5">
+    <header data-tour-ui className="absolute left-3 right-3 top-3 flex flex-wrap items-center justify-between gap-2 p-3 sm:left-5 sm:right-5 sm:top-5 sm:px-5">
       <div><p className="text-[10px] font-bold tracking-[0.22em] text-emerald-700">HANSEI CAMPUS WALK</p><h1 className="text-base font-extrabold sm:text-xl">캠퍼스 거리 투어</h1><p className="text-xs text-slate-500">{flying ? '공중 자유 시점' : `${tourBuildingName(nearest)} 주변 · 이동 지점 ${visited.length}곳 탐색`}</p></div>
       <div className="flex flex-wrap gap-2">
         {!flying && <button className={button} onClick={() => useTourStore.getState().look(yaw + Math.PI)} aria-label="뒤돌아보기">↶ 뒤돌기</button>}
         <button className={`${button} !border-emerald-300 !bg-emerald-50 !text-emerald-800`} disabled={!!targetId} onClick={() => useTourStore.getState().setView(flying ? 'street' : 'flight')}>{flying ? '거리뷰로 돌아가기' : '공중 자유 시점'}</button>
+        <button ref={autoStart} className={`${button} !border-blue-800 !bg-blue-900 !text-white`} disabled={!!targetId} onClick={() => useTourStore.getState().startAuto()}>자동 투어</button>
         <button ref={exit} className={button} onClick={() => useTourStore.getState().stop()}>투어 종료 {!flying && <span className="hidden sm:inline">· Esc</span>}</button>
       </div>
     </header>

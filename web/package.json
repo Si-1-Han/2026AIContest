@@ -13,6 +13,7 @@
     "typecheck": "tsc -b",
     "test:navigation": "node scripts/test-navigation.mjs",
     "test:tour": "node scripts/test-tour.mjs",
+    "test:auto-tour": "node scripts/test-auto-tour.mjs",
     "test:tour-art": "node scripts/test-tour-art.mjs",
     "models:tour": "node scripts/build-tour-models.mjs",
     "models:roads": "node scripts/build-road-details.mjs",

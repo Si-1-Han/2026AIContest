@@ -1,5 +1,5 @@
 import { useFrame, useThree } from '@react-three/fiber';
-import { EffectComposer, Bloom, ToneMapping, HueSaturation, BrightnessContrast } from '@react-three/postprocessing';
+import { EffectComposer, ToneMapping, HueSaturation, BrightnessContrast } from '@react-three/postprocessing';
 import { ToneMappingMode } from 'postprocessing';
 import { useEffect, useMemo } from 'react';
 import * as THREE from 'three';
@@ -60,7 +60,6 @@ export function TourEnvironment() {
 
 export function TourEffects() {
   return <EffectComposer multisampling={2}>
-    <Bloom intensity={0.035} luminanceThreshold={1.5} luminanceSmoothing={0.2} mipmapBlur />
     {/* Composer는 renderer의 톤 매핑을 끄므로 HDR 조명 뒤에 명시적으로 복원한다. */}
     <ToneMapping mode={ToneMappingMode.NEUTRAL} />
     <HueSaturation saturation={0.04} />

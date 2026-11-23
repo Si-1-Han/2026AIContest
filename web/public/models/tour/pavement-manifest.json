@@ -1,5 +1,5 @@
 {
-  "revision": "ec7e7fe4ef0272bd",
+  "revision": "5d76278819767bba",
   "generator": "Blender",
   "sources": [
     "web/public/data/campus.json",
@@ -25,7 +25,10 @@
     "web/src/features/tour/buildingFrontage.ts",
     "web/src/scene/tour/terrainCuts.ts",
     "web/src/features/tour/pavedAreas.ts",
-    "web/src/features/tour/graduateApproach.ts"
+    "web/src/features/tour/graduateApproach.ts",
+    "web/src/features/tour/southLink.ts",
+    "web/src/features/tour/rodemEntrance.ts",
+    "web/src/features/tour/visionEntrance.ts"
   ],
   "grate": {
     "file": "drain-grate.glb",

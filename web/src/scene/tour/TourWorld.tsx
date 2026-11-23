@@ -38,6 +38,7 @@ function TourSun() {
 export function TourWorld() {
   const campus = useCampusStore(s => s.campus)!;
   const network = useTourStore(s => s.network)!;
+  const showBuildingNames = useTourStore(s => s.view !== 'auto');
   const layout = useMemo(() => buildRoadLayout(campus, network.corridors), [campus, network.corridors]);
   const scenery = useMemo(() => makeScenery(campus, layout), [campus, layout]);
   const groundMask = useMemo(() => groundSurfaceMask(layout), [layout]);
@@ -69,11 +70,17 @@ export function TourWorld() {
     <MainGrounds roadMask={layout.asphalt} pavementMask={groundMask} />
     <Batch parts={clouds} shape="sphere" unlit />
     <Batch parts={scenery.paving} shadow={false} /><Batch parts={scenery.paint} shadow={false} />
+    {scenery.fieldCircleCenters.map(center => (
+      <mesh key={`${center[0]},${center[2]}`} position={center} rotation-x={-Math.PI / 2} receiveShadow>
+        <ringGeometry args={[6.94, 7.06, 128]} />
+        <meshStandardMaterial color="#f0efe1" roughness={0.88} />
+      </mesh>
+    ))}
     <Batch parts={scenery.stone} /><Batch parts={scenery.trunks} shape="cylinder" /><Batch parts={scenery.leaves} shape="sphere" />
     <Batch parts={scenery.metal} metal shadow={false} />
     <RoadDrains parts={scenery.drains} />
     <Trees trees={scenery.trees} />
-    <TourBuildings campus={campus} /><BuildingNames campus={campus} /><CampusFountain /><GateApproach />
+    <TourBuildings campus={campus} />{showBuildingNames && <BuildingNames campus={campus} />}<CampusFountain /><GateApproach />
     <TourEffects />
   </>;
 }

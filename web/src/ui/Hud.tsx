@@ -26,7 +26,7 @@ export function Hud({ onAdminOpen, adminUser }: { onAdminOpen: () => void; admin
           />
           </button>
           <h1 className="text-3xl font-extrabold tracking-tight text-[#184c80]">
-            한세 3D 캠퍼스
+            한세 어디로
           </h1>
           {adminUser && (
             <span aria-label="관리자 로그인 중" className="shrink-0 rounded-md border border-accent/25 bg-accent/10 px-2 py-0.5 text-[10px] font-semibold tracking-wide text-accent">
