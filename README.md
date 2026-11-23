@@ -41,7 +41,7 @@
 - **Tooling:** uv · pytest · ruff · Docker
 
 **연결:** Pydantic 모델 → JSON Schema → TypeScript 타입 자동 생성 (데이터 계약 단일화)
-**배포:** Vercel(`web/`) · Render(`backend/`, Docker) · GitHub Actions
+**배포:** AWS EC2 (Docker Compose · Caddy, HTTPS 자동) · GHCR · GitHub Actions (`main` push 시 자동 배포)
 
 ## 🗺️ 시스템 구성
 
@@ -59,7 +59,8 @@
 
 ```
 ├── web/                      # TypeScript
-│   ├── api/guide.ts          # AI 길안내 서버리스 함수 (Vercel)
+│   ├── api/guide.ts          # AI 길안내 함수 (Vercel 호환)
+│   ├── server/               # guide.ts를 EC2에서 실행하는 Node 서버 (호출 한도 포함)
 │   ├── public/data/          # 파이프라인 산출물 (커밋됨, 정적 폴백, floors/<건물>.json)
 │   ├── scripts/gen-types.mjs # JSON Schema → TS 타입
 │   └── src/
@@ -137,7 +138,7 @@ uv run pytest                             # 테스트
 
 CI가 생성 결과가 커밋된 것과 같은지 검사합니다.
 
-**배포:** 웹은 Vercel, API는 `docker compose`나 Render로 올립니다. 웹 빌드에 `VITE_API_URL=<API 주소>`를 지정하면 배포판에서도 Python 엔진을 씁니다(지정하지 않으면 간이 모드).
+**배포:** `main`에 push하면 GitHub Actions가 이미지 3개(site·guide·api)를 GHCR에 올리고 EC2에서 교체합니다. 헬스체크에 실패하면 직전 버전으로 자동 롤백합니다. 최초 설정은 [docs/DEPLOY_EC2.md](docs/DEPLOY_EC2.md)를 참고하세요.
 
 ## 📅 일정
 

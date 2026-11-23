@@ -9,6 +9,7 @@
     "dev:web": "vite --mode static",
     "dev:api": "node scripts/dev-api.mjs",
     "build": "tsc -b && vite build",
+    "build:server": "rolldown server/guide-server.ts -p node -f esm -o dist-server/guide-server.mjs",
     "preview": "vite preview",
     "typecheck": "tsc -b",
     "test:navigation": "node scripts/test-navigation.mjs",
